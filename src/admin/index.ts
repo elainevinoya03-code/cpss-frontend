@@ -1,0 +1,9 @@
+export { default as Dashboard } from "./dashboard";
+export { default as UserManagement } from "./user_management";
+export { default as IotProvisioning } from "./iot_provisioning";
+export { default as CctvPlacement } from "./cctv_placement";
+export { default as DigitalBoundaries } from "./digital_boundaries";
+export { default as PatrolConfiguration } from "./patrol_configuration";
+export { default as SystemLogs } from "./system_logs";
+export { default as SystemSettings } from "./system_settings";
+export { default as DataRequests } from "./data_requests";
