@@ -7,47 +7,45 @@ import {
   EyeOff,
   Send,
   RefreshCw,
-  Navigation,
   CheckCircle2,
   Circle,
   AlertTriangle,
-  MessageSquare,
+  Compass,
   TrendingUp,
-  Smartphone,
   FileText,
   Download,
   Printer,
-  Bell,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { formatTime } from "../utils/format";
 import { PUROK_ZONES } from "../constants/purok";
-import { Modal, ConfirmModal } from "../components/ui";
+import { Modal } from "../components/ui";
+import { addCaptainInboxItem } from "../utils/captainInboxStore";
 
 const PATROL_TEAMS = [
   {
     id: "t1", name: "Team Alpha", leader: "Ofc. Reyes", members: ["Ofc. Reyes", "Ofc. Santos"],
-    purok: "p3", purokName: "Purok 3", lat: 95, lng: 195, heading: "Market Zone sweep",
-    status: "active", checkedInAt: "2026-07-20T06:00:00", signal: "online",
-    route: ["r1", "r2", "r3", "r4"], checkpointsCleared: 2, totalCheckpoints: 4, gpsPings: 847,
+    purok: "p3", purokName: "Purok 3", assignment: "Market Zone sweep",
+    status: "active", checkedInAt: "2026-07-20T06:00:00",
+    route: ["r1", "r2", "r3", "r4"], checkpointsCleared: 2, totalCheckpoints: 4,
   },
   {
     id: "t2", name: "Team Bravo", leader: "Ofc. Dela Cruz", members: ["Ofc. Dela Cruz", "Ofc. Garcia"],
-    purok: "p4", purokName: "Purok 4", lat: 220, lng: 175, heading: "School District patrol",
-    status: "active", checkedInAt: "2026-07-20T06:05:00", signal: "online",
-    route: ["r5", "r6", "r7", "r8"], checkpointsCleared: 1, totalCheckpoints: 4, gpsPings: 812,
+    purok: "p4", purokName: "Purok 4", assignment: "School District patrol",
+    status: "active", checkedInAt: "2026-07-20T06:05:00",
+    route: ["r5", "r6", "r7", "r8"], checkpointsCleared: 1, totalCheckpoints: 4,
   },
   {
     id: "t3", name: "Team Charlie", leader: "Ofc. Torres", members: ["Ofc. Torres", "Ofc. Lim"],
-    purok: "p5", purokName: "Purok 5", lat: 120, lng: 325, heading: "Chapel â†’ Riverside sweep",
-    status: "active", checkedInAt: "2026-07-20T06:10:00", signal: "weak",
-    route: ["r9", "r10", "r11", "r12"], checkpointsCleared: 3, totalCheckpoints: 4, gpsPings: 634,
+    purok: "p5", purokName: "Purok 5", assignment: "Chapel to Riverside sweep",
+    status: "active", checkedInAt: "2026-07-20T06:10:00",
+    route: ["r9", "r10", "r11", "r12"], checkpointsCleared: 3, totalCheckpoints: 4,
   },
   {
     id: "t4", name: "Team Delta", leader: "Ofc. Ramos", members: ["Ofc. Ramos", "Ofc. Cruz"],
-    purok: "p6", purokName: "Purok 6", lat: 335, lng: 280, heading: "Commercial strip standby",
-    status: "active", checkedInAt: "2026-07-20T06:00:00", signal: "online",
-    route: ["r13", "r14", "r15", "r16"], checkpointsCleared: 0, totalCheckpoints: 4, gpsPings: 901,
+    purok: "p6", purokName: "Purok 6", assignment: "Commercial strip standby",
+    status: "active", checkedInAt: "2026-07-20T06:00:00",
+    route: ["r13", "r14", "r15", "r16"], checkpointsCleared: 0, totalCheckpoints: 4,
   },
 ];
 
@@ -68,12 +66,6 @@ const CHECKPOINTS = [
   { id: "r14", name: "CP-14: Commercial Side", lat: 350, lng: 270, purok: "p6", radius: 15, clearedBy: null, clearedAt: null },
   { id: "r15", name: "CP-15: Purok 6 Deep", lat: 370, lng: 310, purok: "p6", radius: 15, clearedBy: null, clearedAt: null },
   { id: "r16", name: "CP-16: Purok 6 Edge", lat: 340, lng: 340, purok: "p6", radius: 15, clearedBy: null, clearedAt: null },
-];
-
-const GAP_ZONES = [
-  { purok: "Purok 1", id: "p1", coverage: 20, risk: "high", lastPatrol: "2026-07-20T05:30:00", suggestion: "Assign Team Alpha after Purok 3 sweep" },
-  { purok: "Purok 2", id: "p2", coverage: 15, risk: "high", lastPatrol: "2026-07-20T04:45:00", suggestion: "Route Team Bravo through Purok 2 next" },
-  { purok: "Purok 6", id: "p6", coverage: 55, risk: "medium", lastPatrol: "2026-07-20T06:10:00", suggestion: "Team Delta to begin active sweep" },
 ];
 
 const RECENT_LOGS = [
@@ -169,9 +161,9 @@ function PatrolCoverageMap({ coverage, showCheckpoints, showIncidents, showIoT, 
     offline: { fill: "#f43f5e", stroke: "#e11d48" },
   };
   const BAND_STYLE: Record<string, { fill: string; label: string }> = {
-    high: { fill: "#10b981", label: "High coverage" },
-    med: { fill: "#fbbf24", label: "Partial coverage" },
-    low: { fill: "#f43f5e", label: "Low / no patrol" },
+    high: { fill: "#10b981", label: "High Coverage" },
+    med: { fill: "#fbbf24", label: "Partial Coverage" },
+    low: { fill: "#f43f5e", label: "Low Coverage" },
   };
   function bandFor(pct: number) {
     return pct >= 60 ? BAND_STYLE.high : pct >= 20 ? BAND_STYLE.med : BAND_STYLE.low;
@@ -344,7 +336,7 @@ function PatrolCoverageMap({ coverage, showCheckpoints, showIncidents, showIoT, 
   );
 }
 
-function TeamDetailDrawer({ team, onClose, onReroute }: { team: any; onClose: () => void; onReroute: (team: any) => void }) {
+function TeamDetailDrawer({ team, onClose, onRecommend }: { team: any; onClose: () => void; onRecommend: (team: any) => void }) {
   if (!team) return null;
   const status = TEAM_STATUS[team.status];
   const teamCheckpoints = CHECKPOINTS.filter((cp) => team.route.includes(cp.id));
@@ -356,7 +348,7 @@ function TeamDetailDrawer({ team, onClose, onReroute }: { team: any; onClose: ()
       size="lg"
       onClose={onClose}
       title={team.name}
-      subtitle={`${team.purokName} Â· Led by ${team.leader}`}
+      subtitle={`${team.purokName} · Led by ${team.leader}`}
       aside={
         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${status.badge}`}>
           {status.label}
@@ -364,11 +356,11 @@ function TeamDetailDrawer({ team, onClose, onReroute }: { team: any; onClose: ()
       }
       footer={
         <button
-          onClick={() => onReroute(team)}
+          onClick={() => onRecommend(team)}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#002A8C]"
         >
-          <Navigation size={14} />
-          Request Re-route
+          <Compass size={14} />
+          Recommend Patrol Adjustment
         </button>
       }
     >
@@ -388,7 +380,7 @@ function TeamDetailDrawer({ team, onClose, onReroute }: { team: any; onClose: ()
             </div>
             <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
               <p className="text-[10px] font-medium tracking-wider text-stone-400">ASSIGNMENT</p>
-              <p className="mt-1 text-[12px] font-medium text-stone-900">{team.heading}</p>
+              <p className="mt-1 text-[12px] font-medium text-stone-900">{team.assignment}</p>
             </div>
             <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
               <p className="text-[10px] font-medium tracking-wider text-stone-400">CHECKPOINT PROGRESS</p>
@@ -456,13 +448,20 @@ function TeamDetailDrawer({ team, onClose, onReroute }: { team: any; onClose: ()
   );
 }
 
-function RerouteModal({ team, onClose, onSend }: { team: any; onClose: () => void; onSend: (msg: string) => void }) {
-  const [message, setMessage] = useState("");
+function RecommendationModal({ preset, onClose, onSend }: {
+  preset: { purok: string; coverage: number | null; reason: string; recommendation: string } | null;
+  onClose: () => void;
+  onSend: (data: { purok: string; coverage: string; reason: string; recommendation: string }) => void;
+}) {
+  const [purok, setPurok] = useState(preset?.purok ?? "All Puroks");
+  const [coverage, setCoverage] = useState(preset?.coverage != null ? String(preset.coverage) : "");
+  const [reason, setReason] = useState(preset?.reason ?? "");
+  const [recommendation, setRecommendation] = useState(preset?.recommendation ?? "");
   const [submitted, setSubmitted] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!message.trim()) return;
+    if (!reason.trim() || !recommendation.trim()) return;
     setSubmitted(true);
   }
 
@@ -472,20 +471,36 @@ function RerouteModal({ team, onClose, onSend }: { team: any; onClose: () => voi
         size="md"
         icon={<Send size={22} className="text-emerald-600" />}
         iconClass="bg-emerald-100"
-        title="Re-route Request Sent"
-        subtitle={<>High-priority re-route request queued for <span className="font-semibold">{team.name}</span>. The Desk Officer will confirm and dispatch.</>}
+        title="Recommendation Sent to Desk Officer"
+        subtitle="The Desk Officer will review the recommendation and decide whether to execute the patrol adjustment."
         footer={
           <button
-            onClick={() => { onSend(message); onClose(); }}
+            onClick={() => { onSend({ purok, coverage, reason, recommendation }); onClose(); }}
             className="mt-5 w-full rounded-lg bg-[#0038A8] px-6 py-2 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
           >
             Done
           </button>
         }
       >
-        <div className="w-full rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-left">
-          <p className="text-[10px] font-semibold tracking-wider text-stone-400">MESSAGE</p>
-          <p className="mt-1 text-[11px] text-stone-600">{message}</p>
+        <div className="space-y-3 text-left">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+              <p className="text-[10px] font-medium tracking-wider text-stone-400">PUROK / ZONE</p>
+              <p className="mt-1 text-[12px] font-semibold text-stone-900">{purok}</p>
+            </div>
+            <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+              <p className="text-[10px] font-medium tracking-wider text-stone-400">CURRENT COVERAGE</p>
+              <p className="mt-1 text-[12px] font-semibold text-[#0038A8]">{coverage ? `${coverage}%` : "—"}</p>
+            </div>
+          </div>
+          <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+            <p className="text-[10px] font-medium tracking-wider text-stone-400">REASON</p>
+            <p className="mt-1 text-[11px] text-stone-600">{reason}</p>
+          </div>
+          <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+            <p className="text-[10px] font-medium tracking-wider text-stone-400">RECOMMENDATION</p>
+            <p className="mt-1 text-[11px] text-stone-600">{recommendation}</p>
+          </div>
         </div>
       </Modal>
     );
@@ -495,42 +510,81 @@ function RerouteModal({ team, onClose, onSend }: { team: any; onClose: () => voi
     <Modal
       size="md"
       onClose={onClose}
-      icon={<Navigation size={16} className="text-[#0038A8]" />}
-      title={`Request Re-route — ${team.name}`}
-      subtitle={`${team.purokName} Â· ${team.heading}`}
+      icon={<Compass size={16} className="text-[#0038A8]" />}
+      title="Recommend Patrol Adjustment"
+      subtitle="Send an operational recommendation to the Desk Officer"
       footer={
         <div className="flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-lg px-3 py-1.5 text-[11px] font-medium text-stone-500 hover:bg-stone-100">
             Cancel
           </button>
-          <button type="submit" form="reroute-form" className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]">
+          <button type="submit" form="recommendation-form" className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]">
             <Send size={12} />
-            Request Re-route
+            Send Recommendation
           </button>
         </div>
       }
     >
-      <form id="reroute-form" onSubmit={handleSubmit} className="space-y-4">
+      <form id="recommendation-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <p className="mb-1.5 text-[11px] font-semibold text-stone-700">Request / Instructions</p>
+            <p className="mb-1.5 text-[11px] font-semibold text-stone-700">Purok / Zone</p>
             <div className="relative">
-              <MessageSquare size={13} className="pointer-events-none absolute left-3 top-2.5 text-stone-400" />
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                rows={4}
-                placeholder="e.g. Proceed to Purok 1 â€” unpatrolled zone. Sweep the Riverside area and report back."
-                className="w-full resize-none rounded-lg border border-stone-200 py-2 pl-8 pr-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
-                required
-              />
+              <Map size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+              <select
+                value={purok}
+                onChange={(e) => setPurok(e.target.value)}
+                className="w-full appearance-none rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-8 text-[12px] text-stone-900 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+              >
+                <option value="All Puroks">All Puroks — Barangay-wide</option>
+                {PUROK_ZONES.map((z) => (
+                  <option key={z.id} value={z.name}>{z.name}</option>
+                ))}
+              </select>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
-            <Smartphone size={12} className="text-stone-400" />
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold text-stone-700">Current Coverage (%)</p>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={coverage}
+              onChange={(e) => setCoverage(e.target.value)}
+              placeholder="e.g. 20"
+              className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+            />
+          </div>
+
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold text-stone-700">Reason</p>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={3}
+              placeholder="e.g. Low coverage in the zone — checkpoint clears are below target this shift."
+              className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+              required
+            />
+          </div>
+
+          <div>
+            <p className="mb-1.5 text-[11px] font-semibold text-stone-700">Recommendation</p>
+            <textarea
+              value={recommendation}
+              onChange={(e) => setRecommendation(e.target.value)}
+              rows={3}
+              placeholder="e.g. Increase patrol frequency in this zone or assign an available team to sweep it."
+              className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+              required
+            />
+          </div>
+
+          <div className="flex items-start gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
+            <Compass size={12} className="mt-0.5 shrink-0 text-stone-400" />
             <p className="text-[10px] text-stone-500">
-              Queued as a <span className="font-semibold text-stone-700">high-priority re-route request</span> for the Desk
-              Officer, who confirms and delivers it to {team.name}'s mobile app.
+              This is a recommendation only. The <span className="font-semibold text-stone-700">Desk Officer decides</span> whether to
+              execute the patrol adjustment and remains responsible for patrol assignment.
             </p>
           </div>
       </form>
@@ -545,13 +599,11 @@ export default function LivePatrol() {
   const [timeRange, setTimeRange] = useState("live");
   const [showCheckpoints, setShowCheckpoints] = useState(true);
   const [selectedTeam, setSelectedTeam] = useState<any>(null);
-  const [rerouteTarget, setRerouteTarget] = useState<any>(null);
+  const [recommendationPreset, setRecommendationPreset] = useState<any>(null);
   const [hoveredZone, setHoveredZone] = useState<string | null>(null);
   const [showIncidents, setShowIncidents] = useState(false);
   const [showIoT, setShowIoT] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [gapActions, setGapActions] = useState<Record<string, string>>({});
-  const [gapConfirmModal, setGapConfirmModal] = useState<{ id: string; action: string } | null>(null);
 
   const zoneCoverage = getZoneCoverage(timeRange);
 
@@ -560,23 +612,44 @@ export default function LivePatrol() {
   const totalCPs = zoneCoverage.reduce((a, c) => a + c.total, 0);
   const coveragePct = totalCPs > 0 ? Math.round((totalCleared / totalCPs) * 100) : 0;
   const zonesCovered = zoneCoverage.filter((c) => c.pct >= COVERAGE_THRESHOLD).length;
+  const lowCoverageZones = zoneCoverage
+    .filter((c) => c.pct < COVERAGE_THRESHOLD)
+    .map((c) => ({
+      purok: c.zone.name,
+      coverage: c.pct,
+      lastPatrol: c.lastActivity ? formatTime(c.lastActivity) : "No patrol",
+      risk: c.pct < 20 ? "high" : "medium" as const,
+    }));
 
   const kpis = [
     { label: "ACTIVE UNITS", value: `${activeUnits}/${teams.length}`, sub: "On duty this shift", icon: Users },
-    { label: "CHECKPOINTS CLEARED", value: `${totalCleared}/${totalCPs}`, sub: `${coveragePct}% route coverage`, icon: CheckCircle2 },
-    { label: "ZONES COVERED", value: `${zonesCovered}/${zoneCoverage.length}`, sub: "Puroks at ≥ 40% coverage", icon: Map },
-    { label: "GAP ZONES", value: GAP_ZONES.filter((g) => g.risk === "high").length, sub: "High-risk unpatrolled areas", icon: AlertTriangle },
+    { label: "CHECKPOINTS CLEARED", value: `${totalCleared}/${totalCPs}`, sub: "Across all zones", icon: CheckCircle2 },
+    { label: "ROUTE COVERAGE", value: `${coveragePct}%`, sub: "Of checkpoints cleared", icon: Map },
+    { label: "ZONES COVERED", value: `${zonesCovered}/${zoneCoverage.length}`, sub: "Puroks at ≥ 40% coverage", icon: Compass },
+    { label: "LOW-COVERAGE ZONES", value: lowCoverageZones.length, sub: "Below 40% coverage", icon: AlertTriangle },
   ];
 
   const logTypeColors: Record<string, string> = {
     checkpoint: "bg-emerald-400",
     checkin: "bg-sky-400",
-    reroute: "bg-amber-400",
     alert: "bg-rose-400",
   };
 
-  function handleReroute() {
-    flash(`Re-route request sent to the Desk Officer for ${rerouteTarget.name}`);
+  function buildRecommendationPreset(purok: string, coverage: number | null, reason: string, recommendation: string) {
+    return { purok, coverage, reason, recommendation };
+  }
+
+  function handleRecommendSend(data: { purok: string; coverage: string; reason: string; recommendation: string }) {
+    addCaptainInboxItem({
+      type: "patrol_recommendation",
+      incidentId: "—",
+      title: `Patrol adjustment — ${data.purok}`,
+      purok: data.purok,
+      priority: Number(data.coverage) < 20 ? "High" : "Medium",
+      reason: data.recommendation,
+      submittedBy: "Capt. Reyes",
+    });
+    flash(`Recommendation sent to the Desk Officer for ${data.purok}`);
   }
 
   return (
@@ -587,7 +660,7 @@ export default function LivePatrol() {
             <div>
               <h1 className="text-2xl font-bold text-stone-900">Patrol Coverage &amp; Oversight</h1>
               <p className="mt-1 text-sm text-stone-500">
-                Area-based patrol coverage, checkpoint status &amp; gap oversight — no live GPS tracking for the Captain
+                Executive patrol oversight — coverage, checkpoint status &amp; low-coverage zones, with no live GPS tracking for the Captain
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -655,7 +728,7 @@ export default function LivePatrol() {
           </div>
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {kpis.map(({ label, value, sub, icon: Icon }) => (
             <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
               <div className="flex items-start justify-between">
@@ -706,7 +779,7 @@ export default function LivePatrol() {
                   >
                     <div className="flex items-start gap-3">
                       <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
-                        <Navigation size={13} />
+                        <Compass size={13} />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -715,7 +788,7 @@ export default function LivePatrol() {
                             {status.label}
                           </span>
                         </div>
-                        <p className="mt-0.5 text-[11px] text-stone-500">{team.heading}</p>
+                        <p className="mt-0.5 text-[11px] text-stone-500">{team.assignment}</p>
                         <div className="mt-1 flex items-center gap-3 text-[10px] text-stone-400">
                           <span className="flex items-center gap-1">
                             <Clock size={9} />
@@ -739,11 +812,19 @@ export default function LivePatrol() {
                         Details
                       </button>
                       <button
-                        onClick={() => setRerouteTarget(team)}
+                        onClick={() => {
+                          const cov = zoneCoverage.find((c) => c.zone.name === team.purokName)?.pct ?? null;
+                          setRecommendationPreset(buildRecommendationPreset(
+                            team.purokName,
+                            cov,
+                            `${team.purokName} is at ${cov ?? "n/a"}% coverage on this shift.`,
+                            `Review patrol priorities in ${team.purokName} and, if needed, shift an available team to a lower-coverage zone.`
+                          ));
+                        }}
                         className="flex h-7 items-center gap-1 rounded-md border border-stone-200 px-2 text-[11px] font-medium text-stone-600 transition hover:bg-stone-50"
                       >
-                        <Navigation size={11} />
-                        Request Re-route
+                        <Compass size={11} />
+                        Recommend
                       </button>
                     </div>
                   </div>
@@ -759,59 +840,49 @@ export default function LivePatrol() {
               <div className="flex items-center gap-2 px-5 py-4">
                 <AlertTriangle size={16} className="text-[#0038A8]" />
                 <div>
-                  <h3 className="text-[14px] font-semibold text-stone-900">Gap Analysis</h3>
-                  <p className="text-[11px] text-stone-400">Unpatrolled zones requiring attention</p>
+                  <h3 className="text-[14px] font-semibold text-stone-900">Low Coverage Zones</h3>
+                  <p className="text-[11px] text-stone-400">Zones below the {COVERAGE_THRESHOLD}% coverage target</p>
                 </div>
               </div>
 
               <div className="flex-1 max-h-80 overflow-y-auto scrollbar-hide space-y-2 px-5 pb-5">
-                {GAP_ZONES.map((gap) => (
-                  <div key={gap.id} className={`rounded-lg border px-3 py-2.5 ${
-                    gap.risk === "high" ? "border-rose-200 bg-rose-50" : "border-amber-200 bg-amber-50"
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-stone-900">{gap.purok}</span>
-                      <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
-                        gap.risk === "high" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
-                      }`}>
-                        {gap.risk === "high" ? "High Risk" : "Medium"}
-                      </span>
-                    </div>
-                    <div className="mt-1.5">
-                      <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-stone-200">
-                        <div
-                          className={`rounded-full transition-all duration-500 ${gap.coverage < COVERAGE_THRESHOLD ? "bg-rose-400" : "bg-amber-400"}`}
-                          style={{ width: `${gap.coverage}%` }}
-                        />
-                      </div>
-                      <p className="mt-0.5 text-[9px] text-stone-400">{gap.coverage}% coverage</p>
-                    </div>
-                    <p className="mt-1 text-[10px] text-stone-500">{gap.suggestion}</p>
-                    {gapActions[gap.id] ? (
-                      <div className="mt-2 flex items-center gap-1.5 text-[10px] text-emerald-600">
-                        <CheckCircle2 size={11} />
-                        {gapActions[gap.id] === "notified" ? "Desk Officer Notified" : "Recommendation Sent to Desk"}
-                      </div>
-                    ) : (
-                      <div className="mt-2 flex items-center gap-1.5">
-                        <button
-                          onClick={() => setGapConfirmModal({ id: gap.id, action: "notified" })}
-                          className="flex items-center gap-1 rounded-md border border-stone-200 bg-white px-2 py-1 text-[10px] font-medium text-stone-700 transition hover:bg-stone-50"
-                        >
-                          <Bell size={10} />
-                          Notify Desk
-                        </button>
-                        <button
-                          onClick={() => setGapConfirmModal({ id: gap.id, action: "recommended" })}
-                          className="flex items-center gap-1 rounded-md border border-stone-200 bg-white px-2 py-1 text-[10px] font-medium text-stone-700 transition hover:bg-stone-50"
-                        >
-                          <Send size={10} />
-                          Recommend to Desk
-                        </button>
-                      </div>
-                    )}
+                {lowCoverageZones.length === 0 ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-[11px] text-emerald-700">
+                    <CheckCircle2 size={13} />
+                    All zones are at or above the coverage target.
                   </div>
-                ))}
+                ) : (
+                  lowCoverageZones.map((z) => (
+                    <div key={z.purok} className={`rounded-lg border px-3 py-2.5 ${
+                      z.risk === "high" ? "border-rose-200 bg-rose-50" : "border-amber-200 bg-amber-50"
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-stone-900">{z.purok}</span>
+                        <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
+                          z.risk === "high" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
+                        }`}>
+                          {z.risk === "high" ? "High Risk" : "Medium"}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between text-[9px] text-stone-400">
+                        <span className="font-medium text-stone-600">{z.coverage}% coverage</span>
+                        <span>Last patrol: {z.lastPatrol}</span>
+                      </div>
+                      <button
+                        onClick={() => setRecommendationPreset(buildRecommendationPreset(
+                          z.purok,
+                          z.coverage,
+                          `${z.purok} has ${z.coverage}% coverage, below the ${COVERAGE_THRESHOLD}% target.`,
+                          `Schedule additional patrol sweeps in ${z.purok} to raise coverage above the target.`
+                        ))}
+                        className="mt-2 flex items-center gap-1 rounded-md border border-stone-200 bg-white px-2 py-1 text-[10px] font-medium text-stone-700 transition hover:bg-stone-50"
+                      >
+                        <Send size={10} />
+                        Recommend to Desk
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -898,14 +969,23 @@ export default function LivePatrol() {
       <TeamDetailDrawer
         team={selectedTeam}
         onClose={() => setSelectedTeam(null)}
-        onReroute={(team) => { setSelectedTeam(null); setRerouteTarget(team); }}
+        onRecommend={(team) => {
+          setSelectedTeam(null);
+          const cov = zoneCoverage.find((c) => c.zone.name === team.purokName)?.pct ?? null;
+          setRecommendationPreset(buildRecommendationPreset(
+            team.purokName,
+            cov,
+            `${team.purokName} is at ${cov ?? "n/a"}% coverage on this shift.`,
+            `Review patrol priorities in ${team.purokName} and, if needed, shift an available team to a lower-coverage zone.`
+          ));
+        }}
       />
 
-      {rerouteTarget && (
-        <RerouteModal
-          team={rerouteTarget}
-          onClose={() => setRerouteTarget(null)}
-          onSend={handleReroute}
+      {recommendationPreset && (
+        <RecommendationModal
+          preset={recommendationPreset}
+          onClose={() => setRecommendationPreset(null)}
+          onSend={handleRecommendSend}
         />
       )}
 
@@ -940,32 +1020,12 @@ export default function LivePatrol() {
                 <div className="flex justify-between"><span>Active Units</span><span className="font-medium text-stone-900">{activeUnits}</span></div>
                 <div className="flex justify-between"><span>Checkpoints Cleared</span><span className="font-medium text-stone-900">{totalCleared}/{totalCPs}</span></div>
                 <div className="flex justify-between"><span>Zones Covered</span><span className="font-medium text-stone-900">{zonesCovered}/{zoneCoverage.length}</span></div>
-                <div className="flex justify-between"><span>Gap Zones (High Risk)</span><span className="font-medium text-stone-900">{GAP_ZONES.filter((g) => g.risk === "high").length}</span></div>
+                <div className="flex justify-between"><span>Route Coverage</span><span className="font-medium text-stone-900">{coveragePct}%</span></div>
+                <div className="flex justify-between"><span>Low-Coverage Zones</span><span className="font-medium text-stone-900">{lowCoverageZones.length}</span></div>
                 <div className="flex justify-between"><span>Time Range</span><span className="font-medium text-stone-900">{TIME_RANGES.find((t) => t.key === timeRange)?.label}</span></div>
               </div>
             </div>
         </Modal>
-      )}
-
-      {gapConfirmModal && (
-        <ConfirmModal
-          type="confirm"
-          title={gapConfirmModal.action === "notified" ? "Notify Desk Officer" : "Recommend to Desk Officer"}
-          message={
-            gapConfirmModal.action === "notified"
-              ? `Send a notification to the desk officer about ${GAP_ZONES.find((g) => g.id === gapConfirmModal.id)?.purok}'s coverage gap?`
-              : `Send this coverage recommendation to the Desk Officer queue for action: "${GAP_ZONES.find((g) => g.id === gapConfirmModal.id)?.suggestion}"?`
-          }
-          confirmLabel="Confirm"
-          cancelLabel="Cancel"
-          onConfirm={() => {
-            const gap = GAP_ZONES.find((g) => g.id === gapConfirmModal.id);
-            setGapActions((prev) => ({ ...prev, [gapConfirmModal.id]: gapConfirmModal.action }));
-            setGapConfirmModal(null);
-            flash(gapConfirmModal.action === "notified" ? `Desk officer notified about ${gap?.purok}` : `Recommendation sent to Desk Officer for ${gap?.purok}`);
-          }}
-          onClose={() => setGapConfirmModal(null)}
-        />
       )}
 
       {ToastPortal && <ToastPortal />}

@@ -8,6 +8,7 @@ export default function ConfirmModal({
   onClose,
   confirmLabel = "Delete",
   cancelLabel = "Cancel",
+  tone = "danger",
 }: {
   type?: "confirm" | "success";
   title: string;
@@ -16,6 +17,7 @@ export default function ConfirmModal({
   onClose: () => void;
   confirmLabel?: string;
   cancelLabel?: string;
+  tone?: "danger" | "primary";
 }) {
   if (type === "confirm") {
     return (
@@ -35,7 +37,9 @@ export default function ConfirmModal({
             </button>
             <button
               onClick={onConfirm}
-              className="w-full rounded-lg bg-rose-600 px-4 py-2.5 text-[12px] font-medium text-white hover:bg-rose-700 sm:flex-1"
+              className={`w-full rounded-lg px-4 py-2.5 text-[12px] font-medium text-white sm:flex-1 ${
+                tone === "primary" ? "bg-[#0038A8] hover:bg-[#002A8C]" : "bg-rose-600 hover:bg-rose-700"
+              }`}
             >
               {confirmLabel}
             </button>

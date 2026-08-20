@@ -20,43 +20,39 @@ import {
   ToggleLeft,
   ToggleRight,
   CheckCircle2,
-  Inbox,
   ArrowUpRight,
   Check,
   AlertOctagon,
+  Route,
+  FileText,
+  ListChecks,
+  Radio,
+  X,
+  MessageSquarePlus,
 } from "lucide-react";
 import PurokAnalyticsPage from "./purok_analytics";
 import OperationalReports from "./operational_reports";
-import { ComposeBroadcastModal } from "./emergency_broadcast";
+import { ComposeBroadcastModal, AuthorizeBroadcastModal, MOCK_BROADCAST_HISTORY } from "./emergency_broadcast";
 import { useToast } from "../hooks/useToast";
 import { formatTime } from "../utils/format";
 import { PUROK_ZONES } from "../constants/purok";
 import { SEVERITY_MAP } from "../constants/severity";
-import { addPendingBroadcast } from "../utils/broadcastStore";
+import { addPendingBroadcast, removePendingBroadcast, addBroadcastRecord, seedBroadcastHistory } from "../utils/broadcastStore";
+import type { PendingBroadcast } from "../utils/broadcastStore";
 import {
   seedCaptainInbox,
   getCaptainInboxItems,
   subscribeCaptainInbox,
   markCaptainInboxRead,
   markAllCaptainInboxRead,
+  addCaptainInboxItem,
   type CaptainInboxItem,
 } from "../utils/captainInboxStore";
-import { Modal } from "../components/ui";
+import { Modal, ConfirmModal } from "../components/ui";
 
 const MOCK_CAPTAIN_INBOX: CaptainInboxItem[] = [
   {
     id: "CAP-001",
-    type: "sla_breach",
-    incidentId: "INC-2071",
-    title: "SLA breach — INC-2071 unacknowledged 26+ min after filing",
-    purok: "Purok 3",
-    priority: "High",
-    submittedBy: "System",
-    createdAt: "2026-07-20T10:31:00",
-    read: false,
-  },
-  {
-    id: "CAP-002",
     type: "escalation",
     incidentId: "INC-2070",
     title: "Desk Officer escalated INC-2070 — Emergency SOS, no response confirmation",
@@ -65,9 +61,85 @@ const MOCK_CAPTAIN_INBOX: CaptainInboxItem[] = [
     reason: "SOS from Ana Lim (Purok 6); no tanod acknowledgment received within target.",
     submittedBy: "Desk Officer",
     createdAt: "2026-07-20T10:12:00",
+    read: false,
+    status: "pending",
+  },
+  {
+    id: "CAP-002",
+    type: "sla_breach",
+    incidentId: "INC-2071",
+    title: "SLA breach — INC-2071 unacknowledged 26+ min after filing",
+    purok: "Purok 3",
+    priority: "High",
+    submittedBy: "System",
+    createdAt: "2026-07-20T10:31:00",
     read: true,
+    status: "in_progress",
+  },
+  {
+    id: "CAP-003",
+    type: "escalation",
+    incidentId: "INC-2069",
+    title: "Critical fire report escalated by Desk Officer — BFP coordination required",
+    purok: "Purok 5",
+    priority: "Critical",
+    reason: "Structure fire in a dense residential block; BFP en route, needs executive awareness.",
+    submittedBy: "Desk Officer",
+    createdAt: "2026-07-20T09:48:00",
+    read: true,
+    status: "acknowledged",
+  },
+  {
+    id: "CAP-004",
+    type: "patrol_recommendation",
+    incidentId: "—",
+    title: "Patrol recommendation — Purok 1 at 20% coverage, suggest Team Alpha after sweep",
+    purok: "Purok 1",
+    priority: "Medium",
+    submittedBy: "Capt. Reyes",
+    createdAt: "2026-07-20T09:15:00",
+    read: false,
+    status: "pending",
+  },
+  {
+    id: "CAP-005",
+    type: "other_request",
+    incidentId: "INC-2043",
+    title: "Follow-up on INC-2043 closure review sent to the Desk Officer",
+    purok: "Purok 2",
+    priority: "Low",
+    submittedBy: "Capt. Reyes",
+    createdAt: "2026-07-19T16:40:00",
+    read: true,
+    status: "completed",
+  },
+  {
+    id: "CAP-006",
+    type: "patrol_recommendation",
+    incidentId: "—",
+    title: "Gap recommendation — re-route Team Delta toward Purok 6 low-lying area",
+    purok: "Purok 6",
+    priority: "Medium",
+    submittedBy: "Capt. Reyes",
+    createdAt: "2026-07-19T11:20:00",
+    read: true,
+    status: "completed",
   },
 ];
+
+const FOLLOW_UP_TYPE_META: Record<string, { label: string; badge: string; icon: any }> = {
+  escalation: { label: "Escalation", badge: "bg-violet-100 text-violet-700", icon: ArrowUpRight },
+  sla_breach: { label: "SLA Breach", badge: "bg-rose-100 text-rose-700", icon: AlertOctagon },
+  patrol_recommendation: { label: "Patrol Recommendation", badge: "bg-sky-100 text-sky-700", icon: Route },
+  other_request: { label: "Request", badge: "bg-stone-100 text-stone-600", icon: FileText },
+};
+
+const FOLLOW_UP_STATUS_META: Record<string, { label: string; badge: string; dot: string }> = {
+  pending: { label: "Pending", badge: "bg-amber-100 text-amber-700", dot: "bg-amber-400" },
+  acknowledged: { label: "Acknowledged", badge: "bg-sky-100 text-sky-700", dot: "bg-sky-400" },
+  in_progress: { label: "In Progress", badge: "bg-violet-100 text-violet-700", dot: "bg-violet-400" },
+  completed: { label: "Completed", badge: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
+};
 
 const SENSORS = [
   { id: "s1", name: "SM-GATE-01", type: "smoke", lat: 110, lng: 65, status: "online", value: 120, threshold: 500, purok: "p1" },
@@ -86,13 +158,13 @@ const TANOD_UNITS = [
 ];
 
 const INITIAL_INCIDENTS = [
-  { id: "INC-2047", category: "Fire/Smoke", severity: "critical", purok: "Purok 3", description: "Smoke detected near residential area â€” SM-PUROK3-01 offline, unverified", reportedBy: "Maria Santos", time: "2026-07-20T09:32:00", status: "active", photos: 2, lat: 100, lng: 200, source: "IoT Sensor", verification: "received" },
-  { id: "INC-2046", category: "Noise Disturbance", severity: "warning", purok: "Purok 4", description: "Sustained high decibel readings from DB-HALL-01 exceeding 78 dB", reportedBy: "Juan Dela Cruz", time: "2026-07-20T10:05:00", status: "active", photos: 1, lat: 210, lng: 170, source: "IoT Sensor", verification: "verification_in_progress" },
-  { id: "INC-2045", category: "Fire/Smoke", severity: "low", purok: "Purok 1", description: "Minor smoke report near market entrance â€” sensor readings normal", reportedBy: "Pedro Reyes", time: "2026-07-20T08:45:00", status: "investigating", photos: 0, lat: 110, lng: 65, source: "Resident Report" },
-  { id: "INC-2044", category: "Noise Disturbance", severity: "low", purok: "Purok 6", description: "Late-night noise complaint near commercial strip", reportedBy: "Ana Lim", time: "2026-07-20T07:20:00", status: "investigating", photos: 1, lat: 330, lng: 240, source: "Resident Report" },
-  { id: "INC-2043", category: "Fire/Smoke", severity: "resolved", purok: "Purok 2", description: "False alarm â€” cooking smoke triggered sensor", reportedBy: "System Auto", time: "2026-07-19T22:15:00", status: "resolved", photos: 0, lat: 225, lng: 60, isFalseAlarm: true, source: "IoT Sensor", verification: "false_or_unverified" },
-  { id: "INC-2041", category: "Fire/Smoke", severity: "resolved", purok: "Purok 4", description: "Candle flame near window triggered sensor â€” no fire found", reportedBy: "System Auto", time: "2026-07-18T19:10:00", status: "resolved", photos: 0, lat: 210, lng: 170, isFalseAlarm: true, source: "IoT Sensor", verification: "false_or_unverified" },
-  { id: "INC-2042", category: "Noise Disturbance", severity: "resolved", purok: "Purok 5", description: "Event noise reported and verified within acceptable limits", reportedBy: "Rosa Garcia", time: "2026-07-19T20:30:00", status: "resolved", photos: 3, lat: 85, lng: 310, source: "IoT Sensor", verification: "verified" },
+  { id: "INC-2047", category: "Fire/Smoke", severity: "critical", purok: "Purok 3", description: "Smoke detected near residential area â€” SM-PUROK3-01 offline, unverified", reportedBy: "Maria Santos", time: "2026-07-20T09:32:00", status: "active", photos: 2, lat: 100, lng: 200, source: "IoT Sensor", verification: "received", location: "Residential cluster near chapel, Purok 3", deskUpdate: "Tanod Team Alpha dispatched to verify the smoke report; BFP notified.", responseStatus: "Tanod en route" },
+  { id: "INC-2046", category: "Noise Disturbance", severity: "warning", purok: "Purok 4", description: "Sustained high decibel readings from DB-HALL-01 exceeding 78 dB", reportedBy: "Juan Dela Cruz", time: "2026-07-20T10:05:00", status: "active", photos: 1, lat: 210, lng: 170, source: "IoT Sensor", verification: "verification_in_progress", location: "Barangay Hall vicinity (DB-HALL-01)", deskUpdate: "On-site verification in progress; source traced to a late event at the hall.", responseStatus: "Verifying on site" },
+  { id: "INC-2045", category: "Fire/Smoke", severity: "low", purok: "Purok 1", description: "Minor smoke report near market entrance â€” sensor readings normal", reportedBy: "Pedro Reyes", time: "2026-07-20T08:45:00", status: "investigating", photos: 0, lat: 110, lng: 65, source: "Resident Report", location: "Market entrance area, Purok 1", deskUpdate: "Purok 1 Leader checked the report — cooking smoke, no fire risk.", responseStatus: "Investigation complete" },
+  { id: "INC-2044", category: "Noise Disturbance", severity: "low", purok: "Purok 6", description: "Late-night noise complaint near commercial strip", reportedBy: "Ana Lim", time: "2026-07-20T07:20:00", status: "investigating", photos: 1, lat: 330, lng: 240, source: "Resident Report", location: "Commercial strip, Purok 6", deskUpdate: "Purok 6 Leader notified; venue asked to lower volume.", responseStatus: "Follow-up scheduled" },
+  { id: "INC-2043", category: "Fire/Smoke", severity: "resolved", purok: "Purok 2", description: "False alarm â€” cooking smoke triggered sensor", reportedBy: "System Auto", time: "2026-07-19T22:15:00", status: "resolved", photos: 0, lat: 225, lng: 60, isFalseAlarm: true, source: "IoT Sensor", verification: "false_or_unverified", location: "Residential kitchen, Purok 2", deskUpdate: "Closed as false alarm — cooking smoke triggered the sensor.", responseStatus: "Resolved — false alarm" },
+  { id: "INC-2041", category: "Fire/Smoke", severity: "resolved", purok: "Purok 4", description: "Candle flame near window triggered sensor â€” no fire found", reportedBy: "System Auto", time: "2026-07-18T19:10:00", status: "resolved", photos: 0, lat: 210, lng: 170, isFalseAlarm: true, source: "IoT Sensor", verification: "false_or_unverified", location: "Residential window, Purok 4", deskUpdate: "Closed as false alarm — candle flame detected near a window.", responseStatus: "Resolved — false alarm" },
+  { id: "INC-2042", category: "Noise Disturbance", severity: "resolved", purok: "Purok 5", description: "Event noise reported and verified within acceptable limits", reportedBy: "Rosa Garcia", time: "2026-07-19T20:30:00", status: "resolved", photos: 3, lat: 85, lng: 310, source: "IoT Sensor", verification: "verified", location: "Event area near chapel, Purok 5", deskUpdate: "Event noise verified within acceptable limits; advisory sent to organizers.", responseStatus: "Resolved — verified" },
 ];
 
 const CATEGORY_ICON = { "Fire/Smoke": Flame, "Noise Disturbance": Volume2 };
@@ -109,6 +181,8 @@ const SENSOR_STATUS = {
 
 const VERIFICATION_SOURCES = ["IoT Sensor", "CCTV", "CCTV Escalation"];
 
+const PENDING_VERIFICATION_STATES = ["received", "acknowledged", "verification_in_progress"];
+
 const VERIFICATION_META: Record<string, { short: string; label: string; badge: string; dot: string }> = {
   received: { short: "Pending Verification", label: "Received — awaiting Desk Officer verification", badge: "bg-amber-100 text-amber-700", dot: "bg-amber-400" },
   acknowledged: { short: "Pending Verification", label: "Acknowledged — Desk Officer verification pending", badge: "bg-amber-100 text-amber-700", dot: "bg-amber-400" },
@@ -122,10 +196,6 @@ function isIoTOrCCTVSource(source?: string) {
   return !!source && VERIFICATION_SOURCES.includes(source);
 }
 
-function isPendingVerification(item: { source?: string; verification?: string }) {
-  return isIoTOrCCTVSource(item.source) && item.verification !== "verified";
-}
-
 function sensorIsPending(sensor: { status: string; verification?: string }) {
   return (sensor.status === "warning" || sensor.status === "offline") && sensor.verification !== "verified";
 }
@@ -133,11 +203,11 @@ function sensorIsPending(sensor: { status: string; verification?: string }) {
 function VerificationBadge({ verification, size = "sm" }: { verification?: string; size?: "sm" | "lg" }) {
   if (!verification) return null;
   const meta = VERIFICATION_META[verification] ?? VERIFICATION_META.received;
-  const pending = verification !== "verified";
+  const pending = PENDING_VERIFICATION_STATES.includes(verification);
   return (
     <span className={`inline-flex items-center gap-1 rounded-full font-medium ${meta.badge} ${size === "lg" ? "px-2.5 py-1 text-[11px]" : "px-1.5 py-0.5 text-[9px]"}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${meta.dot} ${pending ? "animate-pulse" : ""}`} />
-      {pending ? "Pending Verification" : meta.short}
+      {meta.short}
     </span>
   );
 }
@@ -425,18 +495,31 @@ function PurokAnalytics({ incidents }) {
   );
 }
 
-function IncidentDetail({ incident, onClose, onBroadcast }) {
+function ReviewField({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+      <p className="text-[10px] font-medium tracking-wider text-stone-400">{label}</p>
+      <p className="mt-1 text-[12px] font-medium text-stone-900">{value}</p>
+      {sub && <p className="mt-0.5 text-[10px] text-stone-400">{sub}</p>}
+    </div>
+  );
+}
+
+function IncidentDetail({ incident, onClose, onBroadcast, onRequestFollowUp }) {
   if (!incident) return null;
   const sev = SEVERITY_MAP[incident.severity];
   const CatIcon = CATEGORY_ICON[incident.category] || AlertTriangle;
   const catColors = CATEGORY_COLORS[incident.category] || { bg: "bg-stone-100", text: "text-stone-600" };
+  const isIoT = isIoTOrCCTVSource(incident.source);
+  const verMeta = VERIFICATION_META[incident.verification] ?? VERIFICATION_META.received;
+  const verificationPending = PENDING_VERIFICATION_STATES.includes(incident.verification);
 
   return (
     <Modal
       side="right"
       size="lg"
       onClose={onClose}
-      title={incident.id}
+      title={`Incident Review · ${incident.id}`}
       subtitle={`${incident.purok} · ${formatTime(incident.time)}`}
       aside={
         <div className="flex items-center gap-2">
@@ -444,86 +527,154 @@ function IncidentDetail({ incident, onClose, onBroadcast }) {
             <span className={`h-1.5 w-1.5 rounded-full ${sev.dot}`} />
             {sev.label}
           </span>
-          {isIoTOrCCTVSource(incident.source) && <VerificationBadge verification={incident.verification} size="lg" />}
+          {isIoT && <VerificationBadge verification={incident.verification} size="lg" />}
         </div>
       }
       footer={
-        incident.status !== "resolved" ? (
-          <button
-            onClick={() => onBroadcast(incident)}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#002A8C]"
-          >
-            <Send size={14} />
-            Draft Emergency Broadcast
-          </button>
-        ) : null
-      }
-    >
-      <div className="mb-5">
-        <div className="mb-2 flex items-center gap-2">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${catColors.bg} ${catColors.text}`}>
-            <CatIcon size={16} />
-          </div>
-          <span className="text-[12px] font-semibold text-stone-900">{incident.category}</span>
-        </div>
-        <p className="text-[13px] leading-relaxed text-stone-500">{incident.description}</p>
-      </div>
-
-      <div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
-          <p className="text-[10px] font-medium tracking-wider text-stone-400">REPORTED BY</p>
-          <p className="mt-1 text-[12px] font-medium text-stone-900">{incident.reportedBy}</p>
-        </div>
-        <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
-          <p className="text-[10px] font-medium tracking-wider text-stone-400">STATUS</p>
-          <p className="mt-1 text-[12px] font-medium text-stone-900 capitalize">{incident.status}</p>
-        </div>
-      </div>
-
-      {isIoTOrCCTVSource(incident.source) && (
-        <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <p className="text-[10px] font-medium tracking-wider text-stone-400">VERIFICATION</p>
-            {isPendingVerification(incident) ? (
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-700">
-                <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-                Pending Verification
-              </span>
+        <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => onRequestFollowUp(incident)}
+              className="flex h-10 items-center justify-center gap-1.5 rounded-lg border border-stone-200 bg-white text-[12px] font-medium text-stone-900 transition hover:bg-stone-50"
+            >
+              <MessageSquarePlus size={13} />
+              Request Follow-up
+            </button>
+            {incident.status !== "resolved" ? (
+              <button
+                onClick={() => onBroadcast(incident)}
+                className="flex h-10 items-center justify-center gap-1.5 rounded-lg bg-[#0038A8] px-4 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+              >
+                <Megaphone size={13} />
+                Prepare Broadcast
+              </button>
             ) : (
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700">
-                <CheckCircle2 size={12} />
-                Verified
+              <span className="flex h-10 items-center justify-center rounded-lg border border-stone-200 bg-stone-50 text-[11px] text-stone-400">
+                Incident resolved
               </span>
             )}
           </div>
-          <p className="mt-1 text-[11px] text-stone-500">
-            {VERIFICATION_META[incident.verification].label} · IoT/CCTV sourced
+          <button
+            onClick={onClose}
+            className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-stone-200 bg-white text-[12px] font-medium text-stone-600 transition hover:bg-stone-50"
+          >
+            <X size={13} />
+            Close Review
+          </button>
+        </div>
+      }
+    >
+      <div>
+        <div className="mb-5">
+          <div className="mb-2 flex items-center gap-2">
+            <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${catColors.bg} ${catColors.text}`}>
+              <CatIcon size={16} />
+            </div>
+            <span className="text-[12px] font-semibold text-stone-900">{incident.category}</span>
+          </div>
+          <p className="text-[13px] leading-relaxed text-stone-500">{incident.description}</p>
+        </div>
+
+        {isIoT && (
+          <div className={`mb-5 rounded-lg border px-4 py-3 ${verMeta.badge}`}>
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] font-semibold tracking-wider text-stone-500">VERIFICATION</p>
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-stone-800">
+                <span className={`h-2 w-2 rounded-full ${verMeta.dot} ${verificationPending ? "animate-pulse" : ""}`} />
+                {verMeta.short}
+              </span>
+            </div>
+            <p className="mt-1 text-[11px] text-stone-500">{verMeta.label}</p>
+          </div>
+        )}
+
+        <div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <ReviewField label="CURRENT STATUS" value={incident.status.charAt(0).toUpperCase() + incident.status.slice(1)} />
+          <ReviewField label="SEVERITY" value={sev.label} />
+          <ReviewField label="SOURCE" value={incident.source} />
+          <ReviewField label="DATE / TIME" value={formatTime(incident.time)} />
+          <ReviewField label="PUROK" value={incident.purok} />
+          <ReviewField label="LOCATION" value={incident.location || "—"} sub={incident.lat != null ? `${incident.lat}, ${incident.lng}` : undefined} />
+          <ReviewField label="REPORTED BY" value={incident.reportedBy} />
+          <ReviewField label="RESPONSE STATUS" value={incident.responseStatus || "—"} />
+        </div>
+
+        {incident.photos > 0 && (
+          <div className="mb-5">
+            <p className="mb-2 text-[11px] font-semibold text-stone-900">Attached Evidence ({incident.photos})</p>
+            <div className="flex gap-2">
+              {Array.from({ length: incident.photos }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex h-20 w-20 items-center justify-center rounded-lg border border-stone-200 bg-stone-100"
+                >
+                  <ImageIcon size={18} className="text-stone-300" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+          <p className="mb-1 flex items-center gap-1 text-[10px] font-medium tracking-wider text-stone-400">
+            <FileText size={10} />
+            DESK OFFICER UPDATE
+          </p>
+          <p className="text-[11px] leading-relaxed text-stone-600">
+            {incident.deskUpdate || "No update from the Desk Officer yet."}
           </p>
         </div>
-      )}
+      </div>
+    </Modal>
+  );
+}
 
-      {incident.photos > 0 && (
-        <div className="mb-5">
-          <p className="mb-2 text-[11px] font-semibold text-stone-900">Attached Evidence ({incident.photos})</p>
-          <div className="flex gap-2">
-            {Array.from({ length: incident.photos }).map((_, i) => (
-              <div
-                key={i}
-                className="flex h-20 w-20 items-center justify-center rounded-lg border border-stone-200 bg-stone-100"
-              >
-                <ImageIcon size={18} className="text-stone-300" />
-              </div>
-            ))}
-          </div>
+function RequestFollowUpModal({ incident, onClose, onSubmit }: { incident: any; onClose: () => void; onSubmit: (reason: string) => void }) {
+  const [reason, setReason] = useState("");
+  return (
+    <Modal
+      size="md"
+      onClose={onClose}
+      icon={<MessageSquarePlus size={16} className="text-[#0038A8]" />}
+      title="Request Follow-up"
+      subtitle={`Send a follow-up request for ${incident?.id ?? "this incident"} to the Desk Officer`}
+      footer={
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-900 hover:bg-stone-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onSubmit(reason.trim())}
+            disabled={!reason.trim()}
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-50"
+          >
+            <Send size={13} />
+            Send Request
+          </button>
         </div>
-      )}
-
-      <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
-        <p className="mb-1 text-[10px] font-medium tracking-wider text-stone-400">LOCATION COORDINATES</p>
-        <div className="flex items-center gap-1.5">
-          <MapPin size={12} className="text-[#0038A8]" />
-          <span className="font-mono text-[11px] text-stone-900">{incident.lat}, {incident.lng}</span>
+      }
+    >
+      <div>
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-[11px]">
+          <span className="font-semibold text-stone-900">{incident?.id}</span>
+          <span className="text-stone-400">{incident?.purok} · {incident?.category}</span>
         </div>
+        <div>
+          <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">REASON / REQUEST</p>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={4}
+            placeholder="What would you like the Desk Officer to follow up on?"
+            className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+          />
+        </div>
+        <p className="mt-2 text-[10px] text-stone-400">
+          The request will be sent to the Desk Officer and tracked as Pending in Operational Follow-ups.
+        </p>
       </div>
     </Modal>
   );
@@ -592,7 +743,7 @@ function SensorDetail({ sensor, onClose }) {
 }
 
 export default function CaptainDashboard({ activeKey = "dashboard" }) {
-  const { ToastPortal } = useToast();
+  const { ToastPortal, flash } = useToast();
 
   const incidents = INITIAL_INCIDENTS;
   const [sensors, setSensors] = useState(SENSORS);
@@ -647,9 +798,13 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
   const [showBroadcastCompose, setShowBroadcastCompose] = useState(false);
   const [dashTab, setDashTab] = useState<"overview" | "reports">("overview");
   const [inboxItems, setInboxItems] = useState<CaptainInboxItem[]>([]);
+  const [followUpTarget, setFollowUpTarget] = useState<any>(null);
+  const [authorizeDraft, setAuthorizeDraft] = useState<PendingBroadcast | null>(null);
+  const [broadcastSuccess, setBroadcastSuccess] = useState<{ title: string; message: string; detail?: string } | null>(null);
 
   useEffect(() => {
     seedCaptainInbox(MOCK_CAPTAIN_INBOX);
+    seedBroadcastHistory(MOCK_BROADCAST_HISTORY);
     setInboxItems(getCaptainInboxItems());
     return subscribeCaptainInbox(() => {
       setInboxItems(getCaptainInboxItems());
@@ -670,7 +825,7 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
   }
 
   function handleDraftSubmit(alert) {
-    addPendingBroadcast({
+    return addPendingBroadcast({
       title: alert.title,
       severity: alert.severity,
       purok: alert.purok,
@@ -679,6 +834,55 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
       deliveryMethod: alert.deliveryMethod,
       createdAt: new Date().toISOString(),
       submittedBy: "Capt. Reyes",
+    });
+  }
+
+  function handleDraftReady(draft: PendingBroadcast) {
+    setAuthorizeDraft(draft);
+  }
+
+  function handleFollowUpSubmit(reason: string) {
+    if (!followUpTarget) return;
+    addCaptainInboxItem({
+      type: "other_request",
+      incidentId: followUpTarget.id,
+      title: `Follow-up requested — ${followUpTarget.id}`,
+      purok: followUpTarget.purok,
+      priority: followUpTarget.severity === "critical" ? "High" : "Medium",
+      reason: reason || undefined,
+      submittedBy: "Capt. Reyes",
+    });
+    const targetId = followUpTarget.id;
+    setFollowUpTarget(null);
+    flash(`Follow-up request sent to the Desk Officer — ${targetId}`);
+  }
+
+  function handleConfirmBlast() {
+    if (!authorizeDraft) return;
+    const draft = authorizeDraft;
+    addBroadcastRecord({
+      title: draft.title,
+      severity: draft.severity,
+      purok: draft.purok,
+      message: draft.message,
+      sentAt: new Date().toISOString(),
+      sentBy: "Capt. Reyes",
+      status: "delivered",
+      smsCount: draft.deliveryMethod === "push+sms" ? 1247 : 0,
+      pushCount: draft.deliveryMethod === "push+sms" ? 1247 : 28,
+      safeCount: 0,
+      helpCount: 0,
+      category: draft.category,
+      deliveryMethod: draft.deliveryMethod,
+    });
+    removePendingBroadcast(draft.id);
+    setAuthorizeDraft(null);
+    setBroadcastSuccess({
+      title: "Broadcast Authorized & Sent",
+      message: `${draft.title} has been distributed.`,
+      detail: draft.deliveryMethod === "push+sms"
+        ? "Push notification + SMS delivered simultaneously."
+        : "Push notification delivered to targeted recipients.",
     });
   }
 
@@ -923,10 +1127,10 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
               <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
                 <div className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-2">
-                    <Inbox size={16} className="text-[#0038A8]" />
+                    <ListChecks size={16} className="text-[#0038A8]" />
                     <div>
-                      <h3 className="text-[14px] font-semibold text-stone-900">Desk Officer Inbox</h3>
-                      <p className="text-[11px] text-stone-400">Escalations &amp; SLA breaches from the Desk</p>
+                      <h3 className="text-[14px] font-semibold text-stone-900">Operational Follow-ups</h3>
+                      <p className="text-[11px] text-stone-400">Escalations, SLA concerns &amp; requests to/from the Desk</p>
                     </div>
                   </div>
                   {unreadInbox > 0 ? (
@@ -953,43 +1157,58 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
                 <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-5 pb-4">
                   {inboxItems.length === 0 ? (
                     <div className="px-2 py-8 text-center">
-                      <p className="text-[12px] text-stone-400">No items from the Desk Officer yet</p>
+                      <p className="text-[12px] text-stone-400">No operational follow-ups yet</p>
                     </div>
                   ) : (
                     inboxItems.map((item) => {
-                      const isEsc = item.type === "escalation";
-                      const chip = isEsc ? "bg-violet-100 text-violet-700" : "bg-rose-100 text-rose-700";
-                      const chipLabel = isEsc ? "Escalation" : "SLA Breach";
+                      const typeMeta = FOLLOW_UP_TYPE_META[item.type] ?? FOLLOW_UP_TYPE_META.other_request;
+                      const statusMeta = FOLLOW_UP_STATUS_META[item.status] ?? FOLLOW_UP_STATUS_META.pending;
+                      const TypeIcon = typeMeta.icon;
+                      const related = item.incidentId && item.incidentId !== "—" ? `${item.incidentId} · ${item.purok}` : item.purok;
                       return (
                         <div
                           key={item.id}
                           onClick={() => markCaptainInboxRead(item.id)}
-                          className={`cursor-pointer rounded-lg border px-3.5 py-3 transition hover:bg-stone-50 ${
-                            isEsc ? "border-violet-200" : "border-rose-200"
-                          } ${item.read ? "opacity-60" : ""}`}
+                          className={`cursor-pointer rounded-lg border border-stone-200 px-3.5 py-3 transition hover:bg-stone-50 ${
+                            item.read ? "opacity-60" : ""
+                          }`}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex flex-wrap items-center gap-1.5">
-                              <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${chip}`}>
-                                {isEsc ? <ArrowUpRight size={9} /> : <AlertOctagon size={9} />}
-                                {chipLabel}
+                              <span className="text-[12px] font-semibold text-stone-900">{item.id}</span>
+                              <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${typeMeta.badge}`}>
+                                <TypeIcon size={9} />
+                                {typeMeta.label}
                               </span>
-                              <span className="text-[12px] font-semibold text-stone-900">{item.incidentId}</span>
-                              <span className="rounded-full bg-stone-100 px-1.5 py-0.5 text-[9px] font-medium text-stone-500">{item.priority}</span>
                             </div>
-                            {!item.read && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-rose-500" />}
+                            <div className="flex items-center gap-1.5">
+                              <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${statusMeta.badge}`}>
+                                <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dot}`} />
+                                {statusMeta.label}
+                              </span>
+                              {!item.read && <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500" />}
+                            </div>
                           </div>
                           <p className="mt-1.5 text-[11px] leading-snug text-stone-600">{item.title}</p>
                           {item.reason && <p className="mt-1 text-[10px] italic leading-snug text-stone-400">“{item.reason}”</p>}
-                          <p className="mt-1.5 flex items-center gap-1 text-[10px] text-stone-400">
-                            <MapPin size={9} />
-                            {item.purok}
-                            <span className="mx-0.5">&middot;</span>
-                            <Clock size={9} />
-                            {formatTime(item.createdAt)}
-                            <span className="mx-0.5">&middot;</span>
-                            {item.submittedBy}
-                          </p>
+                          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-stone-500">
+                            <span className="flex items-center gap-1">
+                              <MapPin size={9} className="text-[#0038A8]" />
+                              <span className="font-medium text-stone-700">{related}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <AlertTriangle size={9} className="text-amber-500" />
+                              Priority: <span className="font-medium text-stone-700">{item.priority}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock size={9} />
+                              {formatTime(item.createdAt)}
+                            </span>
+                            <span className="flex items-center gap-1 text-stone-400">
+                              <Shield size={9} />
+                              {item.submittedBy}
+                            </span>
+                          </div>
                         </div>
                       );
                     })
@@ -1047,13 +1266,44 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
         ) : null}
       </main>
 
-      <IncidentDetail incident={selectedIncident} onClose={() => setSelectedIncident(null)} onBroadcast={handleBroadcast} />
+      <IncidentDetail
+        incident={selectedIncident}
+        onClose={() => setSelectedIncident(null)}
+        onBroadcast={handleBroadcast}
+        onRequestFollowUp={setFollowUpTarget}
+      />
       <SensorDetail sensor={selectedSensor} onClose={() => setSelectedSensor(null)} />
       {showBroadcastCompose && (
         <ComposeBroadcastModal
           onClose={() => setShowBroadcastCompose(false)}
           onSend={handleDraftSubmit}
           incidentHint={broadcastTarget}
+          onDraftReady={broadcastTarget ? handleDraftReady : undefined}
+        />
+      )}
+
+      {followUpTarget && (
+        <RequestFollowUpModal
+          incident={followUpTarget}
+          onClose={() => setFollowUpTarget(null)}
+          onSubmit={handleFollowUpSubmit}
+        />
+      )}
+
+      {authorizeDraft && (
+        <AuthorizeBroadcastModal
+          alert={authorizeDraft}
+          onClose={() => setAuthorizeDraft(null)}
+          onConfirm={handleConfirmBlast}
+        />
+      )}
+
+      {broadcastSuccess && (
+        <ConfirmModal
+          type="success"
+          title={broadcastSuccess.title}
+          message={broadcastSuccess.detail ? `${broadcastSuccess.message} ${broadcastSuccess.detail}` : broadcastSuccess.message}
+          onClose={() => setBroadcastSuccess(null)}
         />
       )}
 

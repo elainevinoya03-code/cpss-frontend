@@ -7,24 +7,18 @@ import {
   ShieldAlert,
   PartyPopper,
   CloudRain,
-  CloudSun,
-  RefreshCw,
   LoaderCircle,
-  Sun,
-  Wind,
-  Droplets,
   Globe,
-  MapPin,
+  Eye,
   Clock,
   Archive,
-  RotateCcw,
   Info,
   User,
   CheckCircle2,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { formatTime } from "../utils/format";
-import { PUROK_ZONES } from "../constants/purok";
+import { Modal } from "../components/ui";
 
 type BulletinType = "Safety Alert" | "Event Notice" | "Weather Warning";
 type Severity = "info" | "warning" | "alert";
@@ -43,19 +37,9 @@ interface Bulletin {
   target: BulletinTarget;
   publishedAt: string;
   author: string;
-  source?: string;
   pushState: "pushing" | "pushed";
   pushedAt?: string;
   archived?: boolean;
-}
-
-interface WeatherAdvisory {
-  headline: string;
-  body: string;
-  severity: Severity;
-  temp: number;
-  wind: number;
-  rainChance: number;
 }
 
 const RESIDENT_COUNTS: Record<string, number> = {
@@ -67,12 +51,6 @@ const RESIDENT_COUNTS: Record<string, number> = {
   "Purok 6": 145,
 };
 const BARANGAY_TOTAL = Object.values(RESIDENT_COUNTS).reduce((a, b) => a + b, 0);
-
-function residentsFor(purokId: string | null): number {
-  if (purokId === null) return BARANGAY_TOTAL;
-  const zone = PUROK_ZONES.find((z) => z.id === purokId);
-  return zone ? RESIDENT_COUNTS[zone.name] ?? 0 : 0;
-}
 
 const TYPE_META: Record<BulletinType, { icon: any; badge: string; desc: string; active: string }> = {
   "Safety Alert": {
@@ -90,7 +68,7 @@ const TYPE_META: Record<BulletinType, { icon: any; badge: string; desc: string; 
   "Weather Warning": {
     icon: CloudRain,
     badge: "bg-violet-100 text-violet-700",
-    desc: "Weather advisories (API)",
+    desc: "Weather advisories",
     active: "border-violet-500 bg-violet-50 text-violet-700",
   },
 };
@@ -135,7 +113,6 @@ const INITIAL_BULLETINS: Bulletin[] = [
     target: { purokId: null, label: "Entire Barangay" },
     publishedAt: "2026-07-18T08:00:00",
     author: "Capt. Reyes",
-    source: "Weather API",
     pushState: "pushed",
     pushedAt: "2026-07-18T08:00:00",
   },
@@ -145,30 +122,13 @@ const INITIAL_BULLETINS: Bulletin[] = [
     body: "DPWH reblocking along the market access road starts Monday 8:00 AM. Market stall holders should use the alternate route via Purok 2 for the next three days.",
     type: "Safety Alert",
     severity: "info",
-    target: { purokId: "p3", label: "Purok 3" },
+    target: { purokId: null, label: "Entire Barangay" },
     publishedAt: "2026-07-17T14:00:00",
     author: "Capt. Reyes",
     pushState: "pushed",
     pushedAt: "2026-07-17T14:00:00",
   },
 ];
-
-function fetchWeatherAdvisory(): Promise<WeatherAdvisory> {
-  return new Promise((resolve) => {
-    window.setTimeout(
-      () =>
-        resolve({
-          headline: "Moderate to heavy rain expected this afternoon",
-          body: "Integrated weather feed (PAGASA): scattered thunderstorms expected 2:00 PM â€“ 6:00 PM over District 6. Possible localized flooding in low-lying areas. Residents are advised to stay indoors and avoid the riverside during peak hours.",
-          severity: "warning",
-          temp: 31,
-          wind: 16,
-          rainChance: 80,
-        }),
-      1200
-    );
-  });
-}
 
 export default function BulletinPublisher() {
   const { flash, ToastPortal } = useToast();
@@ -180,18 +140,16 @@ export default function BulletinPublisher() {
   const [severity, setSeverity] = useState<Severity>("info");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [weatherLoading, setWeatherLoading] = useState(false);
-  const [weatherData, setWeatherData] = useState<WeatherAdvisory | null>(null);
+  const [showReview, setShowReview] = useState(false);
+  const [viewTarget, setViewTarget] = useState<Bulletin | null>(null);
 
   const activeBulletins = bulletins.filter((b) => !b.archived);
-  const purokTargeted = activeBulletins.filter((b) => b.target.purokId !== null);
   const barangayWide = activeBulletins.filter((b) => b.target.purokId === null);
   const pushedActive = activeBulletins.filter((b) => b.pushState === "pushed");
 
   const kpis = [
     { label: "PUBLISHED", value: activeBulletins.length, sub: "active announcements", icon: Megaphone },
-    { label: "PUROK TARGETED", value: purokTargeted.length, sub: "zone-specific bulletins", icon: MapPin },
-    { label: "BARANGAY-WIDE", value: barangayWide.length, sub: "null purok ID broadcasts", icon: Globe },
+    { label: "BARANGAY-WIDE", value: barangayWide.length, sub: "official barangay bulletins", icon: Globe },
     { label: "PUSH DELIVERED", value: pushedActive.length, sub: "pushed to resident apps", icon: BellRing },
   ];
 
@@ -220,27 +178,19 @@ export default function BulletinPublisher() {
     }, 1400);
   }
 
-  async function pullWeather() {
-    setWeatherLoading(true);
-    const data = await fetchWeatherAdvisory();
-    setWeatherData(data);
-    setType("Weather Warning");
-    setTitle(data.headline);
-    setBody(data.body);
-    setSeverity(data.severity);
-    setWeatherLoading(false);
-    flash("Weather advisory auto-populated from the weather API");
-  }
-
-  function publish() {
+  function openReview() {
     if (!title.trim()) {
-      flash("Add a headline before publishing");
+      flash("Add a headline before reviewing");
       return;
     }
     if (!body.trim()) {
-      flash("Write a message before publishing");
+      flash("Write a message before reviewing");
       return;
     }
+    setShowReview(true);
+  }
+
+  function confirmPublish() {
     const id = `BLT-${2016 + bulletins.length}`;
     const bulletin: Bulletin = {
       id,
@@ -254,33 +204,21 @@ export default function BulletinPublisher() {
       },
       publishedAt: new Date().toISOString(),
       author: "Capt. Reyes",
-      source: type === "Weather Warning" && weatherData ? "Weather API" : undefined,
       pushState: "pushing",
     };
     setBulletins((prev) => [bulletin, ...prev]);
     schedulePush(id);
+    setShowReview(false);
     flash(`${id} published â€” push notification sending to resident apps`);
     setTitle("");
     setBody("");
-    setWeatherData(null);
     setType("Safety Alert");
     setSeverity("info");
-  }
-
-  function rePush(id: string) {
-    setBulletins((prev) => prev.map((b) => (b.id === id ? { ...b, pushState: "pushing" } : b)));
-    schedulePush(id);
-    flash(`${id} push notification re-sent`);
   }
 
   function archive(id: string) {
     setBulletins((prev) => prev.map((b) => (b.id === id ? { ...b, archived: true } : b)));
     flash(`${id} archived`);
-  }
-
-  function restore(id: string) {
-    setBulletins((prev) => prev.map((b) => (b.id === id ? { ...b, archived: false } : b)));
-    flash(`${id} restored`);
   }
 
   return (
@@ -291,7 +229,7 @@ export default function BulletinPublisher() {
             <div>
               <h1 className="text-2xl font-bold text-stone-900">News &amp; Bulletin Publisher</h1>
               <p className="mt-1 text-sm text-stone-500">
-                Compose and publish routine bulletins barangay-wide or to any purok
+                Compose and publish routine bulletins to the entire barangay
               </p>
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-[#0038A8]/20 bg-white px-3.5 py-2 shadow-sm">
@@ -305,16 +243,18 @@ export default function BulletinPublisher() {
           <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#0038A8]/15 bg-[#0038A8]/5 px-3.5 py-2.5">
             <Info size={14} className="mt-0.5 shrink-0 text-[#0038A8]" />
             <p className="text-[11px] leading-relaxed text-stone-600">
-              Publish <span className="font-semibold text-stone-800">Safety Alerts</span>,{" "}
+              Official barangay-wide communication:{" "}
+              <span className="font-semibold text-stone-800">Safety Alerts</span>,{" "}
               <span className="font-semibold text-stone-800">Event Notices</span>, or{" "}
-              <span className="font-semibold text-stone-800">Weather Warnings</span> targeted at a single
-              purok or the entire barangay â€” distinct from the severity-graded Emergency Broadcast System.
-              Successful publication triggers an automatic push notification to the targeted resident apps.
+              <span className="font-semibold text-stone-800">Weather Warnings</span> â€” distinct from the
+              severity-graded Emergency Broadcast System. Successful publication triggers an automatic push
+              notification to all resident apps. Purok-specific messaging is coordinated through the Desk
+              Officer or the Purok Leader, not through bulletins.
             </p>
           </div>
         </header>
 
-        <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {kpis.map(({ label, value, sub, icon: Icon }) => (
             <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
               <div className="flex items-start justify-between">
@@ -335,7 +275,7 @@ export default function BulletinPublisher() {
               <Megaphone size={16} className="text-[#0038A8]" />
               <div>
                 <h3 className="text-[14px] font-semibold text-stone-900">Compose Bulletin</h3>
-                <p className="text-[11px] text-stone-400">Publishes &amp; pushes to target residents</p>
+                <p className="text-[11px] text-stone-400">Compose, review, then publish to all residents</p>
               </div>
             </div>
 
@@ -375,48 +315,6 @@ export default function BulletinPublisher() {
                 />
               </div>
 
-              {type === "Weather Warning" && (
-                <div className="rounded-lg border border-violet-200 bg-violet-50/50 px-3.5 py-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <CloudSun size={14} className="text-violet-600" />
-                      <p className="text-[11px] font-semibold text-violet-700">Weather API</p>
-                      <span className="text-[9px] text-violet-400">third-party integrated feed</span>
-                    </div>
-                    <button
-                      onClick={pullWeather}
-                      disabled={weatherLoading}
-                      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[10px] font-semibold transition ${
-                        weatherLoading
-                          ? "border-violet-200 text-violet-400"
-                          : "border-violet-300 bg-white text-violet-700 hover:bg-violet-100"
-                      }`}
-                    >
-                      {weatherLoading ? <LoaderCircle size={11} className="animate-spin" /> : <RefreshCw size={11} />}
-                      {weatherLoading ? "Fetching forecast..." : "Pull from API"}
-                    </button>
-                  </div>
-                  {weatherData && (
-                    <div className="mt-2.5 space-y-1.5">
-                      <div className="flex flex-wrap gap-1.5">
-                        <span className="flex items-center gap-1 rounded-md bg-white px-2 py-1 text-[9px] font-medium text-stone-600">
-                          <Sun size={9} className="text-amber-500" /> {weatherData.temp}Â°C
-                        </span>
-                        <span className="flex items-center gap-1 rounded-md bg-white px-2 py-1 text-[9px] font-medium text-stone-600">
-                          <Wind size={9} className="text-sky-500" /> {weatherData.wind} km/h
-                        </span>
-                        <span className="flex items-center gap-1 rounded-md bg-white px-2 py-1 text-[9px] font-medium text-stone-600">
-                          <Droplets size={9} className="text-violet-500" /> {weatherData.rainChance}% rain
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-violet-500">
-                        Auto-populated headline, message, and severity from the weather feed.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
               <div>
                 <p className="mb-1.5 text-[11px] font-semibold text-stone-700">Message</p>
                 <textarea
@@ -429,14 +327,14 @@ export default function BulletinPublisher() {
               </div>
 
               <div>
-                <p className="mb-1.5 text-[11px] font-semibold text-stone-700">Audience Targeting</p>
+                <p className="mb-1.5 text-[11px] font-semibold text-stone-700">Audience</p>
                 <div className="flex w-full items-start gap-3 rounded-lg border border-[#0038A8] bg-[#0038A8]/5 px-3 py-2.5 text-left">
                   <Globe size={14} className="mt-0.5 text-[#0038A8]" />
                   <div className="flex-1">
                     <p className="text-[11px] font-medium text-stone-900">Entire Barangay</p>
                     <p className="text-[10px] text-stone-400">
-                      Broadcast to ~{BARANGAY_TOTAL} registered residents Â· stored with{" "}
-                      <span className="font-mono text-[9px]">null purok ID</span>
+                      Broadcast to ~{BARANGAY_TOTAL} registered residents. No purok targeting â€” for
+                      purok-specific messages, coordinate with the Desk Officer or Purok Leader.
                     </p>
                   </div>
                   <CheckCircle2 size={14} className="mt-0.5 text-[#0038A8]" />
@@ -471,11 +369,11 @@ export default function BulletinPublisher() {
 
             <div className="border-t border-stone-100 px-5 py-4">
               <button
-                onClick={publish}
+                onClick={openReview}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
               >
                 <Send size={13} />
-                Publish &amp; Send Push
+                Review &amp; Publish
               </button>
               <p className="mt-1.5 text-center text-[10px] text-stone-400">
                 Push to ~{residentTarget} residents in {targetLabel}
@@ -525,7 +423,6 @@ export default function BulletinPublisher() {
                 filteredBulletins.map((b) => {
                   const TypeIcon = TYPE_META[b.type].icon;
                   const sev = SEVERITY_META[b.severity];
-                  const count = residentsFor(b.target.purokId);
                   return (
                     <div key={b.id} className={`rounded-xl border bg-white px-4 py-3.5 shadow-sm ${b.archived ? "border-stone-200 opacity-60" : "border-stone-200"}`}>
                       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -539,12 +436,8 @@ export default function BulletinPublisher() {
                             <span className={`h-1.5 w-1.5 rounded-full ${sev.dot}`} />
                             {sev.label}
                           </span>
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
-                              b.target.purokId === null ? "bg-stone-100 text-stone-600" : "bg-[#0038A8]/5 text-[#0038A8]"
-                            }`}
-                          >
-                            {b.target.purokId === null ? <Globe size={9} /> : <MapPin size={9} />}
+                          <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-1.5 py-0.5 text-[9px] font-medium text-stone-600">
+                            <Globe size={9} />
                             {b.target.label}
                           </span>
                           <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-1.5 py-0.5 text-[9px] font-medium text-stone-500">
@@ -567,15 +460,6 @@ export default function BulletinPublisher() {
                       <h4 className="mt-2 text-[13px] font-semibold text-stone-900">{b.title}</h4>
                       <p className="mt-0.5 text-[11px] text-stone-500">{b.body}</p>
 
-                      {b.source && (
-                        <div className="mt-2">
-                          <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-1 text-[9px] font-medium text-violet-600">
-                            <CloudRain size={9} />
-                            Populated via {b.source}
-                          </span>
-                        </div>
-                      )}
-
                       <div
                         className={`mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 ${
                           b.pushState === "pushed" ? "border-emerald-200 bg-emerald-50/60" : "border-stone-200 bg-stone-50"
@@ -585,43 +469,33 @@ export default function BulletinPublisher() {
                           {b.pushState === "pushing" ? (
                             <>
                               <LoaderCircle size={11} className="animate-spin text-stone-400" />
-                              Sending push to ~{count} resident apps...
+                              Sending push to ~{BARANGAY_TOTAL} resident apps...
                             </>
                           ) : (
                             <>
                               <BellRing size={11} className="text-emerald-600" />
-                              Push delivered to ~{count} resident apps
+                              Push delivered to ~{BARANGAY_TOTAL} resident apps
                               {b.pushedAt ? ` Â· ${formatTime(b.pushedAt)}` : ""}
                             </>
                           )}
                         </p>
                         <div className="flex items-center gap-1.5">
-                          {!b.archived && (
-                            <button
-                              onClick={() => rePush(b.id)}
-                              disabled={b.pushState === "pushing"}
-                              className="flex h-7 items-center gap-1 rounded-md border border-stone-200 px-2 text-[10px] font-medium text-stone-600 transition hover:bg-stone-50 disabled:opacity-40"
-                            >
-                              <RefreshCw size={10} />
-                              Re-send
-                            </button>
-                          )}
                           <button
-                            onClick={() => (b.archived ? restore(b.id) : archive(b.id))}
+                            onClick={() => setViewTarget(b)}
                             className="flex h-7 items-center gap-1 rounded-md border border-stone-200 px-2 text-[10px] font-medium text-stone-600 transition hover:bg-stone-50"
                           >
-                            {b.archived ? (
-                              <>
-                                <RotateCcw size={10} />
-                                Restore
-                              </>
-                            ) : (
-                              <>
-                                <Archive size={10} />
-                                Archive
-                              </>
-                            )}
+                            <Eye size={10} />
+                            View
                           </button>
+                          {!b.archived && (
+                            <button
+                              onClick={() => archive(b.id)}
+                              className="flex h-7 items-center gap-1 rounded-md border border-stone-200 px-2 text-[10px] font-medium text-stone-600 transition hover:bg-stone-50"
+                            >
+                              <Archive size={10} />
+                              Archive
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -632,6 +506,140 @@ export default function BulletinPublisher() {
           </div>
         </div>
       </main>
+
+      {showReview && (
+        <Modal
+          onClose={() => setShowReview(false)}
+          icon={<Megaphone size={16} />}
+          iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+          title="Publish Barangay Bulletin"
+          subtitle="Review the bulletin before publishing to the entire barangay"
+          size="md"
+          footer={
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowReview(false)}
+                className="rounded-lg border border-stone-200 px-4 py-2 text-[12px] font-medium text-stone-600 transition hover:bg-stone-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmPublish}
+                className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+              >
+                <Send size={12} />
+                Publish
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <p className="mb-1 text-[10px] font-semibold tracking-wider text-stone-400">HEADLINE</p>
+              <p className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] font-semibold text-stone-900">
+                {title.trim()}
+              </p>
+            </div>
+            <div>
+              <p className="mb-1 text-[10px] font-semibold tracking-wider text-stone-400">MESSAGE</p>
+              <p className="whitespace-pre-wrap rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] leading-relaxed text-stone-700">
+                {body.trim()}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <p className="mb-1 text-[10px] font-semibold tracking-wider text-stone-400">TYPE</p>
+                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium ${TYPE_META[type].badge}`}>
+                  {(() => {
+                    const Icon = TYPE_META[type].icon;
+                    return <Icon size={10} />;
+                  })()}
+                  {type}
+                </span>
+              </div>
+              <div>
+                <p className="mb-1 text-[10px] font-semibold tracking-wider text-stone-400">SEVERITY</p>
+                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-medium ${SEVERITY_META[severity].badge}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${SEVERITY_META[severity].dot}`} />
+                  {SEVERITY_META[severity].label}
+                </span>
+              </div>
+              <div>
+                <p className="mb-1 text-[10px] font-semibold tracking-wider text-stone-400">AUDIENCE</p>
+                <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-1 text-[10px] font-medium text-stone-600">
+                  <Globe size={10} />
+                  {targetLabel}
+                </span>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {viewTarget && (
+        <Modal
+          onClose={() => setViewTarget(null)}
+          icon={<Bell size={16} />}
+          iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+          title={viewTarget.title}
+          subtitle={`${viewTarget.id} Â· published ${formatTime(viewTarget.publishedAt)}`}
+          size="md"
+        >
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${TYPE_META[viewTarget.type].badge}`}>
+                {(() => {
+                  const Icon = TYPE_META[viewTarget.type].icon;
+                  return <Icon size={10} />;
+                })()}
+                {viewTarget.type}
+              </span>
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${SEVERITY_META[viewTarget.severity].badge}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${SEVERITY_META[viewTarget.severity].dot}`} />
+                {SEVERITY_META[viewTarget.severity].label}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600">
+                <Globe size={10} />
+                {viewTarget.target.label}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-500">
+                <User size={10} />
+                {viewTarget.author}
+              </span>
+            </div>
+
+            <div>
+              <p className="mb-1 text-[10px] font-semibold tracking-wider text-stone-400">MESSAGE</p>
+              <p className="whitespace-pre-wrap rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5 text-[12px] leading-relaxed text-stone-700">
+                {viewTarget.body}
+              </p>
+            </div>
+
+            <div
+              className={`flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 ${
+                viewTarget.pushState === "pushed" ? "border-emerald-200 bg-emerald-50/60" : "border-stone-200 bg-stone-50"
+              }`}
+            >
+              {viewTarget.pushState === "pushing" ? (
+                <>
+                  <LoaderCircle size={11} className="animate-spin text-stone-400" />
+                  <span className="text-[10px] font-medium text-stone-600">
+                    Sending push to ~{BARANGAY_TOTAL} resident apps...
+                  </span>
+                </>
+              ) : (
+                <>
+                  <BellRing size={11} className="text-emerald-600" />
+                  <span className="text-[10px] font-medium text-stone-600">
+                    Delivered to ~{BARANGAY_TOTAL} resident apps
+                    {viewTarget.pushedAt ? ` Â· ${formatTime(viewTarget.pushedAt)}` : ""}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {ToastPortal && <ToastPortal />}
     </div>

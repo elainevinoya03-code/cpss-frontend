@@ -30,8 +30,7 @@ import {
 } from "./desk_officer";
 import {
   SurveillanceMatrix,
-  ManualThreatFlags,
-  EscalatedClipsDispatches,
+  CctvEventsEvidence,
   VideoArchivesPlayback,
 } from "./cctv_operator";
 import {
@@ -46,7 +45,7 @@ import { PurokIncidentsProvider } from "./purok_leader/incidentStore";
 const ADMIN_NAV = ["dashboard", "users", "iot", "cctv", "boundaries", "patrol", "logs", "data_requests", "settings"];
 const CAPTAIN_NAV = ["dashboard", "analytics", "broadcasts", "patrol", "evidence", "bulletins", "cases"];
 const DESK_OFFICER_NAV = ["dashboard", "iot_alerts", "dispatches", "patrol", "blotter", "chat"];
-const CCTV_OPERATOR_NAV = ["surveillance", "threat_flags", "escalated", "archives"];
+const CCTV_OPERATOR_NAV = ["surveillance", "events", "archives"];
 const PUROK_LEADER_NAV = ["incidents", "bulletins", "escalate", "directory", "iot_alerts"];
 
 function defaultNav(role) {
@@ -171,7 +170,7 @@ export default function App() {
 
   const currentInitials = role === "captain" ? "CA" : role === "desk_officer" ? "DO" : role === "cctv_operator" ? "CO" : role === "purok_leader" ? "PL" : "BA";
   const currentLabel = role === "captain" ? "Captain" : role === "desk_officer" ? "Desk Officer" : role === "cctv_operator" ? "CCTV Operator" : role === "purok_leader" ? "Purok Leader" : "System Admin";
-  const currentSubLabel = role === "captain" ? "Patrol Lead" : role === "desk_officer" ? "Operations Desk" : role === "cctv_operator" ? "Surveillance Unit" : role === "purok_leader" ? "Community Lead" : "Barangay Admin";
+  const currentSubLabel = role === "captain" ? "Executive Oversight" : role === "desk_officer" ? "Operations Desk" : role === "cctv_operator" ? "Surveillance Unit" : role === "purok_leader" ? "Community Lead" : "Barangay Admin";
 
   return (
     <PurokIncidentsProvider>
@@ -207,8 +206,7 @@ export default function App() {
           ) : role === "cctv_operator" ? (
             <>
               {activeNav === "surveillance" && <SurveillanceMatrix operatorName={operatorName} />}
-              {activeNav === "threat_flags" && <ManualThreatFlags operatorName={operatorName} />}
-              {activeNav === "escalated" && <EscalatedClipsDispatches operatorName={operatorName} />}
+              {activeNav === "events" && <CctvEventsEvidence operatorName={operatorName} />}
               {activeNav === "archives" && <VideoArchivesPlayback operatorName={operatorName} />}
             </>
           ) : role === "purok_leader" ? (

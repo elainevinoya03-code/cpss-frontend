@@ -21,7 +21,6 @@ import {
   Activity,
   ChevronRight,
   ImageIcon,
-  Megaphone,
   Star,
   Camera,
   Flag,
@@ -38,10 +37,7 @@ import {
   Link2,
   Search,
   ShieldCheck,
-  Info,
-  Globe,
-  Save,
-  Archive,
+  Navigation,
   Tag,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
@@ -53,22 +49,72 @@ import {
   nextEscalationStatus,
 } from "../purok_leader/incidentStore";
 import type { EscalatedCase, EscalationStatus } from "../purok_leader/incidentStore";
-import { addPendingBroadcast } from "../utils/broadcastStore";
 import { addCaptainInboxItem } from "../utils/captainInboxStore";
-import {
-  seedSafetyNotices,
-  getSafetyNotices,
-  subscribeSafetyNotices,
-  addSafetyNotice,
-  setSafetyNoticeState,
-} from "../utils/safetyNoticeStore";
-import type { NoticeCategory, NoticeTarget, SafetyNotice } from "../utils/safetyNoticeStore";
 
 type IncidentStatus = "new" | "acknowledged" | "in_progress" | "resolved" | "closed_false_alarm";
 // §10.3.1 — canonical Incident.source enum. "Anonymous" is not a source: it is a
 // boolean/token modifier on a `resident` report (§6.1.5). Purok Leader validation/esc
 // escalation is modeled separately (IncidentValidation), not as an incident source.
 type IncidentSource = "resident" | "tanod" | "desk_officer" | "cctv" | "iot" | "sos";
+
+// §12.1 — Desk Officer verification workflow. Every newly received incident must be
+// reviewed before it can be classified, prioritized, or assigned.
+type VerificationStatus = "new" | "under_review" | "verified" | "unverified";
+
+// §15.1 — Structured closure reasons for false alarm / invalid closure
+type ClosureReason = "False Alarm" | "Unverified" | "Invalid Report" | "Outside Barangay Jurisdiction" | "No Further Action Required" | "Other";
+
+const CLOSURE_REASONS: ClosureReason[] = ["False Alarm", "Unverified", "Invalid Report", "Outside Barangay Jurisdiction", "No Further Action Required", "Other"];
+
+const CLOSURE_REASON_META: Record<ClosureReason, { label: string; badge: string; icon: string }> = {
+  "False Alarm": { label: "False Alarm", badge: "bg-stone-100 text-stone-600", icon: "siren" },
+  "Unverified": { label: "Unverified", badge: "bg-amber-100 text-amber-700", icon: "question" },
+  "Invalid Report": { label: "Invalid Report", badge: "bg-rose-100 text-rose-700", icon: "x-circle" },
+  "Outside Barangay Jurisdiction": { label: "Outside Jurisdiction", badge: "bg-violet-100 text-violet-700", icon: "map-pin-off" },
+  "No Further Action Required": { label: "No Further Action", badge: "bg-sky-100 text-sky-700", icon: "check" },
+  "Other": { label: "Other", badge: "bg-stone-100 text-stone-500", icon: "more-horizontal" },
+};
+
+// §15.2 — Closure history entry. Every closure preserves previous status, final status,
+// reason, note, officer, and timestamp. Internal notes are never exposed to residents.
+interface ClosureHistoryEntry {
+  previousStatus: IncidentStatus;
+  finalStatus: IncidentStatus;
+  closureReason: string;
+  closureNote: string;
+  closedBy: string;
+  closedAt: string;
+}
+
+const VERIFICATION_STATUS_META: Record<VerificationStatus, { label: string; badge: string; dot: string }> = {
+  new: { label: "Pending Review", badge: "bg-stone-100 text-stone-600", dot: "bg-stone-400" },
+  under_review: { label: "Under Review", badge: "bg-violet-100 text-violet-700", dot: "bg-violet-400" },
+  verified: { label: "Verified", badge: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-400" },
+  unverified: { label: "Unverified", badge: "bg-rose-100 text-rose-700", dot: "bg-rose-400" },
+};
+
+// §12.2 — Canonical incident categories. Desk Officer confirms or changes during review.
+const INCIDENT_CATEGORIES = [
+  "Fire or Smoke",
+  "Noise Disturbance",
+  "Public Disturbance",
+  "Hazard or Obstruction",
+  "Suspicious Activity",
+  "Medical or Welfare Concern",
+  "Other",
+] as const;
+
+type IncidentCategory = (typeof INCIDENT_CATEGORIES)[number];
+
+// §12.3 — Canonical unverified reasons. Required when marking an incident as unverified.
+const UNVERIFIED_REASONS = [
+  "Insufficient information",
+  "Unable to confirm",
+  "Incorrect report",
+  "Outside operational scope",
+  "Sensor signal could not be confirmed",
+  "Other",
+] as const;
 
 const DESK_PRIORITIES = ["Low", "Medium", "High"] as const;
 type DeskPriority = (typeof DESK_PRIORITIES)[number];
@@ -109,6 +155,18 @@ interface Incident {
   validationLabel?: string;
   relatedAlertId?: string;
   closedReason?: string;
+  // §12.4 — Verification workflow fields
+  verificationStatus: VerificationStatus;
+  verifiedBy?: string;
+  verifiedAt?: string;
+  unverifiedReason?: string;
+  categoryHistory?: { from: string; to: string; changedBy: string; changedAt: string }[];
+  // §13.1 — Assignment tracking
+  assignedTeam?: string;
+  dispatchId?: string;
+  // §15.3 — Closure audit trail
+  closureHistory?: ClosureHistoryEntry[];
+  resolvedAt?: string;
 }
 
 interface Sensor {
@@ -155,13 +213,18 @@ const PUROK_LEADERS = [
 
 const ANONYMOUS_REGISTRY = [
   { trackingToken: "TK-8842", category: "Noise Disturbance", purok: "Purok 5", status: "resolved", priority: "Low", time: "2026-07-18T21:40:00" },
-  { trackingToken: "TK-7719", category: "Fire/Smoke", purok: "Purok 2", status: "resolved", priority: "Medium", time: "2026-07-17T13:20:00" },
+  { trackingToken: "TK-7719", category: "Fire or Smoke", purok: "Purok 2", status: "resolved", priority: "Medium", time: "2026-07-17T13:20:00" },
 ];
 
-const CATEGORY_ICON: Record<string, typeof Flame> = { "Fire/Smoke": Flame, "Noise Disturbance": Volume2 };
+const CATEGORY_ICON: Record<string, typeof Flame> = { "Fire or Smoke": Flame, "Noise Disturbance": Volume2, "Public Disturbance": Siren, "Hazard or Obstruction": AlertTriangle, "Suspicious Activity": Eye, "Medical or Welfare Concern": Shield, "Other": Flag };
 const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
-  "Fire/Smoke": { bg: "bg-rose-50", text: "text-rose-600" },
+  "Fire or Smoke": { bg: "bg-rose-50", text: "text-rose-600" },
   "Noise Disturbance": { bg: "bg-amber-50", text: "text-amber-600" },
+  "Public Disturbance": { bg: "bg-orange-50", text: "text-orange-600" },
+  "Hazard or Obstruction": { bg: "bg-yellow-50", text: "text-yellow-600" },
+  "Suspicious Activity": { bg: "bg-violet-50", text: "text-violet-600" },
+  "Medical or Welfare Concern": { bg: "bg-emerald-50", text: "text-emerald-600" },
+  "Other": { bg: "bg-stone-100", text: "text-stone-600" },
 };
 
 const SENSOR_STATUS = {
@@ -208,15 +271,6 @@ function displayValidationLabel(label: string): { label: string; badge: string }
     : legacyToCanonical[label];
   return canonical ? VALIDATION_LABEL_META[canonical] : { label, badge: "bg-stone-100 text-stone-600" };
 }
-
-// §10.6.5 — canonical SafetyBroadcast.severity. Only `high` requires Captain sign-off (§6.5.10).
-type BroadcastSeverity = "info" | "warning" | "high";
-
-const BROADCAST_SEVERITY_META: Record<BroadcastSeverity, { label: string; badge: string; desc: string }> = {
-  info: { label: "Info", badge: "bg-sky-100 text-sky-700", desc: "General heads-up · quiet push, no approval" },
-  warning: { label: "Warning", badge: "bg-amber-100 text-amber-700", desc: "Heads-up · quiet push, no approval" },
-  high: { label: "High", badge: "bg-rose-100 text-rose-700", desc: "Emergency · Captain 1-tap authorization required" },
-};
 
 // §6.5.3–6.5.4 — SecurityAlert lifecycle, independent of any spawned incident. Alerts stay
 // labelled "Sensor Alert Pending Verification" until the Desk Officer verifies or marks false;
@@ -285,13 +339,13 @@ function isoAgo(minutes: number) {
 }
 
 const INITIAL_INCIDENTS: Incident[] = [
-  { id: "INC-2071", category: "Fire/Smoke", severity: "critical", purok: "Purok 3", description: "Heavy smoke column spotted near market residential row — SM-PUROK3-01 offline, unverified", source: "resident", reporter: "Maria Santos", time: isoAgo(26), status: "new", photos: 2, lat: 100, lng: 200, priority: "High", notes: [] },
-  { id: "INC-2072", category: "Fire/Smoke", severity: "warning", purok: "Purok 3", description: "Grey smoke drifting above market row — identical area to an earlier report this hour", source: "resident", reporter: "Anonymous", time: isoAgo(19), status: "new", photos: 1, lat: 103, lng: 198, priority: "High", notes: [], anonymous: true, trackingToken: "TK-4823" },
-  { id: "INC-2070", category: "Public Disturbance", severity: "critical", purok: "Purok 6", description: "SOS held for 3 seconds — live GPS locked at commercial strip, possible altercation", source: "sos", reporter: "Ana Lim", time: isoAgo(6), status: "new", photos: 0, lat: 330, lng: 240, priority: "High", notes: [] },
-  { id: "INC-2069", category: "Noise Disturbance", severity: "warning", purok: "Purok 4", description: "Manual clip escalated — sustained loud disturbance at hall, DB-HALL-01 at 78 dB", source: "cctv", reporter: "CCTV Op. Santos", time: isoAgo(68), status: "acknowledged", acknowledgedAt: isoAgo(52), photos: 1, lat: 210, lng: 170, priority: "Medium", notes: [] },
-  { id: "INC-2068", category: "Fire/Smoke", severity: "warning", purok: "Purok 1", description: "IoT threshold breach — smoke density 512/500 ppm at gate sensor", source: "iot", reporter: "SM-GATE-01", time: isoAgo(150), status: "in_progress", acknowledgedAt: isoAgo(140), photos: 0, lat: 110, lng: 65, priority: "High", notes: [], relatedAlertId: "ALT-118" },
-  { id: "INC-2067", category: "Noise Disturbance", severity: "low", purok: "Purok 2", description: "Tanod field report — group gathered near the basketball court, advised and dispersed", source: "tanod", reporter: "Tanod B. Cruz", time: isoAgo(220), status: "acknowledged", acknowledgedAt: isoAgo(40), photos: 1, lat: 225, lng: 60, priority: "Low", notes: [] },
-  { id: "INC-2065", category: "Fire/Smoke", severity: "low", purok: "Purok 5", description: "Cooking smoke false alarm — verified within acceptable limits", source: "resident", reporter: "Rosa Garcia", time: "2026-07-19T20:30:00", status: "resolved", photos: 3, lat: 85, lng: 310, rating: 5, priority: "Low", notes: [] },
+  { id: "INC-2071", category: "Fire or Smoke", severity: "critical", purok: "Purok 3", description: "Heavy smoke column spotted near market residential row — SM-PUROK3-01 offline, unverified", source: "resident", reporter: "Maria Santos", time: isoAgo(26), status: "new", photos: 2, lat: 100, lng: 200, priority: "High", notes: [], verificationStatus: "new" },
+  { id: "INC-2072", category: "Fire or Smoke", severity: "warning", purok: "Purok 3", description: "Grey smoke drifting above market row — identical area to an earlier report this hour", source: "resident", reporter: "Anonymous", time: isoAgo(19), status: "new", photos: 1, lat: 103, lng: 198, priority: "High", notes: [], anonymous: true, trackingToken: "TK-4823", verificationStatus: "new" },
+  { id: "INC-2070", category: "Public Disturbance", severity: "critical", purok: "Purok 6", description: "SOS held for 3 seconds — live GPS locked at commercial strip, possible altercation", source: "sos", reporter: "Ana Lim", time: isoAgo(6), status: "new", photos: 0, lat: 330, lng: 240, priority: "High", notes: [], verificationStatus: "new" },
+  { id: "INC-2069", category: "Noise Disturbance", severity: "warning", purok: "Purok 4", description: "Manual clip escalated — sustained loud disturbance at hall, DB-HALL-01 at 78 dB", source: "cctv", reporter: "CCTV Op. Santos", time: isoAgo(68), status: "acknowledged", acknowledgedAt: isoAgo(52), photos: 1, lat: 210, lng: 170, priority: "Medium", notes: [], verificationStatus: "verified", verifiedBy: "Desk Officer", verifiedAt: isoAgo(60) },
+  { id: "INC-2068", category: "Fire or Smoke", severity: "warning", purok: "Purok 1", description: "IoT threshold breach — smoke density 512/500 ppm at gate sensor", source: "iot", reporter: "SM-GATE-01", time: isoAgo(150), status: "in_progress", acknowledgedAt: isoAgo(140), photos: 0, lat: 110, lng: 65, priority: "High", notes: [], relatedAlertId: "ALT-118", verificationStatus: "verified", verifiedBy: "Desk Officer", verifiedAt: isoAgo(145) },
+  { id: "INC-2067", category: "Noise Disturbance", severity: "low", purok: "Purok 2", description: "Tanod field report — group gathered near the basketball court, advised and dispersed", source: "tanod", reporter: "Tanod B. Cruz", time: isoAgo(220), status: "acknowledged", acknowledgedAt: isoAgo(40), photos: 1, lat: 225, lng: 60, priority: "Low", notes: [], verificationStatus: "verified", verifiedBy: "Desk Officer", verifiedAt: isoAgo(200) },
+  { id: "INC-2065", category: "Fire or Smoke", severity: "low", purok: "Purok 5", description: "Cooking smoke false alarm — verified within acceptable limits", source: "resident", reporter: "Rosa Garcia", time: "2026-07-19T20:30:00", status: "resolved", photos: 3, lat: 85, lng: 310, rating: 5, priority: "Low", notes: [], verificationStatus: "verified", verifiedBy: "Desk Officer", verifiedAt: "2026-07-19T20:35:00" },
 ];
 
 const INITIAL_ALERTS: SensorAlert[] = [
@@ -326,11 +380,12 @@ const INITIAL_DISPATCHES: DispatchItem[] = [
   { id: "DP-1178", incident: "INC-2065", team: "Team Delta", status: "resolved", purok: "Purok 5", eta: "Closed", photos: 3 },
 ];
 
+// §13.2 — Available Tanod teams for assignment. Desk Officer selects from these; no team creation/editing.
 const TANOD_TEAMS = [
-  { id: "t1", name: "Team Alpha", members: 4, status: "on_patrol", purok: "Purok 1", checkpoint: "3/4" },
-  { id: "t2", name: "Team Bravo", members: 3, status: "dispatched", purok: "Purok 6", checkpoint: "0/3" },
-  { id: "t3", name: "Team Charlie", members: 4, status: "on_patrol", purok: "Purok 2", checkpoint: "2/3" },
-  { id: "t4", name: "Team Delta", members: 3, status: "standby", purok: "HQ", checkpoint: "—" },
+  { id: "t1", name: "Team Alpha", members: 4, leader: "J. Ramos", status: "on_patrol", purok: "Purok 1", checkpoint: "3/4", route: "R1 Market Perimeter", distance: "1.2 km", eta: "3 min", assignmentCount: 1 },
+  { id: "t2", name: "Team Bravo", members: 3, leader: "S. Torres", status: "dispatched", purok: "Purok 6", checkpoint: "0/3", route: "R2 Commercial Strip", distance: "2.1 km", eta: "8 min", assignmentCount: 1 },
+  { id: "t3", name: "Team Charlie", members: 4, leader: "K. Lim", status: "on_patrol", purok: "Purok 2", checkpoint: "2/3", route: "R3 Chapel Loop", distance: "0.9 km", eta: "4 min", assignmentCount: 1 },
+  { id: "t4", name: "Team Delta", members: 3, leader: "C. Navarro", status: "standby", purok: "HQ", checkpoint: "—", route: "R2 Commercial Strip", distance: "—", eta: "—", assignmentCount: 0 },
 ];
 
 const SHIFT_WEEK = [
@@ -363,176 +418,6 @@ const CHAT_CONTACTS = [
   { id: "c3", name: "Purok 3 Leader", role: "Purok Leader", status: "online", unread: 1, initials: "P3" },
   { id: "c4", name: "Purok 5 Leader", role: "Purok Leader", status: "away", unread: 0, initials: "P5" },
 ];
-
-const INITIAL_NOTICES: SafetyNotice[] = [
-  {
-    id: "NTC-003",
-    title: "Water interruption advisory — Purok 3",
-    category: "Event Notice",
-    message: "Scheduled line maintenance by the water district tomorrow 8:00 AM – 12:00 NN. Please store enough water in advance.",
-    target: { kind: "purok", purok: "Purok 3" },
-    state: "published",
-    author: "Desk Officer",
-    createdAt: "2026-07-20T09:10:00",
-    publishedAt: "2026-07-20T09:10:00",
-  },
-  {
-    id: "NTC-002",
-    title: "Community cleanup drive this Saturday",
-    category: "Event Notice",
-    message: "Barangay-wide cleanup drive this Saturday 6:00 AM starting at the covered court. Bags and gloves will be provided.",
-    target: { kind: "barangay" },
-    state: "published",
-    author: "Desk Officer",
-    createdAt: "2026-07-19T15:40:00",
-    publishedAt: "2026-07-19T15:40:00",
-  },
-  {
-    id: "NTC-001",
-    title: "Tricycle route reblocking notice",
-    category: "General",
-    message: "DPWH reblocking along the market access road starts Monday. Tricycle operators should plan alternate routes.",
-    target: { kind: "purok", purok: "Purok 5" },
-    state: "draft",
-    author: "Desk Officer",
-    createdAt: "2026-07-18T11:20:00",
-  },
-];
-
-const NOTICE_CATEGORIES: NoticeCategory[] = ["General", "Safety Alert", "Event Notice", "Weather Warning"];
-
-function SafetyNoticeCompose({
-  onClose,
-  onSave,
-}: {
-  onClose: () => void;
-  onSave: (state: "draft" | "published", title: string, category: NoticeCategory, message: string, target: NoticeTarget) => void;
-}) {
-  const [title, setTitle] = useState("");
-  const [message, setMessage] = useState("");
-  const [category, setCategory] = useState<NoticeCategory>("General");
-  const [targetKind, setTargetKind] = useState<"barangay" | "purok">("barangay");
-  const [purok, setPurok] = useState("Purok 1");
-
-  return (
-    <Modal
-      onClose={onClose}
-      size="lg"
-      title="Publish Safety Notice"
-      subtitle="Routine informational notice — no severity grading, no Captain approval"
-      icon={<Info size={18} className="text-teal-600" />}
-      iconClass="bg-teal-100"
-      footer={
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-900 hover:bg-stone-50">
-            Cancel
-          </button>
-          <button
-            onClick={() => { onSave("draft", title, category, message, targetKind === "barangay" ? { kind: "barangay" } : { kind: "purok", purok }); onClose(); }}
-            disabled={!title.trim() || !message.trim()}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-semibold text-stone-700 transition hover:bg-stone-50 disabled:opacity-50"
-          >
-            <Save size={13} />
-            Save as Draft
-          </button>
-          <button
-            onClick={() => { onSave("published", title, category, message, targetKind === "barangay" ? { kind: "barangay" } : { kind: "purok", purok }); onClose(); }}
-            disabled={!title.trim() || !message.trim()}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
-          >
-            <Send size={13} />
-            Publish Now
-          </button>
-        </div>
-      }
-    >
-      <div className="mb-4">
-        <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">TITLE</p>
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g. Water interruption advisory"
-          className="w-full rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500/30"
-        />
-      </div>
-
-      <div className="mb-4">
-        <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">MESSAGE</p>
-        <textarea
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          rows={4}
-          placeholder="Write the routine notice residents will read..."
-          className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500/30"
-        />
-      </div>
-
-      <div className="mb-4">
-        <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">CATEGORY</p>
-        <div className="flex flex-wrap gap-1.5">
-          {NOTICE_CATEGORIES.map((c) => (
-            <button
-              key={c}
-              onClick={() => setCategory(c)}
-              className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium transition ${
-                category === c ? "border-teal-500 bg-teal-600 text-white" : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
-              }`}
-            >
-              <Tag size={9} />
-              {c}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">TARGET AUDIENCE</p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <button
-            onClick={() => setTargetKind("barangay")}
-            className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left transition ${
-              targetKind === "barangay" ? "border-teal-500 bg-teal-50 text-teal-700" : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
-            }`}
-          >
-            <Globe size={14} />
-            <div>
-              <p className="text-[11px] font-semibold">Entire Barangay</p>
-              <p className="text-[9px] opacity-80">All six puroks</p>
-            </div>
-          </button>
-          <button
-            onClick={() => setTargetKind("purok")}
-            className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left transition ${
-              targetKind === "purok" ? "border-teal-500 bg-teal-50 text-teal-700" : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
-            }`}
-          >
-            <MapPin size={14} />
-            <div>
-              <p className="text-[11px] font-semibold">Specific Purok</p>
-              <p className="text-[9px] opacity-80">Zone-targeted notice</p>
-            </div>
-          </button>
-        </div>
-        {targetKind === "purok" && (
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
-            {["Purok 1", "Purok 2", "Purok 3", "Purok 4", "Purok 5", "Purok 6"].map((p) => (
-              <button
-                key={p}
-                onClick={() => setPurok(p)}
-                className={`rounded-full border px-2.5 py-1 text-[10px] font-medium transition ${
-                  purok === p ? "border-teal-500 bg-teal-600 text-white" : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </Modal>
-  );
-}
 
 function sensorRisk(s: Sensor) {
   if (s.status === "offline") return "critical";
@@ -601,7 +486,7 @@ function possibleDuplicateOf(inc: Incident, all: Incident[]): Incident[] {
   });
 }
 
-function EmergencyPopUp({ alert, onAcknowledge, onSilence, onBroadcast }) {
+function EmergencyPopUp({ alert, onAcknowledge, onSilence }) {
   if (!alert) return null;
   const isSOS = alert.kind === "sos";
   const source = alert.sensor ? alert.sensor : null;
@@ -634,13 +519,6 @@ function EmergencyPopUp({ alert, onAcknowledge, onSilence, onBroadcast }) {
               Acknowledge &amp; Dispatch
             </button>
           </div>
-          <button
-            onClick={onBroadcast}
-            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-[12px] font-semibold text-rose-700 transition hover:bg-rose-100"
-          >
-            <Megaphone size={13} />
-            Escalate to Captain — Mass Alert
-          </button>
         </>
       }
     >
@@ -729,7 +607,176 @@ function ReporterSafeReviewModal({ incident, onClose, onConfirm }: { incident: I
   );
 }
 
-function IncidentDetail({ incident, onClose, onAdvance, onSetPriority, onAddNote, onCloseFalseAlarm, possibleDuplicates, onKeepSeparate, onLinkRelated, onEscalateToCaptain, onAssign, onMarkReporterSafe, onReviewReporterSafe }) {
+// §12.6 — Unverified reason modal. Required when Desk Officer marks an incident as unverified.
+function UnverifiedReasonModal({
+  incident,
+  onClose,
+  onConfirm,
+}: {
+  incident: Incident;
+  onClose: () => void;
+  onConfirm: (incident: Incident, reason: string) => void;
+}) {
+  const [reason, setReason] = useState<string>("");
+  const [customReason, setCustomReason] = useState("");
+
+  function handleConfirm() {
+    const finalReason = reason === "Other" ? customReason.trim() : reason;
+    if (!finalReason) return;
+    onConfirm(incident, finalReason);
+  }
+
+  return (
+    <Modal
+      onClose={onClose}
+      size="md"
+      title={`Mark ${incident.id} as Unverified`}
+      subtitle="The incident will remain auditable but will not proceed to classification or dispatch"
+      icon={<X size={18} className="text-rose-600" />}
+      iconClass="bg-rose-100"
+      footer={
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-900 hover:bg-stone-50">
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={!reason || (reason === "Other" && !customReason.trim())}
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-rose-700 disabled:opacity-50"
+          >
+            <X size={13} />
+            Mark Unverified
+          </button>
+        </div>
+      }
+    >
+      <div className="mb-4">
+        <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">REASON FOR UNVERIFIED</p>
+        <div className="space-y-1.5">
+          {UNVERIFIED_REASONS.map((r) => (
+            <label
+              key={r}
+              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-[11px] transition ${
+                reason === r ? "border-rose-300 bg-rose-50 text-rose-700" : "border-stone-200 bg-white text-stone-600 hover:bg-stone-50"
+              }`}
+            >
+              <input
+                type="radio"
+                name="unverified-reason"
+                value={r}
+                checked={reason === r}
+                onChange={() => setReason(r)}
+                className="accent-rose-600"
+              />
+              {r}
+            </label>
+          ))}
+        </div>
+      </div>
+      {reason === "Other" && (
+        <div className="mb-4">
+          <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">SPECIFY REASON</p>
+          <textarea
+            value={customReason}
+            onChange={(e) => setCustomReason(e.target.value)}
+            rows={3}
+            placeholder="Describe why this incident cannot be verified..."
+            className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-800 outline-none transition focus:border-rose-400"
+          />
+        </div>
+      )}
+      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+        <p className="text-[10px] text-amber-700">
+          The incident will remain in the audit trail with its full history. The reporter or anonymous tracking token will be notified.
+        </p>
+      </div>
+    </Modal>
+  );
+}
+
+// §12.7 — Category change modal. Allows Desk Officer to confirm or change incident category during review.
+function CategoryChangeModal({
+  incident,
+  onClose,
+  onConfirm,
+}: {
+  incident: Incident;
+  onClose: () => void;
+  onConfirm: (incident: Incident, newCategory: string) => void;
+}) {
+  const [selected, setSelected] = useState(incident.category);
+
+  return (
+    <Modal
+      onClose={onClose}
+      size="md"
+      title={`Change Category — ${incident.id}`}
+      subtitle="Confirm or update the incident category during review"
+      icon={<Tag size={18} className="text-violet-600" />}
+      iconClass="bg-violet-100"
+      footer={
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-900 hover:bg-stone-50">
+            Cancel
+          </button>
+          <button
+            onClick={() => onConfirm(incident, selected)}
+            disabled={selected === incident.category}
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-violet-700 disabled:opacity-50"
+          >
+            <Tag size={13} />
+            Confirm Category
+          </button>
+        </div>
+      }
+    >
+      <div className="mb-4">
+        <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">CURRENT CATEGORY</p>
+        <div className="flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
+          <span className="text-[12px] font-semibold text-stone-900">{incident.category}</span>
+        </div>
+      </div>
+      <div className="mb-4">
+        <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">SELECT NEW CATEGORY</p>
+        <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+          {INCIDENT_CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelected(cat)}
+              className={`rounded-lg border px-3 py-2 text-left text-[11px] font-medium transition ${
+                selected === cat ? "border-violet-500 bg-violet-50 text-violet-700" : "border-stone-200 bg-white text-stone-600 hover:bg-stone-50"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+      {incident.categoryHistory && incident.categoryHistory.length > 0 && (
+        <div className="mb-4">
+          <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">CATEGORY HISTORY</p>
+          <div className="space-y-1.5">
+            {incident.categoryHistory.map((h, idx) => (
+              <div key={idx} className="flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
+                <span className="text-[10px] text-stone-400">{formatTime(h.changedAt)}</span>
+                <span className="text-[11px] text-stone-600">{h.from}</span>
+                <span className="text-[11px] text-stone-400">→</span>
+                <span className="text-[11px] font-medium text-stone-900">{h.to}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2">
+        <p className="text-[10px] text-violet-700">
+          Category changes are recorded in the audit trail with the responsible Desk Officer and timestamp.
+        </p>
+      </div>
+    </Modal>
+  );
+}
+
+function IncidentDetail({ incident, onClose, onAdvance, onSetPriority, onAddNote, onCloseFalseAlarm, possibleDuplicates, onKeepSeparate, onLinkRelated, onEscalateToCaptain, onAssign, onMarkReporterSafe, onReviewReporterSafe, onStartReview, onMarkVerified, onMarkUnverified, onChangeCategory }) {
   if (!incident) return null;
   const sev = SEVERITY_MAP[incident.severity];
   const CatIcon = CATEGORY_ICON[incident.category] || AlertTriangle;
@@ -781,7 +828,35 @@ function IncidentDetail({ incident, onClose, onAdvance, onSetPriority, onAddNote
           </button>
         ) : (
           <>
-            {incident.reporterSafe ? (
+            {/* §12.8 — Verification-first action flow. Primary action is context-sensitive. */}
+            {incident.verificationStatus === "new" && (
+              <button
+                onClick={() => onStartReview(incident)}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-violet-700"
+              >
+                <Eye size={14} />
+                Start Review
+              </button>
+            )}
+            {incident.verificationStatus === "under_review" && (
+              <>
+                <button
+                  onClick={() => onMarkVerified(incident)}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-emerald-700"
+                >
+                  <CheckCircle2 size={14} />
+                  Mark Verified
+                </button>
+                <button
+                  onClick={() => onMarkUnverified(incident)}
+                  className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-[13px] font-semibold text-rose-700 transition hover:bg-rose-100"
+                >
+                  <X size={14} />
+                  Mark Unverified
+                </button>
+              </>
+            )}
+            {incident.verificationStatus === "verified" && incident.reporterSafe ? (
               <button
                 onClick={() => onReviewReporterSafe(incident)}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-emerald-700"
@@ -789,39 +864,60 @@ function IncidentDetail({ incident, onClose, onAdvance, onSetPriority, onAddNote
                 <ShieldCheck size={14} />
                 Review &amp; Close — Reporter Safe
               </button>
-            ) : (
-              statusMeta.action && (
+            ) : incident.verificationStatus === "verified" && statusMeta.action ? (
+              <button
+                onClick={() => onAdvance(incident)}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#002A8C]"
+              >
+                {statusMeta.action}
+              </button>
+            ) : null}
+            {incident.verificationStatus === "verified" && (
+              <div className="mt-2 grid grid-cols-2 gap-2">
                 <button
-                  onClick={() => onAdvance(incident)}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#002A8C]"
+                  onClick={() => onAssign(incident)}
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-[11px] font-semibold text-stone-700 transition hover:bg-stone-50"
                 >
-                  {statusMeta.action}
+                  <Radio size={12} className="text-[#0038A8]" />
+                  Assign
                 </button>
-              )
+                <button
+                  onClick={() => onEscalateToCaptain(incident)}
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100"
+                >
+                  <ArrowUpRight size={12} />
+                  Escalate to Captain
+                </button>
+              </div>
             )}
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <button
-                onClick={() => onAssign(incident)}
-                className="flex items-center justify-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-[11px] font-semibold text-stone-700 transition hover:bg-stone-50"
-              >
-                <Radio size={12} className="text-[#0038A8]" />
-                Assign
-              </button>
-              <button
-                onClick={() => onEscalateToCaptain(incident)}
-                className="flex items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100"
-              >
-                <ArrowUpRight size={12} />
-                Escalate to Captain
-              </button>
-            </div>
+            {/* §12.9 — SOS emergency exception: allow assignment before verification */}
+            {incident.verificationStatus !== "verified" && incident.source === "sos" && !incident.reporterSafe && (
+              <>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => onAssign(incident)}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100"
+                  >
+                    <Radio size={12} />
+                    Emergency Assign
+                  </button>
+                  <button
+                    onClick={() => onEscalateToCaptain(incident)}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100"
+                  >
+                    <ArrowUpRight size={12} />
+                    Escalate to Captain
+                  </button>
+                </div>
+              </>
+            )}
             {incident.source === "sos" && !incident.reporterSafe && (
               <button
                 onClick={() => onMarkReporterSafe(incident)}
                 className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-[12px] font-semibold text-emerald-700 transition hover:bg-emerald-100"
               >
                 <ShieldCheck size={13} />
-                Simulate Resident “I'm Safe”
+                Simulate Resident "I'm Safe"
               </button>
             )}
             {incident.reporterSafe ? (
@@ -858,6 +954,11 @@ function IncidentDetail({ incident, onClose, onAdvance, onSetPriority, onAddNote
         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${statusMeta.badge}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dot}`} />
           {statusMeta.label}
+        </span>
+        {/* §12.10 — Verification status badge */}
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${VERIFICATION_STATUS_META[incident.verificationStatus].badge}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${VERIFICATION_STATUS_META[incident.verificationStatus].dot}`} />
+          {VERIFICATION_STATUS_META[incident.verificationStatus].label}
         </span>
         {incident.anonymous && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-stone-200 px-2.5 py-1 text-[11px] font-semibold text-stone-700">
@@ -923,9 +1024,38 @@ function IncidentDetail({ incident, onClose, onAdvance, onSetPriority, onAddNote
             <CatIcon size={16} />
           </div>
           <span className="text-[12px] font-semibold text-stone-900">{incident.category}</span>
+          {/* §12.11 — Category change button during review */}
+          {(incident.verificationStatus === "under_review" || incident.verificationStatus === "verified") && !isClosed && (
+            <button
+              onClick={() => onChangeCategory(incident)}
+              className="flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700 transition hover:bg-violet-100"
+            >
+              <Tag size={9} />
+              Change
+            </button>
+          )}
         </div>
         <p className="text-[13px] leading-relaxed text-stone-500">{incident.description}</p>
       </div>
+
+      {/* §12.12 — Unverified reason display */}
+      {incident.verificationStatus === "unverified" && incident.unverifiedReason && (
+        <div className="mb-5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3">
+          <p className="text-[10px] font-semibold tracking-wider text-rose-700">UNVERIFIED — REASON RECORDED</p>
+          <p className="mt-1 text-[11px] leading-snug text-rose-800">{incident.unverifiedReason}</p>
+          <p className="mt-1 text-[10px] text-rose-600">This incident will not proceed to classification or assignment. It remains in the audit trail.</p>
+        </div>
+      )}
+
+      {/* §12.13 — Verified info display */}
+      {incident.verificationStatus === "verified" && incident.verifiedBy && (
+        <div className="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <p className="text-[10px] font-semibold tracking-wider text-emerald-700">VERIFIED BY DESK OFFICER</p>
+          <p className="mt-1 text-[11px] text-emerald-800">
+            {incident.verifiedBy}{incident.verifiedAt ? ` · ${formatTime(incident.verifiedAt)}` : ""}
+          </p>
+        </div>
+      )}
 
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
@@ -979,15 +1109,32 @@ function IncidentDetail({ incident, onClose, onAdvance, onSetPriority, onAddNote
             <div className="min-w-0 flex-1">
               <p className="text-[10px] font-semibold tracking-wider text-amber-700">POSSIBLE DUPLICATE</p>
               <p className="mt-0.5 text-[11px] leading-snug text-amber-800">
-                Matches another open incident by location, category &amp; submission window — no action was taken automatically.
+                Matches another open incident by category, location &amp; submission window — no action was taken automatically.
               </p>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {possibleDuplicates.map((d) => (
-                  <span key={d.id} className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-stone-700">
-                    <Link2 size={9} className="text-amber-600" />
-                    {d.id} · {d.category} · {d.purok}
-                  </span>
-                ))}
+              {/* §15.10 — Enhanced duplicate details: show category, purok, time, and similarity */}
+              <div className="mt-2 space-y-1.5">
+                {possibleDuplicates.map((d) => {
+                  const timeDiff = Math.abs(new Date(incident.time).getTime() - new Date(d.time).getTime());
+                  const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
+                  const minsAgo = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+                  const timeLabel = hoursAgo > 0 ? `${hoursAgo}h ${minsAgo}m apart` : `${minsAgo}m apart`;
+                  return (
+                    <div key={d.id} className="rounded-md border border-amber-200 bg-white px-3 py-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Link2 size={9} className="text-amber-600" />
+                          <span className="text-[10px] font-bold text-stone-900">{d.id}</span>
+                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-medium text-amber-700">{timeLabel}</span>
+                        </div>
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-stone-500">
+                        <span>Category: <span className="font-medium text-stone-700">{d.category}</span></span>
+                        <span>Purok: <span className="font-medium text-stone-700">{d.purok}</span></span>
+                        <span>Time: <span className="font-medium text-stone-700">{formatTime(d.time)}</span></span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
               {!dupAction && (
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
@@ -1042,6 +1189,25 @@ function IncidentDetail({ incident, onClose, onAdvance, onSetPriority, onAddNote
         <div className="mb-5 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3">
           <p className="text-[10px] font-semibold tracking-wider text-sky-700">LINKED RELATED INCIDENTS</p>
           <p className="mt-1 text-[11px] text-sky-800">{(incident.relatedTo ?? []).join(", ")}</p>
+        </div>
+      )}
+
+      {/* §15.11 — Closure history display. Shows structured audit trail for all closures. */}
+      {(incident.closureHistory ?? []).length > 0 && (
+        <div className="mb-5 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+          <p className="text-[10px] font-semibold tracking-wider text-stone-500">CLOSURE HISTORY</p>
+          {incident.closureHistory!.map((entry, idx) => (
+            <div key={idx} className="mt-2 rounded-md border border-stone-200 bg-white px-3 py-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-stone-900">{entry.closureReason}</span>
+                <span className="text-[9px] text-stone-400">{formatTime(entry.closedAt)}</span>
+              </div>
+              <p className="mt-0.5 text-[10px] text-stone-500">
+                {entry.previousStatus} → {entry.finalStatus} · by {entry.closedBy}
+              </p>
+              <p className="mt-0.5 text-[10px] leading-snug text-stone-600">{entry.closureNote}</p>
+            </div>
+          ))}
         </div>
       )}
 
@@ -1278,14 +1444,16 @@ function EscalateToCaptainModal({ incident, onClose, onConfirm }) {
   );
 }
 
-function CloseFalseAlarmModal({ incident, onClose, onConfirm }: { incident: Incident; onClose: () => void; onConfirm: (incident: Incident, reason: string) => void }) {
-  const [reason, setReason] = useState("");
+// §15.4 — Enhanced closure modal with structured closure reasons and explanation
+function CloseFalseAlarmModal({ incident, onClose, onConfirm }: { incident: Incident; onClose: () => void; onConfirm: (incident: Incident, reason: ClosureReason, explanation: string) => void }) {
+  const [reason, setReason] = useState<ClosureReason>("False Alarm");
+  const [explanation, setExplanation] = useState("");
 
   return (
     <Modal
       onClose={onClose}
       size="md"
-      title="Close as False Alarm / Duplicate"
+      title="Close Incident — Invalid / False Alarm"
       subtitle={`${incident.id} · ${incident.category} · ${incident.purok}`}
       icon={<X size={18} className="text-stone-600" />}
       iconClass="bg-stone-100"
@@ -1295,9 +1463,9 @@ function CloseFalseAlarmModal({ incident, onClose, onConfirm }: { incident: Inci
             Cancel
           </button>
           <button
-            onClick={() => { onConfirm(incident, reason.trim()); onClose(); }}
-            disabled={!reason.trim()}
-            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-50"
+            onClick={() => { onConfirm(incident, reason, explanation.trim()); onClose(); }}
+            disabled={!explanation.trim()}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-stone-700 px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-stone-800 disabled:opacity-50"
           >
             <X size={13} />
             Confirm Closure
@@ -1308,30 +1476,147 @@ function CloseFalseAlarmModal({ incident, onClose, onConfirm }: { incident: Inci
       <div className="mb-4 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
         <p className="text-[11px] leading-snug text-stone-600">{incident.description}</p>
         <p className="mt-1 text-[10px] text-stone-400">
-          Current status: {INCIDENT_STATUS_META[incident.status].label} · Priority {incident.priority}
+          Current status: {INCIDENT_STATUS_META[incident.status].label} · Priority {incident.priority} · {incident.purok}
         </p>
       </div>
 
       <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">CLOSURE REASON (REQUIRED)</p>
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {CLOSURE_REASONS.map((r) => {
+          const meta = CLOSURE_REASON_META[r];
+          return (
+            <button
+              key={r}
+              onClick={() => setReason(r)}
+              className={`rounded-full border px-2.5 py-1 text-[10px] font-medium transition ${
+                reason === r ? "border-stone-600 bg-stone-600 text-white" : "border-stone-200 text-stone-500 hover:bg-stone-50"
+              }`}
+            >
+              {meta.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">EXPLANATION (REQUIRED)</p>
       <textarea
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
+        value={explanation}
+        onChange={(e) => setExplanation(e.target.value)}
         rows={4}
-        placeholder="Explain why this report is a false alarm or duplicate — e.g. sensor triggered by cooking smoke, already covered by INC-xxxx…"
+        placeholder={
+          reason === "False Alarm" ? "e.g. Sensor triggered by cooking smoke, no actual fire detected…" :
+          reason === "Unverified" ? "e.g. Reporter could not be reached, no corroborating evidence…" :
+          reason === "Invalid Report" ? "e.g. Report contains contradictory information, location unreachable…" :
+          reason === "Outside Barangay Jurisdiction" ? "e.g. Incident occurred in adjacent barangay, forwarded to correct jurisdiction…" :
+          reason === "No Further Action Required" ? "e.g. Situation self-resolved before team arrival…" :
+          "Provide additional context for this closure…"
+        }
         className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
       />
 
       <div className="flex items-start gap-2 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
         <Shield size={12} className="mt-0.5 shrink-0 text-[#0038A8]" />
         <p className="text-[10px] leading-snug text-stone-500">
-          §6.1.7 — a closure reason is <span className="font-semibold">mandatory</span> for Closed – False Alarm.
-          The reason is recorded on the record and the reporter is notified.
+          §6.1.7 — a closure reason is <span className="font-semibold">mandatory</span>.
+          The reason and explanation are recorded on the closure history. The reporter is notified of the closure with a generic message — <span className="font-semibold">no internal notes or operational details are exposed</span>.
         </p>
       </div>
     </Modal>
   );
 }
 
+// §15.5 — Resolution Summary Modal. Required when resolving an incident through normal workflow.
+// Captures summary, response completed, evidence attached, and optional internal note.
+function ResolutionSummaryModal({ incident, onClose, onResolve }: { incident: Incident; onClose: () => void; onResolve: (incident: Incident, summary: string, responseCompleted: boolean, evidenceAttached: boolean, note: string) => void }) {
+  const [summary, setSummary] = useState("");
+  const [responseCompleted, setResponseCompleted] = useState(false);
+  const [evidenceAttached, setEvidenceAttached] = useState(false);
+  const [note, setNote] = useState("");
+  const canSubmit = summary.trim() && responseCompleted;
+
+  return (
+    <Modal
+      onClose={onClose}
+      size="md"
+      title="Resolve Incident"
+      subtitle={`${incident.id} · ${incident.category} · ${incident.purok}`}
+      icon={<CheckCircle2 size={18} className="text-emerald-600" />}
+      iconClass="bg-emerald-50"
+      footer={
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-900 hover:bg-stone-50">
+            Cancel
+          </button>
+          <button
+            onClick={() => onResolve(incident, summary.trim(), responseCompleted, evidenceAttached, note.trim())}
+            disabled={!canSubmit}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50"
+          >
+            <CheckCircle2 size={13} />
+            Confirm Resolution
+          </button>
+        </div>
+      }
+    >
+      <div className="mb-4 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+        <p className="text-[11px] leading-snug text-stone-600">{incident.description}</p>
+        <p className="mt-1 text-[10px] text-stone-400">
+          Status: {INCIDENT_STATUS_META[incident.status].label} · Priority {incident.priority} · {incident.assignedTeam ? `Assigned to ${incident.assignedTeam}` : "No team assigned"}
+        </p>
+      </div>
+
+      <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">RESOLUTION SUMMARY (REQUIRED)</p>
+      <textarea
+        value={summary}
+        onChange={(e) => setSummary(e.target.value)}
+        rows={3}
+        placeholder="Summarize the resolution — e.g. Fire confirmed and extinguished, scene secured, no injuries reported…"
+        className="mb-3 w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
+      />
+
+      <div className="mb-3 space-y-2">
+        <label className="flex items-center gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={responseCompleted}
+            onChange={(e) => setResponseCompleted(e.target.checked)}
+            className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+          />
+          <span className="text-[12px] font-medium text-stone-700">Response completed</span>
+        </label>
+        <label className="flex items-center gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={evidenceAttached}
+            onChange={(e) => setEvidenceAttached(e.target.checked)}
+            className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+          />
+          <span className="text-[12px] font-medium text-stone-700">Evidence attached ({incident.photos} file{incident.photos === 1 ? "" : "s"} on record)</span>
+        </label>
+      </div>
+
+      <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">INTERNAL NOTE (OPTIONAL)</p>
+      <textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        rows={2}
+        placeholder="Optional internal note — not visible to the reporter or resident portal…"
+        className="mb-3 w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+      />
+
+      <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+        <Shield size={12} className="mt-0.5 shrink-0 text-emerald-600" />
+        <p className="text-[10px] leading-snug text-stone-600">
+          The resolution summary and closure history are recorded on the incident record.
+          The reporter receives a generic "Your report has been resolved" push notification — <span className="font-semibold">no internal notes or operational details are exposed</span>.
+        </p>
+      </div>
+    </Modal>
+  );
+}
+
+// §13.3 — Enhanced assignment modal. Shows team leader, route, distance, ETA, assignment count.
+// Only active/on-duty teams are selectable; standby/dispatched teams shown but disabled.
 function AssignIncidentModal({ incident, onClose, onAssign }) {
   const [tab, setTab] = useState<"tanod" | "purok_leader">("tanod");
   const [selected, setSelected] = useState("");
@@ -1341,11 +1626,17 @@ function AssignIncidentModal({ incident, onClose, onAssign }) {
   const list = tab === "tanod" ? tanodTeams : leaders;
   const effectiveSelected = selected || list[0]?.id || "";
 
+  const TEAM_STATUS_META: Record<string, { label: string; badge: string; selectable: boolean }> = {
+    on_patrol: { label: "Available", badge: "bg-emerald-50 text-emerald-700", selectable: true },
+    dispatched: { label: "Responding", badge: "bg-sky-50 text-sky-700", selectable: false },
+    standby: { label: "Standby", badge: "bg-stone-100 text-stone-500", selectable: false },
+  };
+
   return (
     <Modal
       onClose={onClose}
       size="md"
-      title="Assign Incident"
+      title="Assign & Dispatch"
       subtitle={`${incident.id} · ${incident.category} · ${incident.purok}`}
       icon={<Radio size={18} className="text-[#0038A8]" />}
       iconClass="bg-[#0038A8]/10"
@@ -1400,32 +1691,77 @@ function AssignIncidentModal({ incident, onClose, onAssign }) {
         {tab === "tanod" ? "AVAILABLE ON-DUTY TANOD TEAMS" : "PUROK LEADERS"}
       </p>
       <div className="mb-4 space-y-2">
-        {list.map((item) => {
-          const id = item.id;
-          const name = (item as any).name;
-          const sub = tab === "tanod" ? `${(item as any).members} members · ${(item as any).purok}` : (item as any).purok;
-          const initials = tab === "tanod" ? name.replace("Team ", "") : (item as any).initials;
-          return (
-            <button
-              key={id}
-              onClick={() => setSelected(id)}
-              className={`flex w-full items-center justify-between rounded-lg border px-3.5 py-2.5 transition ${
-                effectiveSelected === id ? "border-[#0038A8]/40 bg-[#0038A8]/5" : "border-stone-200 bg-white hover:bg-stone-50"
-              }`}
-            >
-              <span className="flex items-center gap-2.5">
-                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white ${tab === "tanod" ? "bg-[#0038A8]" : "bg-teal-600"}`}>
-                  {initials}
+        {tab === "tanod" ? (
+          tanodTeams.map((team) => {
+            const stMeta = TEAM_STATUS_META[team.status] ?? TEAM_STATUS_META.standby;
+            const isActive = effectiveSelected === team.id;
+            return (
+              <button
+                key={team.id}
+                onClick={() => stMeta.selectable && setSelected(team.id)}
+                disabled={!stMeta.selectable}
+                className={`flex w-full items-center justify-between rounded-lg border px-3.5 py-2.5 transition ${
+                  isActive ? "border-[#0038A8]/40 bg-[#0038A8]/5" : stMeta.selectable ? "border-stone-200 bg-white hover:bg-stone-50" : "border-stone-100 bg-stone-50 opacity-60 cursor-not-allowed"
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <span className={`flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold text-white ${stMeta.selectable ? "bg-[#0038A8]" : "bg-stone-400"}`}>
+                    {team.name.replace("Team ", "")}
+                  </span>
+                  <span className="text-left">
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-[12px] font-semibold text-stone-900">{team.name}</span>
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${stMeta.badge}`}>{stMeta.label}</span>
+                    </span>
+                    <span className="block text-[10px] text-stone-400">
+                      {team.members} members · Leader: {team.leader} · {team.purok}
+                    </span>
+                  </span>
                 </span>
-                <span className="text-left">
-                  <span className="block text-[12px] font-semibold text-stone-900">{name}</span>
-                  <span className="block text-[10px] text-stone-400">{sub}</span>
+                <span className="flex flex-col items-end gap-0.5">
+                  {stMeta.selectable && (
+                    <>
+                      <span className="flex items-center gap-1 text-[10px] text-stone-500">
+                        <Navigation size={9} />
+                        {team.distance} · {team.eta}
+                      </span>
+                      <span className="flex items-center gap-1 text-[10px] text-stone-400">
+                        <Radio size={9} />
+                        {team.route}
+                      </span>
+                      <span className="text-[9px] text-stone-400">{team.assignmentCount} active dispatch{team.assignmentCount === 1 ? "" : "es"}</span>
+                    </>
+                  )}
+                  {isActive && <CheckCircle2 size={15} className="text-[#0038A8]" />}
                 </span>
-              </span>
-              {effectiveSelected === id && <CheckCircle2 size={15} className={tab === "tanod" ? "text-[#0038A8]" : "text-teal-600"} />}
-            </button>
-          );
-        })}
+              </button>
+            );
+          })
+        ) : (
+          leaders.map((leader) => {
+            const isActive = effectiveSelected === leader.id;
+            return (
+              <button
+                key={leader.id}
+                onClick={() => setSelected(leader.id)}
+                className={`flex w-full items-center justify-between rounded-lg border px-3.5 py-2.5 transition ${
+                  isActive ? "border-teal-500/40 bg-teal-50/50" : "border-stone-200 bg-white hover:bg-stone-50"
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-600 text-[10px] font-bold text-white">
+                    {leader.initials}
+                  </span>
+                  <span className="text-left">
+                    <span className="block text-[12px] font-semibold text-stone-900">{leader.name}</span>
+                    <span className="block text-[10px] text-stone-400">{leader.purok}</span>
+                  </span>
+                </span>
+                {isActive && <CheckCircle2 size={15} className="text-teal-600" />}
+              </button>
+            );
+          })
+        )}
       </div>
 
       <div className="flex items-start gap-2 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
@@ -1439,71 +1775,6 @@ function AssignIncidentModal({ incident, onClose, onAssign }) {
             ? "High-priority vibration + audio push fires on assignment; a dispatch entry is created and tracked in Active Dispatches."
             : "The Purok Leader is notified through their portal and assigned local responsibility for the incident; a tracking entry appears in Active Dispatches."}
         </p>
-      </div>
-    </Modal>
-  );
-}
-
-function BroadcastCompose({ onClose, onSend, hint }) {
-  const [message, setMessage] = useState(
-    hint ? `EMERGENCY ALERT: ${hint} — high severity. Take immediate precaution.` : ""
-  );
-  const [severity, setSeverity] = useState<BroadcastSeverity>("high");
-
-  return (
-    <Modal
-      onClose={onClose}
-      size="lg"
-      title="Mass Broadcast"
-      subtitle="Community-wide SMS &amp; push — high severity requires Captain 1-tap authorization (§6.5.10)"
-      icon={<Megaphone size={18} className="text-rose-600" />}
-      iconClass="bg-rose-100"
-      footer={
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-900 hover:bg-stone-50">
-            Cancel
-          </button>
-          <button
-            onClick={() => { onSend(severity, message.trim()); onClose(); }}
-            disabled={!message.trim()}
-            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-50"
-          >
-            <Send size={13} />
-            {severity === "high" ? "Send for Captain Authorization" : "Send Quiet Push"}
-          </button>
-        </div>
-      }
-    >
-      <div className="mb-4">
-        <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">SEVERITY</p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {(Object.keys(BROADCAST_SEVERITY_META) as BroadcastSeverity[]).map((sev) => {
-            const meta = BROADCAST_SEVERITY_META[sev];
-            return (
-              <button
-                key={sev}
-                onClick={() => setSeverity(sev)}
-                className={`rounded-lg border px-3 py-2 text-left transition ${
-                  severity === sev ? `${meta.badge} border-current` : "border-stone-200 bg-white hover:bg-stone-50"
-                }`}
-              >
-                <span className="block text-[11px] font-semibold capitalize">{meta.label}</span>
-                <span className="mt-0.5 block text-[9px] leading-snug opacity-80">{meta.desc}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="mb-5">
-        <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">MESSAGE</p>
-        <textarea
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          rows={4}
-          placeholder="Type mass alert message..."
-          className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
-        />
       </div>
     </Modal>
   );
@@ -1524,17 +1795,15 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
   );
 
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
-  const [broadcastOpen, setBroadcastOpen] = useState(false);
-  const [broadcastHint, setBroadcastHint] = useState("");
-  const [broadcastDone, setBroadcastDone] = useState<string | null>(null);
-  const [noticeComposeOpen, setNoticeComposeOpen] = useState(false);
-  const [notices, setNotices] = useState<SafetyNotice[]>(getSafetyNotices());
   const [blotterSuccess, setBlotterSuccess] = useState<any>(null);
   const [lookupOpen, setLookupOpen] = useState(false);
   const [escalateTarget, setEscalateTarget] = useState<Incident | null>(null);
   const [assignTarget, setAssignTarget] = useState<Incident | null>(null);
   const [safeReviewTarget, setSafeReviewTarget] = useState<Incident | null>(null);
   const [closeTarget, setCloseTarget] = useState<Incident | null>(null);
+  const [resolveTarget, setResolveTarget] = useState<Incident | null>(null);
+  const [unverifyTarget, setUnverifyTarget] = useState<Incident | null>(null);
+  const [categoryChangeTarget, setCategoryChangeTarget] = useState<Incident | null>(null);
   const slaNotifiedRef = useRef<string[]>([]);
 
   const sensorsRef = useRef(sensors);
@@ -1546,12 +1815,6 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
   useEffect(() => {
     alertsRef.current = alerts;
   }, [alerts]);
-
-  useEffect(() => {
-    seedSafetyNotices(INITIAL_NOTICES);
-    setNotices(getSafetyNotices());
-    return subscribeSafetyNotices(() => setNotices(getSafetyNotices()));
-  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -1618,6 +1881,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incidents]);
 
+  // §15.6 — advanceIncident now routes through ResolutionSummaryModal when resolving
   function advanceIncident(incident: Incident) {
     const next = INCIDENT_STATUS_META[incident.status].next;
     if (!next) return;
@@ -1626,12 +1890,51 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
       flash(`${incident.id} — Reporter indicates safe; explicit Desk Officer review required before close`);
       return;
     }
+    if (next === "resolved") {
+      setResolveTarget(incident);
+      return;
+    }
     const patch: Partial<Incident> = { status: next };
     if (next === "acknowledged") patch.acknowledgedAt = new Date().toISOString();
     setIncidents((prev) => prev.map((i) => (i.id === incident.id ? { ...i, ...patch } : i)));
     setSelectedIncident(null);
     const usesSms = statusChangeUsesSms(incident, next);
     flash(`${incident.id} moved to ${INCIDENT_STATUS_META[next].label} — ${usesSms ? "push + SMS sent to reporter" : "push notification sent to reporter"}`);
+  }
+
+  // §15.7 — Confirm resolution with summary, evidence, and closure history
+  function confirmResolve(incident: Incident, summary: string, responseCompleted: boolean, evidenceAttached: boolean, note: string) {
+    const now = new Date().toISOString();
+    const closureEntry: ClosureHistoryEntry = {
+      previousStatus: incident.status,
+      finalStatus: "resolved",
+      closureReason: "Normal Resolution",
+      closureNote: summary + (note ? ` — Internal: ${note}` : ""),
+      closedBy: "Desk Officer",
+      closedAt: now,
+    };
+    const notesToRecord = [
+      `Resolved — ${summary}`,
+      ...(note ? [`Internal note: ${note}`] : []),
+      `Response completed: ${responseCompleted ? "Yes" : "No"} · Evidence attached: ${evidenceAttached ? "Yes" : "No"}`,
+    ];
+    setIncidents((prev) =>
+      prev.map((i) =>
+        i.id === incident.id
+          ? {
+              ...i,
+              status: "resolved" as IncidentStatus,
+              resolvedAt: now,
+              closureHistory: [...(i.closureHistory ?? []), closureEntry],
+              notes: [...(i.notes ?? []), ...notesToRecord],
+            }
+          : i
+      )
+    );
+    setResolveTarget(null);
+    setSelectedIncident(null);
+    const usesSms = statusChangeUsesSms(incident, "resolved");
+    flash(`${incident.id} resolved — closure history recorded · ${usesSms ? "push + SMS sent to reporter" : "push notification sent to reporter"}`);
   }
 
   function markReporterSafe(incident: Incident) {
@@ -1651,17 +1954,33 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
     flash(`${incident.id} — Reporter indicates safe. Incident kept open; Desk Officer review required before closing.`);
   }
 
+  // §15.9 — confirmReporterSafeClose now records closure history
   function confirmReporterSafeClose(incident: Incident, note: string) {
+    const now = new Date().toISOString();
+    const closureEntry: ClosureHistoryEntry = {
+      previousStatus: incident.status,
+      finalStatus: "resolved",
+      closureReason: "Reporter Safe — Desk Officer Review",
+      closureNote: note || "No additional note",
+      closedBy: "Desk Officer",
+      closedAt: now,
+    };
     setIncidents((prev) =>
       prev.map((i) =>
         i.id === incident.id
-          ? { ...i, status: "resolved", notes: [...(i.notes ?? []), `Reporter safe — Desk Officer review & close: ${note || "No additional note"}`] }
+          ? {
+              ...i,
+              status: "resolved" as IncidentStatus,
+              resolvedAt: now,
+              closureHistory: [...(i.closureHistory ?? []), closureEntry],
+              notes: [...(i.notes ?? []), `Reporter safe — Desk Officer review & close: ${note || "No additional note"}`],
+            }
           : i
       )
     );
     setSafeReviewTarget(null);
     setSelectedIncident(null);
-    flash(`${incident.id} closed after Desk Officer review — reporter indicated safe`);
+    flash(`${incident.id} closed after Desk Officer review — reporter indicated safe · closure history recorded`);
   }
 
   function setPriority(incident: Incident, priority: DeskPriority) {
@@ -1683,22 +2002,98 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
     setCloseTarget(incident);
   }
 
-  function closeFalseAlarm(incident: Incident, reason: string) {
+  // §15.8 — closeFalseAlarm now accepts structured ClosureReason and records closure history
+  function closeFalseAlarm(incident: Incident, reason: ClosureReason, explanation: string) {
     if (incident.reporterSafe) {
       setSafeReviewTarget(incident);
       flash(`${incident.id} — Reporter indicates safe; Desk Officer review required before closing`);
       return;
     }
+    const now = new Date().toISOString();
+    const closureEntry: ClosureHistoryEntry = {
+      previousStatus: incident.status,
+      finalStatus: "closed_false_alarm",
+      closureReason: reason,
+      closureNote: explanation,
+      closedBy: "Desk Officer",
+      closedAt: now,
+    };
     setIncidents((prev) =>
       prev.map((i) =>
         i.id === incident.id
-          ? { ...i, status: "closed_false_alarm", closedReason: reason, notes: [...(i.notes ?? []), `Closed as false alarm / duplicate — ${reason}`] }
+          ? {
+              ...i,
+              status: "closed_false_alarm" as IncidentStatus,
+              closedReason: `${reason}: ${explanation}`,
+              closureHistory: [...(i.closureHistory ?? []), closureEntry],
+              notes: [...(i.notes ?? []), `Closed — ${reason}: ${explanation}`],
+            }
           : i
       )
     );
     setCloseTarget(null);
     setSelectedIncident(null);
-    flash(incident.anonymous ? `${incident.id} closed as false alarm / duplicate — closure reason recorded, tracking token notified` : `${incident.id} closed as false alarm / duplicate — closure reason recorded, reporter notified`);
+    // Reporter is notified of the closure with a generic message — no internal notes or operational details exposed
+    flash(incident.anonymous ? `${incident.id} closed (${reason}) — closure history recorded, tracking token notified` : `${incident.id} closed (${reason}) — closure history recorded, reporter notified`);
+  }
+
+  // §12.5 — Verification workflow handlers
+  function startReview(incident: Incident) {
+    if (incident.verificationStatus !== "new") return;
+    setIncidents((prev) =>
+      prev.map((i) =>
+        i.id === incident.id
+          ? { ...i, verificationStatus: "under_review", notes: [...(i.notes ?? []), "Desk Officer started review"] }
+          : i
+      )
+    );
+    flash(`${incident.id} — Review started`);
+  }
+
+  function markVerified(incident: Incident) {
+    if (incident.verificationStatus !== "under_review") return;
+    setIncidents((prev) =>
+      prev.map((i) =>
+        i.id === incident.id
+          ? { ...i, verificationStatus: "verified", verifiedBy: "Desk Officer", verifiedAt: new Date().toISOString(), notes: [...(i.notes ?? []), "Incident verified by Desk Officer"] }
+          : i
+      )
+    );
+    flash(`${incident.id} — Verified`);
+  }
+
+  function markUnverified(incident: Incident, reason: string) {
+    if (incident.verificationStatus !== "under_review") return;
+    setIncidents((prev) =>
+      prev.map((i) =>
+        i.id === incident.id
+          ? { ...i, verificationStatus: "unverified", unverifiedReason: reason, notes: [...(i.notes ?? []), `Incident unverified — ${reason}`] }
+          : i
+      )
+    );
+    setUnverifyTarget(null);
+    setSelectedIncident(null);
+    flash(`${incident.id} — Marked unverified: ${reason}`);
+  }
+
+  function changeCategory(incident: Incident, newCategory: string) {
+    const oldCategory = incident.category;
+    if (oldCategory === newCategory) return;
+    const now = new Date().toISOString();
+    setIncidents((prev) =>
+      prev.map((i) =>
+        i.id === incident.id
+          ? {
+              ...i,
+              category: newCategory,
+              categoryHistory: [...(i.categoryHistory ?? []), { from: oldCategory, to: newCategory, changedBy: "Desk Officer", changedAt: now }],
+              notes: [...(i.notes ?? []), `Category changed: ${oldCategory} → ${newCategory}`],
+            }
+          : i
+      )
+    );
+    setCategoryChangeTarget(null);
+    flash(`${incident.id} — Category changed: ${oldCategory} → ${newCategory}`);
   }
 
   function advanceAlert(alert: SensorAlert, next: AlertStatus) {
@@ -1763,6 +2158,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
     flash(`${incident.id} escalated to Captain — record preserved, no external forward`);
   }
 
+  // §13.4 — Assignment handler. Creates dispatch, links to incident, sets assignedTeam.
   function assignIncident(incident: Incident, tab: "tanod" | "purok_leader", selectedId: string) {
     const isTanod = tab === "tanod";
     const assignee = isTanod
@@ -1785,7 +2181,12 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
     setIncidents((prev) =>
       prev.map((i) =>
         i.id === incident.id
-          ? { ...i, notes: [...(i.notes ?? []), `${isTanod ? "Dispatched" : "Assigned"} to ${assignee} (${isTanod ? "Tanod" : "Purok Leader"})`] }
+          ? {
+              ...i,
+              assignedTeam: assignee,
+              dispatchId,
+              notes: [...(i.notes ?? []), `${isTanod ? "Dispatched" : "Assigned"} to ${assignee} (${isTanod ? "Tanod" : "Purok Leader"}) — ${dispatchId}`],
+            }
           : i
       )
     );
@@ -1803,9 +2204,14 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
     flash(`${dp.id} marked ${DISPATCH_META[next].label}`);
   }
 
-  function convertToBlotter() {
-    const inc = incidents.find((i) => i.id === "INC-2065");
+  // §15.15 — Blotter conversion now validates incident is resolved (eligible) before converting
+  function convertToBlotter(incidentId?: string) {
+    const inc = incidents.find((i) => i.id === (incidentId ?? "INC-2065"));
     if (!inc) return;
+    if (inc.status !== "resolved") {
+      flash(`${inc.id} is not eligible for blotter conversion — only resolved incidents can be archived`);
+      return;
+    }
     const existing = blotters.some((b) => b.incident === inc.id);
     if (existing) return;
     const nextId = nextBlotterId(blotters);
@@ -1815,6 +2221,11 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
     ]);
     setBlotterSuccess({ id: nextId, incident: inc.id });
   }
+
+  // §15.16 — Derived list of resolved incidents eligible for blotter conversion
+  const blotterEligible = incidents.filter(
+    (i) => i.status === "resolved" && !blotters.some((b) => b.incident === i.id)
+  );
 
   function advanceEscalation(c: EscalatedCase) {
     const next = nextEscalationStatus(c.status);
@@ -1858,35 +2269,6 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
     flash(`${c.id} priority adjusted to ${priority}`);
   }
 
-  function submitBroadcast(severity: BroadcastSeverity, message: string) {
-    const draft = addPendingBroadcast({
-      title: message.split(":")[0].replace(/^EMERGENCY ALERT:\s*/, "").slice(0, 60) || message.slice(0, 60),
-      severity,
-      purok: "All Puroks",
-      message,
-      category: "General",
-      deliveryMethod: severity === "high" ? "push+sms" : "push",
-      createdAt: new Date().toISOString(),
-      submittedBy: "Desk Officer",
-    });
-    setBroadcastDone(draft.id);
-    flash(severity === "high" ? `${draft.id} queued for Captain authorization` : `${draft.id} sent as quiet push — no approval required`);
-  }
-
-  function submitSafetyNotice(state: "draft" | "published", title: string, category: NoticeCategory, message: string, target: NoticeTarget) {
-    const notice = addSafetyNotice({
-      title,
-      category,
-      message,
-      target,
-      state,
-      author: "Desk Officer",
-      createdAt: new Date().toISOString(),
-      publishedAt: state === "published" ? new Date().toISOString() : undefined,
-    });
-    flash(`${notice.id} saved as ${state}`);
-  }
-
   const activeIncidents = incidents
     .filter((i) => i.status !== "resolved" && i.status !== "closed_false_alarm")
     .sort((a, b) => {
@@ -1901,6 +2283,10 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
   const pendingVerificationCount = alerts.filter((a) => a.status !== "verified" && a.status !== "false_or_unverified" && a.status !== "closed").length;
   const activeDispatches = dispatches.filter((d) => d.status !== "resolved").length;
   const onDutyTeams = TANOD_TEAMS.filter((t) => t.status !== "standby").length;
+  // §13.5 — Unassigned verified incidents: verified but no team assigned yet
+  const unassignedIncidents = incidents.filter(
+    (i) => i.verificationStatus === "verified" && !i.assignedTeam && i.status !== "resolved" && i.status !== "closed_false_alarm"
+  );
 
   const kpis = [
     { label: "ACTIVE INCIDENTS", value: activeIncidents.length, sub: `${sosCount} SOS · ${activeIncidents.filter((i) => i.status === "new").length} new${breachedCount ? ` · ${breachedCount} SLA breached` : ""}`, icon: ClipboardList },
@@ -1927,20 +2313,6 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
               >
                 <KeyRound size={13} />
                 Anonymous Report Lookup
-              </button>
-              <button
-                onClick={() => { setBroadcastHint(""); setBroadcastOpen(true); }}
-                className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
-              >
-                <Megaphone size={13} />
-                Mass Broadcast
-              </button>
-              <button
-                onClick={() => setNoticeComposeOpen(true)}
-                className="flex items-center gap-1.5 rounded-lg border border-teal-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-teal-700 transition hover:bg-teal-50"
-              >
-                <Info size={13} />
-                Publish Safety Notice
               </button>
             </div>
           </div>
@@ -2023,6 +2395,11 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                             <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${sourceMeta.badge}`}>
                               <SourceIcon size={9} />
                               {sourceMeta.label}
+                            </span>
+                            {/* §12.14 — Verification badge in incident list */}
+                            <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${VERIFICATION_STATUS_META[inc.verificationStatus].badge}`}>
+                              <span className={`h-1 w-1 rounded-full ${VERIFICATION_STATUS_META[inc.verificationStatus].dot}`} />
+                              {VERIFICATION_STATUS_META[inc.verificationStatus].label}
                             </span>
                             {inc.anonymous && (
                               <span className="inline-flex items-center gap-1 rounded-full bg-stone-800 px-1.5 py-0.5 text-[9px] font-semibold text-white">
@@ -2407,13 +2784,68 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
           </div>
         </div>
 
+        {/* §13.6 — Unassigned Incidents Queue: verified incidents awaiting team assignment */}
+        {unassignedIncidents.length > 0 && (
+          <div className="mb-5 flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
+            <div className="flex items-center justify-between px-5 py-4">
+              <div className="flex items-center gap-2">
+                <ClipboardList size={16} className="text-rose-600" />
+                <div>
+                  <h3 className="text-[14px] font-semibold text-[#334155]">Unassigned — Awaiting Dispatch</h3>
+                  <p className="text-[11px] text-[#94A3B8]">Verified incidents that need a team assignment</p>
+                </div>
+              </div>
+              <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[10px] font-semibold text-rose-600">{unassignedIncidents.length}</span>
+            </div>
+            <div className="min-h-0 space-y-2 px-5 pb-4">
+              {unassignedIncidents.map((inc) => {
+                const sev = SEVERITY_MAP[inc.severity];
+                const CatIcon = CATEGORY_ICON[inc.category] || AlertTriangle;
+                const catColors = CATEGORY_COLORS[inc.category] || { bg: "bg-stone-100", text: "text-stone-600" };
+                return (
+                  <div key={inc.id} className="flex items-center justify-between rounded-lg border border-stone-200 bg-white px-3.5 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${catColors.bg} ${catColors.text}`}>
+                        <CatIcon size={13} />
+                      </span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12px] font-bold text-stone-900">{inc.id}</span>
+                          <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${sev.badge}`}>{sev.label}</span>
+                          <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-medium text-emerald-700">Verified</span>
+                        </div>
+                        <p className="mt-0.5 truncate text-[11px] text-stone-500">{inc.description}</p>
+                        <p className="mt-0.5 flex items-center gap-1 text-[10px] text-stone-400">
+                          <MapPin size={9} />
+                          {inc.purok}
+                          <span className="mx-0.5">&middot;</span>
+                          {inc.category}
+                          <span className="mx-0.5">&middot;</span>
+                          {inc.priority}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setAssignTarget(inc)}
+                      className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 text-[11px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white"
+                    >
+                      <Send size={11} />
+                      Assign &amp; Dispatch
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="mb-5 grid grid-cols-1 gap-5 xl:grid-cols-3">
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
                 <CalendarClock size={16} className="text-[#0038A8]" />
                 <div>
-                  <h3 className="text-[14px] font-semibold text-[#334155]">Patrol Scheduler &amp; Routes</h3>
+                  <h3 className="text-[14px] font-semibold text-[#334155]">Patrol Operations</h3>
                   <p className="text-[11px] text-[#94A3B8]">Shift calendar &amp; geofence checkpoint coverage</p>
                 </div>
               </div>
@@ -2484,22 +2916,30 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
             </div>
 
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-5 pb-5">
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 px-3.5 py-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <p className="text-[11px] font-semibold text-stone-900">INC-2065 ready for archival</p>
-                    <p className="text-[10px] text-stone-500">Resolved · 5.0 rating · 3 evidence photos</p>
+              {/* §15.17 — Dynamic blotter eligible incidents: only resolved incidents appear */}
+              {blotterEligible.length > 0 ? (
+                blotterEligible.map((inc) => (
+                  <div key={inc.id} className="rounded-lg border border-emerald-200 bg-emerald-50/70 px-3.5 py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-[11px] font-semibold text-stone-900">{inc.id} ready for archival</p>
+                        <p className="text-[10px] text-stone-500">{inc.category} · {inc.purok} · {inc.severity} · {inc.photos} evidence</p>
+                      </div>
+                      <button
+                        onClick={() => convertToBlotter(inc.id)}
+                        className="flex shrink-0 items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[10px] font-semibold text-white transition hover:bg-emerald-700"
+                      >
+                        <FileText size={11} />
+                        Convert
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={convertToBlotter}
-                    disabled={blotters.some((b) => b.incident === "INC-2065")}
-                    className="flex shrink-0 items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[10px] font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
-                  >
-                    <FileText size={11} />
-                    Convert
-                  </button>
+                ))
+              ) : (
+                <div className="rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-3 text-center">
+                  <p className="text-[11px] text-stone-400">No resolved incidents pending blotter conversion</p>
                 </div>
-              </div>
+              )}
 
               {blotters.map((b) => (
                 <div key={b.id} className="rounded-lg border border-stone-200 bg-white px-3.5 py-3">
@@ -2555,94 +2995,6 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
             </div>
           </div>
         </div>
-
-        <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-          <div className="flex items-center justify-between px-5 py-4">
-            <div className="flex items-center gap-2">
-              <FileText size={16} className="text-teal-600" />
-              <div>
-                <h3 className="text-[14px] font-semibold text-[#334155]">Recent Notices</h3>
-                <p className="text-[11px] text-[#94A3B8]">Routine safety notices — separate from the severity-graded Mass Broadcast queue</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-teal-50 px-2.5 py-1 text-[10px] font-semibold text-teal-700">
-                {notices.filter((n) => n.state !== "archived").length} active
-              </span>
-              <button
-                onClick={() => setNoticeComposeOpen(true)}
-                className="flex items-center gap-1 rounded-lg border border-teal-300 bg-white px-2.5 py-1 text-[10px] font-semibold text-teal-700 transition hover:bg-teal-50"
-              >
-                <Info size={11} />
-                New Notice
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-2 px-5 pb-5">
-            {notices.length === 0 ? (
-              <p className="px-2 py-8 text-center text-[12px] text-stone-400">No safety notices yet — publish one from the header.</p>
-            ) : (
-              notices.map((n) => {
-                const stateMeta =
-                  n.state === "published"
-                    ? { label: "Published", cls: "bg-emerald-100 text-emerald-700" }
-                    : n.state === "draft"
-                      ? { label: "Draft", cls: "bg-amber-100 text-amber-700" }
-                      : { label: "Archived", cls: "bg-stone-200 text-stone-600" };
-                const targetLabel = n.target.kind === "barangay" ? "Entire Barangay" : n.target.purok;
-                return (
-                  <div key={n.id} className={`rounded-xl border border-stone-200 px-4 py-3 ${n.state === "archived" ? "opacity-60" : ""}`}>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[11px] font-bold text-teal-700">{n.id}</span>
-                        <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${stateMeta.cls}`}>{stateMeta.label}</span>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-1.5 py-0.5 text-[9px] font-medium text-sky-700">
-                          <Tag size={9} />
-                          {n.category}
-                        </span>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-1.5 py-0.5 text-[9px] font-medium text-stone-600">
-                          {n.target.kind === "barangay" ? <Globe size={9} /> : <MapPin size={9} />}
-                          {targetLabel}
-                        </span>
-                      </div>
-                      <span className="flex items-center gap-1 text-[10px] text-stone-400">
-                        <Clock size={10} />
-                        {formatTime(n.state === "published" && n.publishedAt ? n.publishedAt : n.createdAt)}
-                      </span>
-                    </div>
-                    <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[12px] font-semibold text-stone-900">{n.title}</p>
-                        <p className="mt-0.5 truncate text-[10px] text-stone-500">{n.message}</p>
-                      </div>
-                      {n.state !== "archived" && (
-                        <div className="flex items-center gap-1.5">
-                          {n.state === "draft" && (
-                            <button
-                              onClick={() => { setSafetyNoticeState(n.id, "published"); flash(`${n.id} published`); }}
-                              className="flex h-7 items-center gap-1 rounded-md border border-teal-300 bg-white px-2 text-[10px] font-medium text-teal-700 transition hover:bg-teal-50"
-                            >
-                              <Send size={10} />
-                              Publish
-                            </button>
-                          )}
-                          <button
-                            onClick={() => { setSafetyNoticeState(n.id, "archived"); flash(`${n.id} archived`); }}
-                            className="flex h-7 items-center gap-1 rounded-md border border-stone-200 px-2 text-[10px] font-medium text-stone-600 transition hover:bg-stone-50"
-                          >
-                            <Archive size={10} />
-                            Archive
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
       </main>
 
       <EmergencyPopUp
@@ -2663,7 +3015,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
             setIncidents((prev) =>
               prev.some((i) => i.id === "INC-2068")
                 ? prev
-                : [{ id: "INC-2068", category: "Fire/Smoke", severity: "warning", purok: "Purok 1", description: `IoT threshold breach — smoke density ${sensor.value}/${sensor.threshold} ppm`, source: "iot", reporter: sensor.name, time: new Date().toISOString(), status: "in_progress", photos: 0, lat: 110, lng: 65, priority: "High", notes: [], relatedAlertId: matchingAlert ? matchingAlert.id : undefined }, ...prev]
+                : [{ id: "INC-2068", category: "Fire or Smoke", severity: "warning", purok: "Purok 1", description: `IoT threshold breach — smoke density ${sensor.value}/${sensor.threshold} ppm`, source: "iot", reporter: sensor.name, time: new Date().toISOString(), status: "in_progress", photos: 0, lat: 110, lng: 65, priority: "High", notes: [], relatedAlertId: matchingAlert ? matchingAlert.id : undefined, verificationStatus: "new" }, ...prev]
             );
           }
           setPopAlert(null);
@@ -2672,11 +3024,6 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
         onSilence={() => {
           setPopAlert(null);
           flash("Alert silenced");
-        }}
-        onBroadcast={() => {
-          setPopAlert(null);
-          setBroadcastHint("HIGH SEVERITY ALERT — take immediate precaution. Verify surroundings and await instructions.");
-          setBroadcastOpen(true);
         }}
       />
 
@@ -2694,6 +3041,10 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
         onAssign={(inc) => setAssignTarget(inc)}
         onMarkReporterSafe={markReporterSafe}
         onReviewReporterSafe={(inc) => setSafeReviewTarget(inc)}
+        onStartReview={startReview}
+        onMarkVerified={markVerified}
+        onMarkUnverified={(inc) => setUnverifyTarget(inc)}
+        onChangeCategory={(inc) => setCategoryChangeTarget(inc)}
       />
 
       {safeReviewTarget && (
@@ -2730,27 +3081,27 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
         />
       )}
 
-      {broadcastOpen && (
-        <BroadcastCompose
-          onClose={() => setBroadcastOpen(false)}
-          onSend={submitBroadcast}
-          hint={broadcastHint}
+      {resolveTarget && (
+        <ResolutionSummaryModal
+          incident={resolveTarget}
+          onClose={() => setResolveTarget(null)}
+          onResolve={confirmResolve}
         />
       )}
 
-      {noticeComposeOpen && (
-        <SafetyNoticeCompose
-          onClose={() => setNoticeComposeOpen(false)}
-          onSave={submitSafetyNotice}
+      {unverifyTarget && (
+        <UnverifiedReasonModal
+          incident={unverifyTarget}
+          onClose={() => setUnverifyTarget(null)}
+          onConfirm={markUnverified}
         />
       )}
 
-      {broadcastDone && (
-        <ConfirmModal
-          type="success"
-          title="Queued for Authorization"
-          message={`${broadcastDone} submitted. High-severity community blasts are routed to the Captain for 1-tap approval — medium/low severities may be delivered as quiet push.`}
-          onClose={() => setBroadcastDone(null)}
+      {categoryChangeTarget && (
+        <CategoryChangeModal
+          incident={categoryChangeTarget}
+          onClose={() => setCategoryChangeTarget(null)}
+          onConfirm={changeCategory}
         />
       )}
 

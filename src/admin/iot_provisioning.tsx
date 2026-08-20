@@ -15,8 +15,6 @@ import {
   AudioLines,
   KeyRound,
   ShieldX,
-  ShieldAlert,
-  ShieldCheck,
   Clock,
   Info,
   Archive,
@@ -37,8 +35,8 @@ import { PUROK_OPTIONS } from "../constants/purok";
 import { ConfirmModal, Modal } from "../components/ui";
 import { pushAuditLog } from "../utils/auditLog";
 
-type DeviceStatus = "pending" | "online" | "offline" | "possible_tamper";
-type CredentialStatus = "active" | "revoked" | "expired" | "not_provisioned";
+type DeviceStatus = "pending" | "online" | "offline";
+type CredentialStatus = "active" | "revoked" | "not_provisioned";
 type CalibrationStatus = "not_calibrated" | "calibrated";
 
 interface Device {
@@ -63,13 +61,6 @@ interface Device {
   left: number;
   enabled: boolean;
   decommissionedAt?: string | null;
-  tamperReason?: string | null;
-  thresholdOverrides?: {
-    smoke: number;
-    decibel: number;
-    smokePersistence: number;
-    decibelPersistence: number;
-  } | null;
   credentialStatus: CredentialStatus;
   credMasked?: string;
   credentialProvisionedAt?: string;
@@ -88,7 +79,6 @@ interface Device {
   testIssue?: string;
   lastRotated?: string;
   credentialGeneration?: number;
-  credentialSynced?: boolean;
 }
 
 interface PingCheck {
@@ -121,11 +111,6 @@ interface EditForm {
   calibrationStatus: CalibrationStatus;
   calibrationDate: string;
   calibrationNote: string;
-  overrideThreshold: boolean;
-  smokeThreshold: number;
-  decibelThreshold: number;
-  smokePersistence: number;
-  decibelPersistence: number;
   installedAt: string;
   lastInspection: string;
   faults: string;
@@ -150,14 +135,12 @@ interface RegErrors {
 const CREDENTIAL_STYLES: Record<CredentialStatus, string> = {
   active: "bg-emerald-50 text-emerald-700 border-emerald-200",
   revoked: "bg-rose-50 text-rose-600 border-rose-200",
-  expired: "bg-amber-50 text-amber-700 border-amber-200",
   not_provisioned: "bg-stone-100 text-stone-500 border-stone-200",
 };
 
 function credentialLabel(status: CredentialStatus): string {
   if (status === "active") return "Active";
   if (status === "revoked") return "Revoked";
-  if (status === "expired") return "Expired";
   return "Not Provisioned";
 }
 
@@ -206,14 +189,6 @@ const MAC_PREFIX = "A4:CF:12";
 
 const FIRMWARE_VERSIONS = ["v2.4.1", "v2.4.0", "v2.3.8", "v2.3.5"];
 
-const TAMPER_REASONS = [
-  "Unexpected transmission stop — no low-power explanation",
-  "Location change detected from known coordinates",
-  "Repeated disconnects after inspection",
-  "Enclosure tamper switch triggered",
-  "Manual administrative flag",
-];
-
 const DEFAULT_THRESHOLDS = {
   smoke: 50,
   decibel: 50,
@@ -253,7 +228,7 @@ const STATUS_CONFIG: Record<
     dot: "bg-emerald-500",
     badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
     pin: "#2f7d4f",
-    label: "Active",
+    label: "Online",
     icon: Wifi,
   },
   offline: {
@@ -262,13 +237,6 @@ const STATUS_CONFIG: Record<
     pin: "#c0392b",
     label: "Offline",
     icon: WifiOff,
-  },
-  possible_tamper: {
-    dot: "bg-violet-500",
-    badge: "bg-violet-50 text-violet-700 border-violet-200",
-    pin: "#6d28d9",
-    label: "Possible Tamper",
-    icon: ShieldAlert,
   },
 };
 
@@ -288,7 +256,16 @@ const DISABLED = {
   icon: Power,
 };
 
+const DECOMMISSIONED = {
+  dot: "bg-stone-400",
+  badge: "bg-stone-100 text-stone-500 border-stone-200",
+  pin: "#78716c",
+  label: "Decommissioned",
+  icon: Archive,
+};
+
 function displayStatus(d: Device) {
+  if (d.decommissionedAt) return DECOMMISSIONED;
   if (!d.enabled) return DISABLED;
   if (d.status === "online" && d.battery <= 35) return LOW_BATTERY;
   return STATUS_CONFIG[d.status] ?? STATUS_CONFIG.offline;
@@ -388,7 +365,7 @@ const INITIAL_DEVICES: Device[] = [
     top: 44,
     left: 66.5,
     enabled: true,
-    credentialStatus: "expired",
+    credentialStatus: "active",
     credMasked: "••••-••••-••••-8MZ4",
     installedAt: "2025-11-18",
     installedBy: "Barangay Facilities",
@@ -489,7 +466,7 @@ const INITIAL_DEVICES: Device[] = [
     location: "Kiosk cluster, market zone",
     lat: "14.5983",
     lng: "120.9833",
-    status: "possible_tamper",
+    status: "online",
     battery: 61,
     signal: 88,
     lastPing: "8 mins ago",
@@ -508,10 +485,8 @@ const INITIAL_DEVICES: Device[] = [
     calibrationNote: "MQ-2 uncalibrated — readings are relative sensor values, not ppm",
     lastInspection: "2026-06-30",
     lastTested: "2026-07-19 20:12",
-    faults: "Enclosure opened outside maintenance window",
+    faults: "Enclosure re-seated and latch verified during routine inspection",
     inspector: "IoT Maintenance Unit",
-    tamperReason:
-      "Enclosure tamper switch triggered — device still transmitting; verify field condition",
   },
   {
     id: "SM-CHAPEL-01",
@@ -967,11 +942,6 @@ function DeviceDetailModal({
               {s.label}
             </span>
           </DetailRow>
-          {device.status === "possible_tamper" && device.tamperReason && (
-            <DetailRow label="TAMPER DETECTION">
-              <span className="text-violet-700">{device.tamperReason}</span>
-            </DetailRow>
-          )}
           <DetailRow label="DEVICE NAME">{device.name}</DetailRow>
           <DetailRow label="HARDWARE TYPE">{device.type}</DetailRow>
           <DetailRow label="SENSOR MODULE">{device.sensorModule}</DetailRow>
@@ -1048,14 +1018,6 @@ function DeviceDetailModal({
           )}
           {device.lastRotated && (
             <DetailRow label="LAST REPLACED">{device.lastRotated}</DetailRow>
-          )}
-          {device.credentialSynced === false && (
-            <DetailRow label="CREDENTIAL SYNC">
-              <span className="text-amber-700">
-                Physical ESP32 not yet updated with the new credential — mark it updated in the
-                Connection Test panel, then re-test.
-              </span>
-            </DetailRow>
           )}
         </div>
 
@@ -1722,9 +1684,9 @@ function DeviceRegistrationSection({
           <p className="mt-3 rounded-md bg-sky-50 px-3 py-2 text-[11px] text-sky-800">
             The device is created as <strong>Pending</strong> with <strong>no credential
             provisioned</strong> (registration does not create a credential). Provision an existing
-            credential explicitly, then confirm it passes the Device Connection Test (reachability,
-            telemetry format, threshold-event generation, backend storage) before it is promoted to{" "}
-            <strong>Active</strong> (§9.12).
+            credential explicitly, then confirm it passes the Device Connection Test (credential
+            authentication, connectivity, telemetry, backend storage) before it is promoted to{" "}
+            <strong>Online</strong> (§9.12).
           </p>
         </div>
       </FormSection>
@@ -1808,8 +1770,8 @@ function DeviceRegisteredModal({
           provisioned</strong>. Registration only captured the device information — no enrollment
           credential was created or assigned. Provision an existing credential from the{" "}
           <strong>Provision Credential</strong> action, then run the Device Connection Test —
-          MQTT/WebSocket reachability, telemetry payload format, threshold-event generation, and
-          backend storage — before it becomes <strong>Active</strong> (§9.12).
+          credential authentication, connectivity, telemetry, and backend storage — before it becomes{" "}
+          <strong>Online</strong> (§9.12).
         </div>
       </div>
     </Modal>
@@ -2254,60 +2216,9 @@ function CredentialProvisionedModal({
 
         <div className="rounded-lg border border-sky-100 bg-sky-50 px-4 py-3 text-[12px] leading-relaxed text-sky-800">
           The device can now attempt to authenticate. Run the <strong>Device Connection Test</strong>{" "}
-          to confirm it passes acceptance checks and becomes <strong>Active</strong>.
+          to confirm it passes acceptance checks and becomes <strong>Online</strong>.
         </div>
       </div>
-    </Modal>
-  );
-}
-
-function CredentialFailedModal({
-  deviceId,
-  action,
-  onRetry,
-  onClose,
-}: {
-  deviceId: string;
-  action: "provision" | "rotate";
-  onRetry: () => void;
-  onClose: () => void;
-}) {
-  const isRotate = action === "rotate";
-  return (
-    <Modal
-      onClose={onClose}
-      title={isRotate ? "Credential Rotation Failed" : "Credential Provisioning Failed"}
-      subtitle={deviceId}
-      size="md"
-      icon={<AlertTriangle size={18} />}
-      iconClass="bg-rose-100 text-rose-600"
-      footer={
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
-          <button
-            onClick={onClose}
-            className="w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-600 hover:bg-stone-50 sm:flex-1"
-          >
-            Close
-          </button>
-          <button
-            onClick={onRetry}
-            className="w-full rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-medium text-white hover:bg-[#002A8C] sm:flex-1"
-          >
-            Try Again
-          </button>
-        </div>
-      }
-    >
-      <p className="text-[12px] leading-relaxed text-stone-500">
-        {isRotate
-          ? "The system could not invalidate the current credential and generate a new one."
-          : "The system could not generate and associate a new enrollment credential."}
-      </p>
-      <p className="mt-1.5 text-[12px] leading-relaxed text-stone-500">
-        {isRotate
-          ? "The current credential remains unchanged — it was not invalidated and no new credential was generated."
-          : "The device remains Not Provisioned — no credential was generated."}
-      </p>
     </Modal>
   );
 }
@@ -2372,9 +2283,6 @@ function DeviceMapSection({
           <span className="h-2 w-2 rounded-full bg-amber-400" /> Low Battery
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-violet-500" /> Possible Tamper
-        </div>
-        <div className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-sky-500" /> Pending
         </div>
         <div className="flex items-center gap-1.5">
@@ -2383,7 +2291,7 @@ function DeviceMapSection({
       </div>
       <p className="mt-1.5 text-[10px] text-stone-400">
         Low Battery is a derived indicator from battery voltage — not a stored device status.
-        Possible Tamper and Pending are distinct statuses (violet / sky).
+        Disabled and Decommissioned nodes drop off the map.
       </p>
     </SectionCard>
   );
@@ -2398,8 +2306,6 @@ function DeviceTableSection({
   onRotate,
   onProvision,
   onRevoke,
-  onFlagTamper,
-  onClearTamper,
 }: {
   devices: Device[];
   onView: (d: Device) => void;
@@ -2409,8 +2315,6 @@ function DeviceTableSection({
   onRotate: (d: Device) => void;
   onProvision: (d: Device) => void;
   onRevoke: (d: Device) => void;
-  onFlagTamper: (d: Device) => void;
-  onClearTamper: (d: Device) => void;
 }) {
   const columns = [
     "STATUS",
@@ -2495,9 +2399,7 @@ function DeviceTableSection({
                           ? "No credential provisioned — registration did not create one"
                           : d.credentialStatus === "revoked"
                             ? "Credentials revoked — device cannot authenticate until a new credential is provisioned"
-                            : d.credentialStatus === "expired"
-                              ? "Credentials expired — rotate to restore"
-                              : "Credentials active"
+                            : "Credentials active"
                       }
                     >
                       <KeyRound size={10} />
@@ -2586,23 +2488,6 @@ function DeviceTableSection({
                       >
                         <Power size={13} />
                       </button>
-                      {d.status === "possible_tamper" ? (
-                        <button
-                          onClick={() => onClearTamper(d)}
-                          title="Clear tamper flag after inspection"
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-emerald-200 text-emerald-500 transition hover:bg-emerald-50"
-                        >
-                          <ShieldCheck size={13} />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => onFlagTamper(d)}
-                          title="Flag possible tamper"
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-violet-200 text-violet-400 transition hover:bg-violet-50 hover:text-violet-600"
-                        >
-                          <ShieldAlert size={13} />
-                        </button>
-                      )}
                       <button
                         onClick={() => onDecommission(d)}
                         title="Decommission device (record retained)"
@@ -2627,13 +2512,11 @@ function ConnectionTestSection({
   testingDevice,
   pingResult,
   onTestConnection,
-  onToggleCredentialSynced,
 }: {
   devices: Device[];
   testingDevice: string | null;
   pingResult: PingResult | null;
   onTestConnection: (dev: Device) => void;
-  onToggleCredentialSynced: (id: string) => void;
 }) {
   const [selectedId, setSelectedId] = useState(
     () => devices.find((d) => d.enabled)?.id ?? "",
@@ -2646,7 +2529,7 @@ function ConnectionTestSection({
   return (
     <SectionCard
       title="Device Connection Test"
-      description="Run the full acceptance check against a device — credential authentication, MQTT/WebSocket reachability, telemetry format, threshold-event generation, and backend storage (§5.10)"
+      description="Run the acceptance check against a device — credential authentication, connectivity, telemetry, and backend storage (§5.10)"
     >
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex-1 min-w-[200px]">
@@ -2686,21 +2569,6 @@ function ConnectionTestSection({
         </button>
       </div>
 
-      {selectedDev && selectedDev.credentialSynced === false && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-800">
-          <span>
-            <strong>{selectedDev.id}</strong> has a freshly rotated credential — the physical ESP32
-            has not yet been updated with the new secret.
-          </span>
-          <button
-            onClick={() => onToggleCredentialSynced(selectedDev.id)}
-            className="rounded-md bg-amber-600 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-amber-700"
-          >
-            Mark ESP32 updated with new credential
-          </button>
-        </div>
-      )}
-
       {pingResult && (
         <div
           className={`mt-4 rounded-lg border px-4 py-3 text-sm ${
@@ -2720,12 +2588,12 @@ function ConnectionTestSection({
               {pingResult.success ? (
                 <>
                   {" "}
-                  — <strong>Result: Connection Test Passed.</strong> Latency:{" "}
+                  — <strong>Result: PASS.</strong> Latency:{" "}
                   <strong>{pingResult.latency}</strong>. Signal:{" "}
                   <strong>{pingResult.rssi}%</strong>
                   {pingResult.promoted && (
                     <span className="mt-0.5 block text-[12px]">
-                      Device promoted to <strong>Active</strong> — telemetry confirmed by the Admin
+                      Device promoted to <strong>Online</strong> — telemetry confirmed by the Admin
                       (§9.12).
                     </span>
                   )}
@@ -2733,7 +2601,7 @@ function ConnectionTestSection({
               ) : (
                 <>
                   {pingResult.note ||
-                    " — Acceptance test failed. Device may be offline or out of range."}
+                    " — Result: FAIL. Device may be offline or out of range."}
                 </>
               )}
             </div>
@@ -2747,7 +2615,7 @@ function ConnectionTestSection({
                   <XCircle size={13} className="shrink-0 text-rose-600" />
                 )}
                 <span className={c.passed ? "" : "font-medium"}>{c.label}</span>
-                <span className="ml-auto">{c.passed ? "Passed" : "Failed"}</span>
+                <span className="ml-auto">{c.passed ? "PASS" : "FAIL"}</span>
               </div>
             ))}
           </div>
@@ -2919,80 +2787,6 @@ function ThresholdSection({
         </button>
       </div>
     </SectionCard>
-  );
-}
-
-function TamperFlagModal({
-  device,
-  onClose,
-  onConfirm,
-}: {
-  device: Device;
-  onClose: () => void;
-  onConfirm: (description: string) => void;
-}) {
-  const [reason, setReason] = useState(TAMPER_REASONS[0]);
-  const [note, setNote] = useState("");
-
-  const description = note.trim() ? `${reason} — ${note.trim()}` : reason;
-
-  return (
-    <Modal
-      onClose={onClose}
-      title="Flag Possible Tamper"
-      subtitle={device.id}
-      size="md"
-      icon={<ShieldAlert size={18} />}
-      iconClass="bg-violet-100 text-violet-700"
-      footer={
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 rounded-lg border border-stone-200 py-2.5 text-[13px] font-medium text-stone-600 hover:bg-stone-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => onConfirm(description)}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-violet-600 py-2.5 text-sm font-semibold text-white hover:bg-violet-700"
-          >
-            <ShieldAlert size={14} /> Flag Device
-          </button>
-        </div>
-      }
-    >
-      <div className="space-y-4">
-        <p className="text-[12px] text-stone-500">
-          Flagging raises an administrative alert (§14.7) and moves the device to a possible-tamper
-          state (§6.5.15) until it is inspected and the flag is cleared. The device may still be
-          transmitting — this is distinct from Offline.
-        </p>
-        <div>
-          <label className={STYLES.label}>DETECTION / FLAG REASON</label>
-          <select
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className={STYLES.select}
-          >
-            {TAMPER_REASONS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className={STYLES.label}>NOTES (OPTIONAL)</label>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={2}
-            placeholder="Field observations, maintenance history, etc."
-            className={STYLES.input}
-          />
-        </div>
-      </div>
-    </Modal>
   );
 }
 
@@ -3318,100 +3112,10 @@ function EditDeviceModal({
           />
         </div>
 
-        <div className="border-t border-stone-200 pt-4">
-          <label className="flex cursor-pointer items-center gap-3">
-            <input
-              type="checkbox"
-              checked={editForm.overrideThreshold}
-              onChange={(e) =>
-                onEditFormChange({ ...editForm, overrideThreshold: e.target.checked })
-              }
-              className="h-4 w-4 rounded border-stone-300 text-[#0038A8] focus:ring-[#0038A8]"
-            />
-            <div>
-              <span className="text-sm font-medium text-stone-800">Custom Threshold Override</span>
-              <p className="text-[11px] text-stone-400">
-                Set device-specific sensitivity limits instead of global defaults
-              </p>
-            </div>
-          </label>
-
-          {editForm.overrideThreshold && (
-            <div className="mt-4 space-y-4">
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold tracking-wide text-stone-500">
-                  SMOKE THRESHOLD (RELATIVE)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={editForm.smokeThreshold}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    if (!Number.isNaN(v))
-                      onEditFormChange({ ...editForm, smokeThreshold: Math.min(100, Math.max(0, v)) });
-                  }}
-                  className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0038A8] focus:ring-1 focus:ring-[#0038A8]"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold tracking-wide text-stone-500">
-                  SMOKE PERSISTENCE (SECONDS)
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={300}
-                  value={editForm.smokePersistence}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    if (!Number.isNaN(v))
-                      onEditFormChange({ ...editForm, smokePersistence: Math.min(300, Math.max(1, v)) });
-                  }}
-                  className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0038A8] focus:ring-1 focus:ring-[#0038A8]"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold tracking-wide text-stone-500">
-                  NOISE THRESHOLD (RELATIVE)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={editForm.decibelThreshold}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    if (!Number.isNaN(v))
-                      onEditFormChange({ ...editForm, decibelThreshold: Math.min(100, Math.max(0, v)) });
-                  }}
-                  className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0038A8] focus:ring-1 focus:ring-[#0038A8]"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-semibold tracking-wide text-stone-500">
-                  NOISE PERSISTENCE (SECONDS)
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={300}
-                  value={editForm.decibelPersistence}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    if (!Number.isNaN(v))
-                      onEditFormChange({ ...editForm, decibelPersistence: Math.min(300, Math.max(1, v)) });
-                  }}
-                  className="w-full rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0038A8] focus:ring-1 focus:ring-[#0038A8]"
-                />
-              </div>
-              <p className="text-[10px] text-stone-400">
-                Uncalibrated relative sensor-value scale — not ppm/dB (§5.5.1, §5.5.2). Threshold
-                changes require documented testing justification per §5.9.
-              </p>
-            </div>
-          )}
+        <div className="rounded-md border border-sky-100 bg-sky-50 px-4 py-3 text-[11px] leading-relaxed text-sky-800">
+          Sensor thresholds (smoke / noise sensitivity and persistence durations) are configured
+          globally in the <strong>Threshold Configuration Panel</strong> and require documented
+          testing justification before they can be applied (§5.9).
         </div>
       </div>
     </Modal>
@@ -3422,7 +3126,6 @@ export default function IotProvisioning() {
   const mapRef = useRef<HTMLDivElement>(null);
   const [modalMessage, setModalMessage] = useState<{ title: string; message: string } | null>(null);
   const [decommissionConfirmId, setDecommissionConfirmId] = useState<string | null>(null);
-  const [tamperConfirmId, setTamperConfirmId] = useState<string | null>(null);
   const [devices, setDevices] = useState<Device[]>(INITIAL_DEVICES);
   const [hardwareType, setHardwareType] = useState(HARDWARE_TYPES[0]);
   const [deviceName, setDeviceName] = useState("");
@@ -3473,11 +3176,6 @@ export default function IotProvisioning() {
     calibrationStatus: "not_calibrated",
     calibrationDate: "",
     calibrationNote: "",
-    overrideThreshold: false,
-    smokeThreshold: DEFAULT_THRESHOLDS.smoke,
-    decibelThreshold: DEFAULT_THRESHOLDS.decibel,
-    smokePersistence: DEFAULT_THRESHOLDS.smokePersistence,
-    decibelPersistence: DEFAULT_THRESHOLDS.decibelPersistence,
     installedAt: "",
     lastInspection: "",
     faults: "",
@@ -3495,10 +3193,6 @@ export default function IotProvisioning() {
   const [credProvisioned, setCredProvisioned] = useState<{
     deviceId: string;
     masked: string;
-  } | null>(null);
-  const [credentialFailed, setCredentialFailed] = useState<{
-    deviceId: string;
-    action: "provision" | "rotate";
   } | null>(null);
   const [revokeConfirmId, setRevokeConfirmId] = useState<string | null>(null);
 
@@ -3610,8 +3304,6 @@ export default function IotProvisioning() {
       left: 20 + Math.random() * 55,
       enabled: true,
       decommissionedAt: null,
-      tamperReason: null,
-      thresholdOverrides: null,
       credentialStatus: "not_provisioned",
       credMasked: undefined,
       installedAt,
@@ -3684,22 +3376,17 @@ export default function IotProvisioning() {
     setTimeout(() => {
       const revoked = dev.credentialStatus === "revoked";
       const notProvisioned = dev.credentialStatus === "not_provisioned";
-      const credSynced = dev.credentialSynced !== false;
-      const credAuthOk = !revoked && !notProvisioned && credSynced;
+      const credAuthOk = !revoked && !notProvisioned;
       const reachable = !revoked && !notProvisioned && dev.status !== "offline";
       const checks: PingCheck[] = [
         { label: "Credential Authentication", passed: credAuthOk },
-        { label: "MQTT/WebSocket reachability", passed: reachable },
+        { label: "Connectivity", passed: reachable },
         {
-          label: "Telemetry payload format (schema valid)",
+          label: "Telemetry",
           passed: credAuthOk && reachable && !dev.testIssue && Math.random() > 0.08,
         },
         {
-          label: "Threshold-event generation (alert emitted on breach)",
-          passed: credAuthOk && reachable && !dev.testIssue && Math.random() > 0.08,
-        },
-        {
-          label: "Backend storage write (telemetry persisted)",
+          label: "Backend Storage",
           passed: credAuthOk && reachable && !dev.testIssue && Math.random() > 0.08,
         },
       ];
@@ -3709,11 +3396,9 @@ export default function IotProvisioning() {
         ? `${12 + Math.floor(Math.random() * 40)}ms`
         : revoked || notProvisioned
           ? "Blocked"
-          : !credSynced
-            ? "Failed"
-            : dev.status === "offline"
-              ? "Timeout"
-              : "Failed";
+          : dev.status === "offline"
+            ? "Timeout"
+            : "Failed";
 
       setPingResult({
         deviceId: dev.id,
@@ -3726,13 +3411,11 @@ export default function IotProvisioning() {
           ? " — Connection blocked: device credentials are revoked. Reissue credentials before the device can reconnect."
           : notProvisioned
             ? " — Device credential has not been provisioned. Provision a valid device credential before running the connection acceptance test."
-            : !credSynced
-              ? " — Credential Authentication failed: the previous enrollment credential has been invalidated. The device must be updated with the new credential."
-              : dev.status === "offline"
-                ? " — Device offline — no MQTT session could be established."
-                : dev.testIssue
-                  ? ` — Acceptance test failed: ${dev.testIssue}`
-                  : undefined,
+            : dev.status === "offline"
+              ? " — Device offline — no MQTT session could be established."
+              : dev.testIssue
+                ? ` — Acceptance test failed: ${dev.testIssue}`
+                : undefined,
       });
       const tested = new Date().toISOString().replace("T", " ").slice(0, 16);
       setDevices((prev) =>
@@ -3749,7 +3432,7 @@ export default function IotProvisioning() {
       pushAuditLog(
         "Device Connectivity Test",
         allPassed
-          ? `Connection test for ${dev.id} passed all acceptance checks (credential authentication, reachability, telemetry format, threshold-event generation, backend storage) — ${promoted ? "device promoted to Active" : "device remains Active"} — ${latency}`
+          ? `Connection test for ${dev.id} passed all acceptance checks (credential authentication, connectivity, telemetry, backend storage) — ${promoted ? "device promoted to Online" : "device remains Online"} — ${latency}`
           : `Connection test for ${dev.id} failed acceptance checks — device stays ${dev.status}`,
       );
       setTestingDevice(null);
@@ -3773,13 +3456,6 @@ export default function IotProvisioning() {
       calibrationStatus: dev.calibrationStatus,
       calibrationDate: dev.calibrationDate || "",
       calibrationNote: dev.calibrationNote || "",
-      overrideThreshold: !!dev.thresholdOverrides,
-      smokeThreshold: dev.thresholdOverrides?.smoke ?? DEFAULT_THRESHOLDS.smoke,
-      decibelThreshold: dev.thresholdOverrides?.decibel ?? DEFAULT_THRESHOLDS.decibel,
-      smokePersistence:
-        dev.thresholdOverrides?.smokePersistence ?? DEFAULT_THRESHOLDS.smokePersistence,
-      decibelPersistence:
-        dev.thresholdOverrides?.decibelPersistence ?? DEFAULT_THRESHOLDS.decibelPersistence,
       installedAt: dev.installedAt,
       lastInspection: dev.lastInspection,
       faults: dev.faults || "",
@@ -3809,14 +3485,6 @@ export default function IotProvisioning() {
               calibrationDate:
                 editForm.calibrationStatus === "calibrated" ? editForm.calibrationDate : "",
               calibrationNote: editForm.calibrationNote,
-              thresholdOverrides: editForm.overrideThreshold
-                ? {
-                    smoke: editForm.smokeThreshold,
-                    decibel: editForm.decibelThreshold,
-                    smokePersistence: editForm.smokePersistence,
-                    decibelPersistence: editForm.decibelPersistence,
-                  }
-                : null,
               installedAt: editForm.installedAt,
               lastInspection: editForm.lastInspection,
               faults: editForm.faults,
@@ -3841,7 +3509,6 @@ export default function IotProvisioning() {
       if (prev.calibrationStatus !== editForm.calibrationStatus) changed.push("calibration status");
       if (prev.calibrationDate !== editForm.calibrationDate) changed.push("calibration date");
       if (prev.calibrationNote !== editForm.calibrationNote) changed.push("calibration note");
-      if (!!prev.thresholdOverrides !== editForm.overrideThreshold) changed.push("threshold overrides");
       if (prev.installedAt !== editForm.installedAt) changed.push("installation date");
       if (prev.lastInspection !== editForm.lastInspection) changed.push("last inspection");
       if (prev.faults !== editForm.faults) changed.push("reported faults/replacements");
@@ -3876,42 +3543,6 @@ export default function IotProvisioning() {
     });
   }
 
-  function flagTamper(dev: Device, description: string) {
-    setDevices((prev) =>
-      prev.map((d) =>
-        d.id === dev.id
-          ? { ...d, status: "possible_tamper" as DeviceStatus, tamperReason: description }
-          : d,
-      ),
-    );
-    pushAuditLog(
-      "Device Tamper Flagged",
-      `Flagged ${dev.id} for possible tamper — ${description}. Administrative alert raised (§6.5.15, §14.7).`,
-    );
-    setModalMessage({
-      title: "Possible Tamper Alert",
-      message: `${dev.id} flagged for possible tamper — ${description}. An administrative alert is raised on the Admin dashboard (§14.7); verify the field condition and clear the flag after inspection.`,
-    });
-  }
-
-  function clearTamper(dev: Device) {
-    setDevices((prev) =>
-      prev.map((d) =>
-        d.id === dev.id
-          ? { ...d, status: "online" as DeviceStatus, tamperReason: null }
-          : d,
-      ),
-    );
-    pushAuditLog(
-      "Device Tamper Cleared",
-      `Cleared possible-tamper flag on ${dev.id} after inspection — device restored to Active`,
-    );
-    setModalMessage({
-      title: "Tamper Flag Cleared",
-      message: `${dev.id} restored to Active after inspection.`,
-    });
-  }
-
   function toggleEnable(id: string) {
     const dev = devices.find((d) => d.id === id);
     if (!dev) return;
@@ -3934,7 +3565,6 @@ export default function IotProvisioning() {
   function rotateCredentials(dev: Device) {
     if (credRotating) return;
     setRotateConfirmId(null);
-    setCredentialFailed(null);
     setCredRotated(null);
     setCredRotating({ deviceId: dev.id, step: 0 });
 
@@ -3947,13 +3577,6 @@ export default function IotProvisioning() {
     }, 660);
 
     setTimeout(() => {
-      const simulatedFailure = Math.random() < 0.15;
-      if (simulatedFailure) {
-        setCredRotating(null);
-        setCredentialFailed({ deviceId: dev.id, action: "rotate" });
-        return;
-      }
-
       const newCredential = generateCredential();
       const newMasked = maskCredential(newCredential);
       const now = new Date().toISOString().replace("T", " ").slice(0, 19);
@@ -3967,7 +3590,6 @@ export default function IotProvisioning() {
                 credMasked: newMasked,
                 lastRotated: now,
                 credentialGeneration: (d.credentialGeneration ?? 1) + 1,
-                credentialSynced: false,
               }
             : d
         )
@@ -3988,7 +3610,6 @@ export default function IotProvisioning() {
   function provisionCredentials(dev: Device) {
     if (credProvisioning) return;
     setProvisionConfirmId(null);
-    setCredentialFailed(null);
     setCredProvisioned(null);
     setCredProvisioning({ deviceId: dev.id, step: 0 });
 
@@ -4001,13 +3622,6 @@ export default function IotProvisioning() {
     }, 660);
 
     setTimeout(() => {
-      const simulatedFailure = Math.random() < 0.1;
-      if (simulatedFailure) {
-        setCredProvisioning(null);
-        setCredentialFailed({ deviceId: dev.id, action: "provision" });
-        return;
-      }
-
       const credential = generateCredential();
       const masked = maskCredential(credential);
       const now = new Date().toISOString().replace("T", " ").slice(0, 19);
@@ -4021,7 +3635,6 @@ export default function IotProvisioning() {
                 credMasked: masked,
                 credentialProvisionedAt: now,
                 credentialGeneration: 1,
-                credentialSynced: true,
               }
             : d
         )
@@ -4033,14 +3646,6 @@ export default function IotProvisioning() {
       setCredProvisioning(null);
       setCredProvisioned({ deviceId: dev.id, masked });
     }, 1000);
-  }
-
-  function toggleCredentialSynced(id: string) {
-    setDevices((prev) =>
-      prev.map((d) =>
-        d.id === id ? { ...d, credentialSynced: !(d.credentialSynced ?? true) } : d
-      )
-    );
   }
 
   function revokeCredentials(dev: Device) {
@@ -4169,8 +3774,6 @@ export default function IotProvisioning() {
           onRotate={(d) => setRotateConfirmId(d.id)}
           onProvision={(d) => setProvisionConfirmId(d.id)}
           onRevoke={(d) => setRevokeConfirmId(d.id)}
-          onFlagTamper={(d) => setTamperConfirmId(d.id)}
-          onClearTamper={clearTamper}
         />
 
         <div className="mt-5">
@@ -4179,7 +3782,6 @@ export default function IotProvisioning() {
             testingDevice={testingDevice}
             pingResult={pingResult}
             onTestConnection={handleTestConnection}
-            onToggleCredentialSynced={toggleCredentialSynced}
           />
         </div>
 
@@ -4291,20 +3893,6 @@ export default function IotProvisioning() {
           />
         )}
 
-        {credentialFailed && (
-          <CredentialFailedModal
-            deviceId={credentialFailed.deviceId}
-            action={credentialFailed.action}
-            onRetry={() => {
-              const id = credentialFailed.deviceId;
-              setCredentialFailed(null);
-              if (credentialFailed.action === "rotate") setRotateConfirmId(id);
-              else setProvisionConfirmId(id);
-            }}
-            onClose={() => setCredentialFailed(null)}
-          />
-        )}
-
         {credRotated && (
           <CredentialsRotatedModal
             deviceId={credRotated.deviceId}
@@ -4328,21 +3916,6 @@ export default function IotProvisioning() {
             onClose={() => setRegisteredDevice(null)}
           />
         )}
-
-        {tamperConfirmId && (() => {
-          const dev = devices.find((d) => d.id === tamperConfirmId);
-          if (!dev) return null;
-          return (
-            <TamperFlagModal
-              device={dev}
-              onClose={() => setTamperConfirmId(null)}
-              onConfirm={(description) => {
-                flagTamper(dev, description);
-                setTamperConfirmId(null);
-              }}
-            />
-          );
-        })()}
 
         {decommissionConfirmId && (
           <ConfirmModal

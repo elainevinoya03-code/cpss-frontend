@@ -7,7 +7,7 @@ import {
   Clock,
   Search,
   Filter,
-  ShieldCheck,
+  Lock,
   Eye,
   EyeOff,
   MapPin,
@@ -16,12 +16,9 @@ import {
   Radio,
   User,
   FileText,
-  ShieldAlert,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { formatTime } from "../utils/format";
-import { Modal } from "../components/ui";
-import { addUnblurRequest } from "../utils/unblurRequestStore";
 
 const PRIORITY_DOT: Record<string, string> = {
   Critical: "bg-rose-500",
@@ -48,11 +45,11 @@ const TAG_TYPE_BADGE: Record<string, string> = {
   Other: "bg-sky-100 text-sky-700",
 };
 
-const INCIDENT_LOOKUP: Record<string, string> = {
-  "INC-2041": "Structure Fire â€” Purok 4 Residential",
-  "INC-2040": "Mass Noise Disturbance â€” Purok 6 Commercial Strip",
-  "INC-2042": "Suspicious Activity Report â€” Purok 2 Chapel Area",
-  "INC-2043": "Flash Flood Warning â€” Purok 3 & 5 Low-Lying Areas",
+const INCIDENT_LOOKUP: Record<string, { title: string; category: string; location: string }> = {
+  "INC-2041": { title: "Structure Fire — Purok 4 Residential", category: "Fire / Smoke", location: "Purok 4 — residential district near school" },
+  "INC-2040": { title: "Mass Noise Disturbance — Purok 6 Commercial Strip", category: "Noise Disturbance", location: "Purok 6 — commercial strip" },
+  "INC-2042": { title: "Suspicious Activity Report — Purok 2 Chapel Area", category: "Suspicious Activity", location: "Purok 2 — chapel area" },
+  "INC-2043": { title: "Flash Flood Warning — Purok 3 & 5 Low-Lying Areas", category: "Flood", location: "Purok 3 & 5 — riverside low-lying areas" },
 };
 
 const MOCK_CLIPS = [
@@ -75,18 +72,15 @@ function formatClock(seconds: number) {
 function PlaybackStation({ clip, onClose }: { clip: (typeof MOCK_CLIPS)[number] | null; onClose: () => void }) {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [unblurOpen, setUnblurOpen] = useState(false);
 
   useEffect(() => {
     if (!clip) {
       setPlaying(false);
       setProgress(0);
-      setUnblurOpen(false);
       return;
     }
     setProgress(0);
     setPlaying(false);
-    setUnblurOpen(false);
   }, [clip]);
 
   useEffect(() => {
@@ -173,21 +167,15 @@ function PlaybackStation({ clip, onClose }: { clip: (typeof MOCK_CLIPS)[number] 
         </div>
 
         {clip.privacyBlurred && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <EyeOff size={14} className="text-amber-600" />
-              <div>
-                <p className="text-[11px] font-semibold text-amber-700">Privacy Blurred</p>
-                <p className="text-[10px] text-stone-500">Redacted by the CCTV Operator (DPA). The Captain cannot unblur footage directly.</p>
-              </div>
+          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <EyeOff size={14} className="mt-0.5 shrink-0 text-amber-600" />
+            <div>
+              <p className="text-[11px] font-semibold text-amber-700">Privacy Blurred</p>
+              <p className="text-[10px] leading-relaxed text-stone-500">
+                Redacted by the CCTV Operator (DPA). Evidence is reviewed in this state — the Captain cannot
+                unblur footage. Only the CCTV Operator or Barangay Admin may lift the blur.
+              </p>
             </div>
-            <button
-              onClick={() => setUnblurOpen(true)}
-              className="flex h-8 items-center gap-1.5 rounded-md border border-amber-300 bg-white px-3 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100"
-            >
-              <ShieldAlert size={12} />
-              Request Unblur
-            </button>
           </div>
         )}
 
@@ -234,121 +222,37 @@ function PlaybackStation({ clip, onClose }: { clip: (typeof MOCK_CLIPS)[number] 
           <div className="rounded-lg border border-stone-200 bg-[#0038A8]/5 px-4 py-3">
             <p className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wider text-[#0038A8]">
               <FileText size={11} />
-              LINKED INCIDENT RECORD
+              LINKED INCIDENT
             </p>
-            <p className="mt-1 text-[12px] font-semibold text-stone-900">{incidentTitle}</p>
-            <p className="mt-0.5 text-[10px] text-stone-400">
-              Linked to a closed-incident record · evidence is read-only here.
+            <div className="mt-2 space-y-1.5 text-[11px]">
+              <div className="flex justify-between gap-4">
+                <span className="text-stone-400">Incident ID</span>
+                <span className="font-semibold text-stone-900">{clip.incidentId}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-stone-400">Title</span>
+                <span className="font-medium text-stone-900">{incidentTitle.title}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-stone-400">Category</span>
+                <span className="font-medium text-stone-900">{incidentTitle.category}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-stone-400">Location</span>
+                <span className="font-medium text-stone-900">{incidentTitle.location}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-stone-400">Capture time</span>
+                <span className="font-medium text-stone-900">{formatTime(clip.capturedAt)}</span>
+              </div>
+            </div>
+            <p className="mt-2 text-[10px] text-stone-400">
+              Incident information is read-only — maintained by the Desk Officer / CCTV Operator.
             </p>
           </div>
         )}
       </div>
-
-      {unblurOpen && <RequestUnblurModal clip={clip} onClose={() => setUnblurOpen(false)} />}
     </div>
-  );
-}
-
-function RequestUnblurModal({ clip, onClose }: { clip: (typeof MOCK_CLIPS)[number]; onClose: () => void }) {
-  const [justification, setJustification] = useState("");
-  const [sent, setSent] = useState(false);
-
-  if (sent) {
-    return (
-      <Modal
-        onClose={onClose}
-        icon={<ShieldAlert size={18} />}
-        iconClass="bg-emerald-100 text-emerald-700"
-        title="Unblur request sent for review"
-        subtitle={`${clip.id} has been routed to the CCTV Operator / Barangay Admin queue`}
-        centered
-        footer={
-          <button
-            onClick={onClose}
-            className="w-full rounded-lg bg-[#0038A8] px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#002A8C]"
-          >
-            Done
-          </button>
-        }
-      >
-        <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
-          <p className="text-[10px] font-medium tracking-wider text-stone-400">JUSTIFICATION RECORDED</p>
-          <p className="mt-1 text-[12px] leading-relaxed text-stone-600">{justification}</p>
-        </div>
-        <p className="mt-4 text-[11px] leading-relaxed text-stone-500">
-          The Captain never unblurs footage directly — a CCTV Operator or Barangay Admin must manually
-          review the clip and lift the privacy blur before it can be viewed in full.
-        </p>
-      </Modal>
-    );
-  }
-
-  const canSubmit = justification.trim().length >= 10;
-
-  return (
-    <Modal
-      onClose={onClose}
-      icon={<EyeOff size={18} />}
-      iconClass="bg-amber-100 text-amber-700"
-      title="Request Unblur"
-      subtitle={`${clip.id} · ${clip.camera} · ${clip.location}`}
-      footer={
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onClose}
-            className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[13px] font-medium text-stone-600 transition hover:bg-stone-50"
-          >
-            Cancel
-          </button>
-          <button
-            disabled={!canSubmit}
-            onClick={() => {
-              addUnblurRequest({
-                clipId: clip.id,
-                clipName: `${clip.camera} · ${clip.location}`,
-                camera: clip.camera,
-                location: clip.location,
-                purok: clip.purok,
-                incidentId: clip.incidentId,
-                justification: justification.trim(),
-              });
-              setSent(true);
-            }}
-            className="flex-1 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#002A8C] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Send Request
-          </button>
-        </div>
-      }
-    >
-      <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-        <p className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-700">
-          <ShieldAlert size={12} />
-          Privacy Blurred by CCTV Operator
-        </p>
-        <p className="mt-1 text-[11px] leading-relaxed text-stone-500">
-          This clip is redacted per the Data Privacy Act. The Captain cannot unblur footage directly —
-          the request goes to the CCTV Operator / Barangay Admin queue for manual review.
-        </p>
-      </div>
-      <div>
-        <label className="mb-1.5 block text-[10px] font-medium tracking-wider text-stone-400">
-          JUSTIFICATION (REQUIRED)
-        </label>
-        <textarea
-          value={justification}
-          onChange={(e) => setJustification(e.target.value)}
-          rows={4}
-          placeholder="Explain why this redacted clip needs to be reviewed in full (e.g. subject appears in frame within the incident timeline)…"
-          className="w-full resize-none rounded-lg border border-black/10 bg-white px-3 py-2 text-[12px] text-stone-700 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
-        />
-        <p className="mt-1 text-[10px] text-stone-400">
-          {justification.trim().length < 10
-            ? "At least 10 characters required."
-            : "Thank you — this note will be attached to the request."}
-        </p>
-      </div>
-    </Modal>
   );
 }
 
@@ -398,13 +302,19 @@ export default function CCTVEvidenceViewer() {
             <div>
               <h1 className="text-2xl font-bold text-stone-900">CCTV Evidence Viewer</h1>
               <p className="mt-1 text-sm text-stone-500">
-                Read-only review of surveillance clips attached to incident records
+                Strictly read-only evidence review — no footage editing, unblurring, tagging, or camera control for the Captain
               </p>
             </div>
-            <span className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-medium text-emerald-700">
-              <ShieldCheck size={13} />
-              Read-Only
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-2 text-[12px] font-bold tracking-widest text-white">
+                <Lock size={13} />
+                READ-ONLY
+              </span>
+              <span className="flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-[10px] text-stone-500">
+                <EyeOff size={11} />
+                Evidence cannot be modified
+              </span>
+            </div>
           </div>
         </header>
 

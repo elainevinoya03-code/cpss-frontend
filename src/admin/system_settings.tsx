@@ -1,16 +1,11 @@
 ﻿import { useState, useEffect } from "react";
 import {
-  MessageSquare,
   Radio,
   Bell,
   Globe,
   Save,
-  Send,
   CheckCircle2,
   AlertTriangle,
-  Upload,
-  Eye,
-  EyeOff,
   RotateCcw,
   Shield,
   ShieldCheck,
@@ -23,13 +18,13 @@ import { pushAuditLog } from "../utils/auditLog";
 import { getCctvStorageConfig, setCctvStorageConfig, DEFAULT_CCTV_STORAGE } from "../utils/cctvStorage";
 
 const TABS = [
-  { key: "sms", label: "SMS API Config", icon: MessageSquare },
+  { key: "general", label: "General", icon: Globe },
   { key: "iot", label: "IoT Thresholds", icon: Radio },
-  { key: "alert", label: "Alert Rules", icon: Bell },
+  { key: "notifications", label: "Notifications & Alerts", icon: Bell },
+  { key: "security", label: "Security", icon: Shield },
   { key: "retention", label: "Data Retention", icon: Database },
-  { key: "purok", label: "Purok Coordination", icon: Shield },
+  { key: "purok", label: "Purok Coordination", icon: ShieldCheck },
   { key: "flags", label: "Feature Flags", icon: ToggleLeft },
-  { key: "locale", label: "Localization", icon: Globe },
 ];
 
 const RETENTION_UNITS = ["Days", "Months", "Years"];
@@ -100,7 +95,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 }
 
 export default function SystemSettings() {
-  const [activeTab, setActiveTab] = useState("sms");
+  const [activeTab, setActiveTab] = useState("general");
   const [pendingTab, setPendingTab] = useState<string | null>(null);
   const [dirtyTabs, setDirtyTabs] = useState<Set<string>>(new Set());
 
@@ -108,29 +103,21 @@ export default function SystemSettings() {
     setDirtyTabs((prev) => new Set(prev).add(activeTab));
   }
 
-  const [smsApiKey, setSmsApiKey] = useState("••••••••••••••••••••••••");
-  const [smsKeyDirty, setSmsKeyDirty] = useState(false);
-  const maskedKey = "••••••••••••••••••••••••";
-  const [smsEndpoint, setSmsEndpoint] = useState("https://api.twilio.com/2010-04-01/Accounts/{AccountSID}/Messages.json");
-  const [smsSender, setSmsSender] = useState("BRGY-ALERT");
-  const smsBalance = "1,247";
-  const [smsRateLimit, setSmsRateLimit] = useState("50");
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [testPhone, setTestPhone] = useState("+63 917 123 4567");
-  const [testingSms, setTestingSms] = useState(false);
+  const [barangayName, setBarangayName] = useState("Barangay Sample");
+  const [language, setLanguage] = useState("en");
+  const [timezone, setTimezone] = useState("Asia/Manila");
+  const [dateFormat, setDateFormat] = useState("YYYY-MM-DD");
+
   const [smokePpm, setSmokePpm] = useState("500");
   const [decibelDb, setDecibelDb] = useState("85");
+  const [smokePersistence, setSmokePersistence] = useState("30");
+  const [decibelPersistence, setDecibelPersistence] = useState("10");
+
   const [escalationMin, setEscalationMin] = useState("15");
   const [geofenceRadius, setGeofenceRadius] = useState("500");
   const [requireCaptainApproval, setRequireCaptainApproval] = useState(true);
   const [enableSmsBroadcast, setEnableSmsBroadcast] = useState(true);
   const [enablePushNotif, setEnablePushNotif] = useState(true);
-  const [language, setLanguage] = useState("en");
-  const [timezone, setTimezone] = useState("Asia/Manila");
-  const [dateFormat, setDateFormat] = useState("YYYY-MM-DD");
-  const [barangayName, setBarangayName] = useState("Barangay Sample");
-  const [barangaySeal, setBarangaySeal] = useState<File | null>(null);
-  const [modalMessage, setModalMessage] = useState<{ title: string; message: string } | null>(null);
 
   const [roleMatrix, setRoleMatrix] = useState([
     { role: "Desk Officer", low: false, med: true, high: true, crit: true },
@@ -144,6 +131,8 @@ export default function SystemSettings() {
   const [testingNotifSound, setTestingNotifSound] = useState(false);
 
   const [requireTwoFactor, setRequireTwoFactor] = useState(true);
+  const [sessionTimeout, setSessionTimeout] = useState("30");
+
   const [purokEnabled, setPurokEnabled] = useState(true);
   const [validationLabels, setValidationLabels] = useState([
     { key: "locally_confirmed", label: "Locally Confirmed", desc: "Verified as a real, local concern by the Purok Leader", enabled: true },
@@ -169,8 +158,7 @@ export default function SystemSettings() {
     { key: "push", label: "Push Notifications", desc: "In-app push alerts to logged-in users", enabled: true },
     { key: "broadcast", label: "Emergency Broadcast", desc: "Captain emergency broadcast approvals", enabled: true },
   ]);
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
-  const [maintenanceMessage, setMaintenanceMessage] = useState("Barangay system under maintenance — please try again later.");
+  const [modalMessage, setModalMessage] = useState<{ title: string; message: string } | null>(null);
 
   function toggleFeatureFlag(key: string) {
     setFeatureFlags((prev) =>
@@ -224,29 +212,22 @@ export default function SystemSettings() {
 
   function handleSave() {
     setDirtyTabs(new Set());
-    setSmsKeyDirty(false);
     const warn = Math.min(100, Math.max(10, Number(cctvWarnThreshold) || DEFAULT_CCTV_STORAGE.warnThresholdPct));
     setCctvStorageConfig({ warnThresholdPct: warn });
-    pushAuditLog("Configuration Change", "Saved platform settings (SMS, thresholds, alerts, 2FA policy, data retention, purok coordination, feature flags)");
+    pushAuditLog("Configuration Change", "Saved platform settings (general, IoT thresholds, notifications & alert rules, security policy, data retention, purok coordination, feature flags)");
     setModalMessage({ title: "Settings Saved", message: "Settings saved successfully" });
   }
 
   function handleRevert() {
     setDirtyTabs(new Set());
-    setSmsKeyDirty(false);
     setRetention(defaultRetentionState());
     setCctvWarnThreshold(String(DEFAULT_CCTV_STORAGE.warnThresholdPct));
     setCctvStorageConfig({ warnThresholdPct: DEFAULT_CCTV_STORAGE.warnThresholdPct });
+    setSmokePersistence("30");
+    setDecibelPersistence("10");
+    setSessionTimeout("30");
     pushAuditLog("Configuration Change", "Reverted platform settings to defaults");
     setModalMessage({ title: "Settings Reverted", message: "Reverted to defaults" });
-  }
-
-  function testSms() {
-    setTestingSms(true);
-    setTimeout(() => {
-      setTestingSms(false);
-      setModalMessage({ title: "Test SMS Sent", message: `Test SMS sent to ${testPhone}` });
-    }, 1500);
   }
 
   return (
@@ -255,7 +236,8 @@ export default function SystemSettings() {
         <header className="mb-6 border-b border-stone-200 pb-5">
           <h1 className="text-2xl font-bold text-stone-900">System Settings</h1>
           <p className="mt-1 text-sm text-stone-500">
-            Global configuration for integrations, thresholds, and platform preferences
+            Global configuration for system identity, sensor thresholds, notifications, security,
+            retention, and feature flags
           </p>
         </header>
 
@@ -284,119 +266,72 @@ export default function SystemSettings() {
         </div>
 
         
-        {activeTab === "sms" && (
+        {activeTab === "general" && (
           <div className="space-y-5">
             <SettingsCard
-              title="SMS Gateway Connection"
-              subtitle="Configure the third-party SMS provider powering the Cascading Mass Broadcast Engine"
+              title="Barangay Identity"
+              subtitle="Official identity shown across the system"
             >
               <SettingRow
-                label="API Endpoint URL"
-                hint="REST endpoint for the SMS gateway provider"
+                label="Barangay Name"
+                hint="Official name displayed across the system"
               >
-                  <input
-                    type="url"
-                    value={smsEndpoint}
-                    onChange={(e) => { setSmsEndpoint(e.target.value); markDirty(); }}
-                    className={inputClass}
-                  />
-              </SettingRow>
-
-              <SettingRow
-                label="API Key"
-                hint="Authentication token for the SMS provider. Masked on load for security."
-              >
-                <div className="relative">
-                  <input
-                    type={showApiKey ? "text" : "password"}
-                    value={smsApiKey}
-                    onChange={(e) => {
-                      setSmsApiKey(e.target.value);
-                      setSmsKeyDirty(true);
-                      markDirty();
-                    }}
-                    placeholder={smsKeyDirty ? "" : maskedKey}
-                    className={inputClass + " pr-10"}
-                  />
-                  <button
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
-                  >
-                    {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-              </SettingRow>
-
-              <SettingRow
-                label="Sender Name / ID"
-                hint="Header displayed on recipient phones"
-              >
-                  <input
-                    type="text"
-                    value={smsSender}
-                    onChange={(e) => { setSmsSender(e.target.value); markDirty(); }}
-                    placeholder="BRGY-ALERT"
-                    className={inputClass}
-                  />
-              </SettingRow>
-
-              <SettingRow
-                label="Rate Limit (per minute)"
-                hint="Maximum SMS broadcasts per minute to prevent API spam"
-              >
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={smsRateLimit}
-                    onChange={(e) => { setSmsRateLimit(e.target.value); markDirty(); }}
-                    min="1"
-                    max="200"
-                    className={inputClass}
-                  />
-                  <span className="text-xs text-stone-400">msgs/min</span>
-                </div>
+                <input
+                  type="text"
+                  value={barangayName}
+                  onChange={(e) => { setBarangayName(e.target.value); markDirty(); }}
+                  className={inputClass}
+                />
               </SettingRow>
             </SettingsCard>
 
             <SettingsCard
-              title="Credit Monitoring"
-              subtitle="Track remaining SMS balance and send a test message to verify connectivity"
+              title="Language & Regional Format"
+              subtitle="Standardize display language, timezone, and date formatting"
             >
-              <div className="flex items-center gap-6 rounded-lg border border-stone-200 bg-stone-50 px-5 py-4">
-                <div>
-                  <p className="text-[11px] font-semibold tracking-wide text-stone-400">
-                    REMAINING CREDITS
-                  </p>
-                  <p className="mt-1 text-2xl font-bold text-stone-900">{smsBalance}</p>
-                </div>
-                <div className="h-10 w-px bg-stone-200" />
-                <div className="flex-1">
-                  <p className="text-[11px] font-semibold tracking-wide text-stone-400">
-                    TEST SMS RECIPIENT
-                  </p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <input
-                      type="tel"
-                      value={testPhone}
-                      onChange={(e) => setTestPhone(e.target.value)}
-                      placeholder="+63 917 123 4567"
-                      className="flex-1 rounded-md border border-stone-200 bg-white px-3 py-1.5 text-sm text-stone-800 outline-none focus:border-[#0038A8] focus:ring-1 focus:ring-[#0038A8]"
-                    />
-                    <button
-                      onClick={testSms}
-                      disabled={testingSms}
-                      className="flex items-center gap-1.5 rounded-md bg-[#0038A8] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#002A8C] disabled:opacity-50"
-                    >
-                      {testingSms ? (
-                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                      ) : (
-                        <Send size={12} />
-                      )}
-                      Send Test
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <SettingRow
+                label="Default System Language"
+                hint="Controls the app interface language for all admin users"
+              >
+                <select
+                  value={language}
+                  onChange={(e) => { setLanguage(e.target.value); markDirty(); }}
+                  className={inputClass}
+                >
+                  <option value="en">English</option>
+                  <option value="fil">Filipino / Tagalog</option>
+                </select>
+              </SettingRow>
+
+              <SettingRow
+                label="Timezone"
+                hint="Standardizes timestamps shown throughout the system"
+              >
+                <select
+                  value={timezone}
+                  onChange={(e) => { setTimezone(e.target.value); markDirty(); }}
+                  className={inputClass}
+                >
+                  <option value="Asia/Manila">Asia/Manila (GMT+8)</option>
+                  <option value="UTC">UTC (GMT+0)</option>
+                </select>
+              </SettingRow>
+
+              <SettingRow
+                label="Date Format"
+                hint="Display format for dates throughout the system"
+              >
+                <select
+                  value={dateFormat}
+                  onChange={(e) => { setDateFormat(e.target.value); markDirty(); }}
+                  className={inputClass}
+                >
+                  <option value="YYYY-MM-DD">YYYY-MM-DD (2026-07-20)</option>
+                  <option value="MM/DD/YYYY">MM/DD/YYYY (07/20/2026)</option>
+                  <option value="DD/MM/YYYY">DD/MM/YYYY (20/07/2026)</option>
+                  <option value="MMMM D, YYYY">MMMM D, YYYY (July 20, 2026)</option>
+                </select>
+              </SettingRow>
             </SettingsCard>
           </div>
         )}
@@ -412,36 +347,70 @@ export default function SystemSettings() {
               hint="MQ-2 sensor threshold before triggering a high-severity smoke alert"
             >
               <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={smokePpm}
-                    onChange={(e) => { setSmokePpm(e.target.value); markDirty(); }}
-                    min="50"
-                    max="1000"
-                    className={inputClass}
-                  />
-                  <span className="text-xs text-stone-400">ppm</span>
-                </div>
-              </SettingRow>
+                <input
+                  type="number"
+                  value={smokePpm}
+                  onChange={(e) => { setSmokePpm(e.target.value); markDirty(); }}
+                  min="50"
+                  max="1000"
+                  className={inputClass}
+                />
+                <span className="text-xs text-stone-400">ppm</span>
+              </div>
+            </SettingRow>
 
-              <SettingRow
-                label="Global Decibel Ceiling (dB)"
-                hint="KY-037 noise sensor limit before triggering a medium-severity incident"
-              >
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={decibelDb}
-                    onChange={(e) => { setDecibelDb(e.target.value); markDirty(); }}
-                    min="50"
-                    max="120"
-                    className={inputClass}
-                  />
-                  <span className="text-xs text-stone-400">dB</span>
-                </div>
-              </SettingRow>
+            <SettingRow
+              label="Global Smoke Persistence"
+              hint="Seconds a smoke reading must exceed the threshold before triggering an alert"
+            >
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={smokePersistence}
+                  onChange={(e) => { setSmokePersistence(e.target.value); markDirty(); }}
+                  min="1"
+                  max="300"
+                  className={inputClass}
+                />
+                <span className="text-xs text-stone-400">seconds</span>
+              </div>
+            </SettingRow>
 
-              <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <SettingRow
+              label="Global Decibel Ceiling (dB)"
+              hint="KY-037 noise sensor limit before triggering a medium-severity incident"
+            >
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={decibelDb}
+                  onChange={(e) => { setDecibelDb(e.target.value); markDirty(); }}
+                  min="50"
+                  max="120"
+                  className={inputClass}
+                />
+                <span className="text-xs text-stone-400">dB</span>
+              </div>
+            </SettingRow>
+
+            <SettingRow
+              label="Global Noise Persistence"
+              hint="Seconds a noise reading must exceed the ceiling before triggering an incident"
+            >
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={decibelPersistence}
+                  onChange={(e) => { setDecibelPersistence(e.target.value); markDirty(); }}
+                  min="1"
+                  max="300"
+                  className={inputClass}
+                />
+                <span className="text-xs text-stone-400">seconds</span>
+              </div>
+            </SettingRow>
+
+            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               <AlertTriangle size={16} className="mt-0.5 shrink-0" />
               <div>
                 <p className="font-medium">Threshold propagation</p>
@@ -455,7 +424,7 @@ export default function SystemSettings() {
         )}
 
         
-        {activeTab === "alert" && (
+        {activeTab === "notifications" && (
           <div className="space-y-5">
             <SettingsCard
               title="Escalation & Broadcast Rules"
@@ -625,10 +594,15 @@ export default function SystemSettings() {
                 </button>
               </SettingRow>
             </SettingsCard>
+          </div>
+        )}
 
+        
+        {activeTab === "security" && (
+          <div className="space-y-5">
             <SettingsCard
-              title="Security &amp; Access"
-              subtitle="Authentication policy controls for privileged system roles"
+              title="Authentication & Session Policy"
+              subtitle="Login security policy and session controls for the platform"
             >
               <SettingRow
                 label="Require Two-Factor Authentication"
@@ -650,6 +624,31 @@ export default function SystemSettings() {
                     completes enrollment. It remains optional for all other roles.
                   </p>
                 </div>
+              </div>
+
+              <SettingRow
+                label="Session Timeout"
+                hint="Minutes of inactivity before a signed-in session expires"
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={sessionTimeout}
+                    onChange={(e) => { setSessionTimeout(e.target.value); markDirty(); }}
+                    min="5"
+                    max="240"
+                    className={inputClass}
+                  />
+                  <span className="text-xs text-stone-400">minutes</span>
+                </div>
+              </SettingRow>
+
+              <div className="flex items-start gap-3 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-600">
+                <Shield size={16} className="mt-0.5 shrink-0" />
+                <p className="text-xs">
+                  Login protection (attempt lockouts and credential-based access controls) is not
+                  implemented in this prototype and is therefore not configurable here.
+                </p>
               </div>
             </SettingsCard>
           </div>
@@ -722,6 +721,19 @@ export default function SystemSettings() {
                   </p>
                 </div>
               </div>
+
+              <div className="flex items-start gap-3 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-600">
+                <Database size={16} className="mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-medium">Configuration values, not legal advice</p>
+                  <p className="mt-0.5 text-xs opacity-80">
+                    Retention values are <strong>configuration values</strong> entered for this
+                    prototype — they are scheduling inputs, not legal advice. Actual retention
+                    periods must comply with applicable data protection laws and the Barangay's
+                    approved policies.
+                  </p>
+                </div>
+              </div>
             </SettingsCard>
           </div>
         )}
@@ -791,9 +803,9 @@ export default function SystemSettings() {
                 <ShieldCheck size={16} className="mt-0.5 shrink-0" />
                 <p className="text-xs">
                   Purok-level notification routing is governed by the{" "}
-                  <strong>Notification Role Matrix</strong> under Alert Rules — this tab only
-                  controls which validation labels exist. Labels are advisory; the Desk Officer
-                  retains final authority.
+                  <strong>Notification Role Matrix</strong> under Notifications &amp; Alerts — this
+                  tab only controls which validation labels exist. Labels are advisory; the Desk
+                  Officer retains final authority.
                 </p>
               </div>
             </SettingsCard>
@@ -804,7 +816,7 @@ export default function SystemSettings() {
           <div className="space-y-5">
             <SettingsCard
               title="Module Feature Flags"
-              subtitle="Enable or disable whole modules and capabilities platform-wide"
+              subtitle="Enable or disable whole existing modules platform-wide"
             >
               <div className="divide-y divide-stone-100">
                 {featureFlags.map((flag) => (
@@ -825,140 +837,16 @@ export default function SystemSettings() {
                   </div>
                 ))}
               </div>
-            </SettingsCard>
 
-            <SettingsCard
-              title="Maintenance Mode"
-              subtitle="Temporarily restrict operations platform-wide"
-            >
-              <SettingRow
-                label="Enable Maintenance Mode"
-                hint="When enabled, non-admin roles see a maintenance notice and cannot perform operations"
-              >
-                <Toggle
-                  checked={maintenanceMode}
-                  onChange={(v) => { setMaintenanceMode(v); markDirty(); }}
-                />
-              </SettingRow>
-
-              <SettingRow
-                label="Maintenance Notice"
-                hint="Message shown to users while maintenance mode is active"
-              >
-                <input
-                  type="text"
-                  value={maintenanceMessage}
-                  disabled={!maintenanceMode}
-                  onChange={(e) => { setMaintenanceMessage(e.target.value); markDirty(); }}
-                  className={inputClass + (maintenanceMode ? "" : " disabled:bg-stone-50 disabled:text-stone-400")}
-                />
-              </SettingRow>
-
-              {maintenanceMode && (
-                <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-                  <p className="text-xs">
-                    Maintenance mode is active. This blocks operations for non-admin roles until
-                    disabled.
-                  </p>
-                </div>
-              )}
-            </SettingsCard>
-          </div>
-        )}
-
-        {activeTab === "locale" && (
-          <div className="space-y-5">
-            <SettingsCard
-              title="Language & Regional Format"
-              subtitle="Standardize display language, timezone, and date formatting"
-            >
-              <SettingRow
-                label="Default System Language"
-                hint="Controls the app interface language for all admin users"
-              >
-                <select
-                  value={language}
-                  onChange={(e) => { setLanguage(e.target.value); markDirty(); }}
-                  className={inputClass}
-                >
-                  <option value="en">English</option>
-                  <option value="fil">Filipino / Tagalog</option>
-                </select>
-              </SettingRow>
-
-              <SettingRow
-                label="Timezone"
-                hint="Standardizes timestamps for blotter archiving and playback clips"
-              >
-                <select
-                  value={timezone}
-                  onChange={(e) => { setTimezone(e.target.value); markDirty(); }}
-                  className={inputClass}
-                >
-                  <option value="Asia/Manila">Asia/Manila (GMT+8)</option>
-                  <option value="UTC">UTC (GMT+0)</option>
-                </select>
-              </SettingRow>
-
-              <SettingRow
-                label="Date Format"
-                hint="Display format for dates throughout the system"
-              >
-                <select
-                  value={dateFormat}
-                  onChange={(e) => { setDateFormat(e.target.value); markDirty(); }}
-                  className={inputClass}
-                >
-                  <option value="YYYY-MM-DD">YYYY-MM-DD (2026-07-20)</option>
-                  <option value="MM/DD/YYYY">MM/DD/YYYY (07/20/2026)</option>
-                  <option value="DD/MM/YYYY">DD/MM/YYYY (20/07/2026)</option>
-                  <option value="MMMM D, YYYY">MMMM D, YYYY (July 20, 2026)</option>
-                </select>
-              </SettingRow>
-            </SettingsCard>
-
-            <SettingsCard
-              title="Barangay Identity"
-              subtitle="Upload official branding used on printable digital blotter reports and system headers"
-            >
-              <SettingRow
-                label="Barangay Name"
-                hint="Official name displayed across the system"
-              >
-                <input
-                  type="text"
-                  value={barangayName}
-                  onChange={(e) => { setBarangayName(e.target.value); markDirty(); }}
-                  className={inputClass}
-                />
-              </SettingRow>
-
-              <SettingRow
-                label="Barangay Seal / Logo"
-                hint="PNG or SVG, max 2MB. Used on printable reports."
-              >
-                <div className="flex items-center gap-3">
-                  <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-stone-300 bg-stone-50 px-4 py-2.5 text-xs font-medium text-stone-500 transition hover:border-[#0038A8] hover:bg-rose-50/50 hover:text-[#0038A8]">
-                    <Upload size={14} />
-                    {barangaySeal ? barangaySeal.name : "Upload File"}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => { setBarangaySeal(e.target.files?.[0] || null); markDirty(); }}
-                    />
-                  </label>
-                  {barangaySeal && (
-                    <button
-                      onClick={() => setBarangaySeal(null)}
-                      className="text-xs text-rose-500 hover:underline"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              </SettingRow>
+              <div className="flex items-start gap-3 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-600">
+                <ToggleLeft size={16} className="mt-0.5 shrink-0" />
+                <p className="text-xs">
+                  Flags cover the major existing modules only. Experimental or out-of-scope
+                  capabilities (AI, facial recognition, predictive analytics, national emergency /
+                  PNP / 911 integration, drones, payments, multi-barangay tenancy) are not part of
+                  this prototype and are not configurable here.
+                </p>
+              </div>
             </SettingsCard>
           </div>
         )}

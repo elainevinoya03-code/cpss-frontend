@@ -8,6 +8,8 @@ import {
   Download,
   ShieldCheck,
   AlertTriangle,
+  Heart,
+  Star,
   Info,
 } from "lucide-react";
 import ExportReportModal from "../components/ExportReportModal";
@@ -21,8 +23,10 @@ const REPORT_RANGES = [
 
 type OpMetrics = {
   rangeLabel: string;
-  availability: number;
-  ackAvg: string;
+  totalIncidents: number;
+  criticalIncidents: number;
+  resolvedIncidents: number;
+  responseAvg: string;
   resolutionAvg: string;
   slaTarget: string;
   slaBreaches: number;
@@ -30,17 +34,19 @@ type OpMetrics = {
   iotAlerts: { critical: number; warning: number; low: number };
   cctvOnline: number;
   cctvTotal: number;
-  notifSuccess: number;
-  notifDelivered: number;
-  notifTotal: number;
-  notifFailed: number;
+  broadcastDelivered: number;
+  broadcastTotal: number;
+  residentRating: number;
+  feedbackResponses: number;
 };
 
 const MOCK_OPERATIONAL: Record<string, OpMetrics> = {
   week: {
     rangeLabel: "This Week (Jul 14 – Jul 20, 2026)",
-    availability: 98.6,
-    ackAvg: "1.8 min",
+    totalIncidents: 42,
+    criticalIncidents: 4,
+    resolvedIncidents: 38,
+    responseAvg: "1.8 min",
     resolutionAvg: "5.4 min",
     slaTarget: "10 min",
     slaBreaches: 1,
@@ -48,15 +54,17 @@ const MOCK_OPERATIONAL: Record<string, OpMetrics> = {
     iotAlerts: { critical: 2, warning: 5, low: 8 },
     cctvOnline: 7,
     cctvTotal: 8,
-    notifSuccess: 98.1,
-    notifDelivered: 155,
-    notifTotal: 158,
-    notifFailed: 3,
+    broadcastDelivered: 155,
+    broadcastTotal: 158,
+    residentRating: 4.3,
+    feedbackResponses: 21,
   },
   month: {
     rangeLabel: "This Month (Jul 1 – Jul 20, 2026)",
-    availability: 99.2,
-    ackAvg: "2.4 min",
+    totalIncidents: 173,
+    criticalIncidents: 14,
+    resolvedIncidents: 158,
+    responseAvg: "2.4 min",
     resolutionAvg: "6.1 min",
     slaTarget: "10 min",
     slaBreaches: 3,
@@ -64,15 +72,17 @@ const MOCK_OPERATIONAL: Record<string, OpMetrics> = {
     iotAlerts: { critical: 6, warning: 18, low: 34 },
     cctvOnline: 7,
     cctvTotal: 8,
-    notifSuccess: 97.3,
-    notifDelivered: 429,
-    notifTotal: 441,
-    notifFailed: 12,
+    broadcastDelivered: 429,
+    broadcastTotal: 441,
+    residentRating: 4.2,
+    feedbackResponses: 64,
   },
   quarter: {
     rangeLabel: "Last Quarter (Apr 1 – Jun 30, 2026)",
-    availability: 98.9,
-    ackAvg: "2.9 min",
+    totalIncidents: 512,
+    criticalIncidents: 41,
+    resolvedIncidents: 468,
+    responseAvg: "2.9 min",
     resolutionAvg: "6.8 min",
     slaTarget: "10 min",
     slaBreaches: 11,
@@ -80,15 +90,17 @@ const MOCK_OPERATIONAL: Record<string, OpMetrics> = {
     iotAlerts: { critical: 19, warning: 51, low: 96 },
     cctvOnline: 7,
     cctvTotal: 8,
-    notifSuccess: 96.4,
-    notifDelivered: 1211,
-    notifTotal: 1256,
-    notifFailed: 45,
+    broadcastDelivered: 1211,
+    broadcastTotal: 1256,
+    residentRating: 4.1,
+    feedbackResponses: 187,
   },
   custom: {
     rangeLabel: "Custom Range (Jul 1 – Jul 20, 2026)",
-    availability: 99.1,
-    ackAvg: "2.3 min",
+    totalIncidents: 152,
+    criticalIncidents: 12,
+    resolvedIncidents: 139,
+    responseAvg: "2.3 min",
     resolutionAvg: "6.0 min",
     slaTarget: "10 min",
     slaBreaches: 2,
@@ -96,10 +108,10 @@ const MOCK_OPERATIONAL: Record<string, OpMetrics> = {
     iotAlerts: { critical: 5, warning: 15, low: 28 },
     cctvOnline: 8,
     cctvTotal: 8,
-    notifSuccess: 97.6,
-    notifDelivered: 387,
-    notifTotal: 397,
-    notifFailed: 10,
+    broadcastDelivered: 387,
+    broadcastTotal: 397,
+    residentRating: 4.2,
+    feedbackResponses: 58,
   },
 };
 
@@ -114,37 +126,52 @@ function StatBar({ pct, color }: { pct: number; color: string }) {
   );
 }
 
+function StarRating({ rating }: { rating: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          size={13}
+          className={n <= Math.round(rating) ? "fill-amber-400 text-amber-400" : "text-stone-300"}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function OperationalReports() {
   const [range, setRange] = useState("month");
   const [showExportModal, setShowExportModal] = useState(false);
 
   const m = MOCK_OPERATIONAL[range];
   const cctvAvail = (m.cctvOnline / m.cctvTotal) * 100;
+  const broadcastRate = (m.broadcastDelivered / m.broadcastTotal) * 100;
   const iotTotalAlerts = m.iotAlerts.critical + m.iotAlerts.warning + m.iotAlerts.low;
 
   const exportRows = useMemo(() => {
     const mm = MOCK_OPERATIONAL[range];
+    const rate = ((mm.broadcastDelivered / mm.broadcastTotal) * 100).toFixed(1);
     return [
       ["Metric", "Value", "Note"],
-      ["Operational Availability", `${mm.availability.toFixed(1)}%`, "Placeholder — awaiting backend telemetry"],
-      ["Avg Acknowledgment Time", mm.ackAvg, "Time to Desk Officer acknowledgment"],
+      ["Total Incidents", String(mm.totalIncidents), "All incidents reported in period"],
+      ["Critical Incidents", String(mm.criticalIncidents), "Critical-severity incidents in period"],
+      ["Resolved Incidents", String(mm.resolvedIncidents), "Resolved or closed in period"],
+      ["Avg Response Time", mm.responseAvg, "Time from detection to first response"],
       ["Avg Resolution Time", mm.resolutionAvg, `SLA target: ${mm.slaTarget}`],
       ["SLA Breaches", String(mm.slaBreaches), `Cases exceeding the ${mm.slaTarget} resolution target`],
-      ["IoT Uptime", `${mm.iotUptime.toFixed(1)}%`, "Across all deployed sensors"],
-      ["IoT Alerts — Critical", String(mm.iotAlerts.critical), ""],
-      ["IoT Alerts — Warning", String(mm.iotAlerts.warning), ""],
-      ["IoT Alerts — Low", String(mm.iotAlerts.low), ""],
-      ["CCTV Cameras Online", `${mm.cctvOnline}/${mm.cctvTotal}`, `${((mm.cctvOnline / mm.cctvTotal) * 100).toFixed(1)}% available`],
-      ["Notification Success Rate", `${mm.notifSuccess.toFixed(1)}%`, `${mm.notifDelivered}/${mm.notifTotal} delivered`],
-      ["Notification Failures", String(mm.notifFailed), "Push/SMS send failures in period"],
+      ["IoT Device Health", `${mm.iotUptime.toFixed(1)}%`, "Uptime across all deployed sensors"],
+      ["CCTV Availability", `${mm.cctvOnline}/${mm.cctvTotal}`, `${((mm.cctvOnline / mm.cctvTotal) * 100).toFixed(1)}% cameras online`],
+      ["Broadcast Delivery Rate", `${rate}%`, `${mm.broadcastDelivered}/${mm.broadcastTotal} broadcasts delivered`],
+      ["Resident Satisfaction", `${mm.residentRating.toFixed(1)} / 5`, `Based on ${mm.feedbackResponses} feedback responses`],
     ];
   }, [range]);
 
   const kpis = [
-    { label: "PERIOD AVAILABILITY", value: `${m.availability.toFixed(1)}%`, sub: "Estimated — backend telemetry pending", icon: Activity, placeholder: true },
-    { label: "AVG ACKNOWLEDGMENT", value: m.ackAvg, sub: "Time to Desk Officer acknowledgment", icon: Clock, placeholder: false },
-    { label: "AVG RESOLUTION TIME", value: m.resolutionAvg, sub: `SLA target: ${m.slaTarget}`, icon: ShieldCheck, placeholder: false },
-    { label: "SLA BREACHES", value: String(m.slaBreaches), sub: `Cases exceeding the ${m.slaTarget} target`, icon: AlertTriangle, placeholder: false },
+    { label: "TOTAL INCIDENTS", value: String(m.totalIncidents), sub: "Reported in period", icon: Activity },
+    { label: "CRITICAL INCIDENTS", value: String(m.criticalIncidents), sub: "Critical-severity cases", icon: AlertTriangle },
+    { label: "RESOLVED INCIDENTS", value: String(m.resolvedIncidents), sub: "Resolved or closed", icon: ShieldCheck },
+    { label: "AVG RESPONSE TIME", value: m.responseAvg, sub: "Detection to first response", icon: Clock },
   ];
 
   return (
@@ -152,8 +179,8 @@ export default function OperationalReports() {
       <div className="mb-4 flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
         <Info size={14} className="mt-0.5 shrink-0 text-sky-600" />
         <p className="text-[11px] leading-relaxed text-sky-800">
-          High-level, read-only operational summary for {m.rangeLabel.toLowerCase()}. Summarized metrics
-          only — no drill-down into individual infrastructure logs (spec §14.6).
+          Executive operational summary for {m.rangeLabel.toLowerCase()}. Summary metrics only — no
+          drill-down into individual infrastructure logs (spec §14.6).
         </p>
       </div>
 
@@ -184,7 +211,7 @@ export default function OperationalReports() {
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map(({ label, value, sub, icon: Icon, placeholder }) => (
+        {kpis.map(({ label, value, sub, icon: Icon }) => (
           <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
             <div className="flex items-start justify-between">
               <span className="text-[10px] font-medium tracking-wider text-stone-400">{label}</span>
@@ -192,12 +219,7 @@ export default function OperationalReports() {
                 <Icon size={15} />
               </div>
             </div>
-            <div className="mt-2 flex items-center gap-2">
-              <span className="text-[26px] font-bold text-[#0038A8]">{value}</span>
-              {placeholder && (
-                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold text-amber-700">Placeholder</span>
-              )}
-            </div>
+            <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
             <div className="mt-1 text-[11px] text-stone-400">{sub}</div>
           </div>
         ))}
@@ -206,38 +228,16 @@ export default function OperationalReports() {
       <div className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
         <div className="rounded-xl border border-black/5 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <Activity size={16} className="text-[#0038A8]" />
-            <div>
-              <h3 className="text-[14px] font-semibold text-stone-900">Operational Availability</h3>
-              <p className="text-[11px] text-stone-400">{m.rangeLabel}</p>
-            </div>
-          </div>
-          <div className="mb-2 flex items-end justify-between">
-            <span className="text-[30px] font-bold text-[#0038A8]">{m.availability.toFixed(1)}%</span>
-            <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-semibold text-amber-700">
-              Placeholder metric
-            </span>
-          </div>
-          <StatBar pct={m.availability} color="bg-[#0038A8]" />
-          <p className="mt-3 text-[11px] leading-relaxed text-stone-400">
-            Backend availability telemetry is not yet connected — this figure is estimated from incident,
-            IoT and CCTV data for the period. Monthly/period availability will roll up automatically once
-            backend uptime data is available.
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-black/5 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
             <Clock size={16} className="text-[#0038A8]" />
             <div>
               <h3 className="text-[14px] font-semibold text-stone-900">Response &amp; SLA Summary</h3>
-              <p className="text-[11px] text-stone-400">Dispatch to acknowledgment and resolution</p>
+              <p className="text-[11px] text-stone-400">Average response and resolution vs. target</p>
             </div>
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
-              <span className="text-[11px] font-medium text-stone-500">Avg Acknowledgment Time</span>
-              <span className="text-[14px] font-bold text-stone-900">{m.ackAvg}</span>
+              <span className="text-[11px] font-medium text-stone-500">Avg Response Time</span>
+              <span className="text-[14px] font-bold text-stone-900">{m.responseAvg}</span>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
               <span className="text-[11px] font-medium text-stone-500">Avg Resolution Time</span>
@@ -251,6 +251,26 @@ export default function OperationalReports() {
               <span className="text-[14px] font-bold text-rose-600">{m.slaBreaches}</span>
             </div>
           </div>
+        </div>
+
+        <div className="rounded-xl border border-black/5 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Heart size={16} className="text-[#0038A8]" />
+            <div>
+              <h3 className="text-[14px] font-semibold text-stone-900">Resident Satisfaction</h3>
+              <p className="text-[11px] text-stone-400">Executive evaluation, not case management</p>
+            </div>
+          </div>
+          <div className="mb-3 flex items-end justify-between">
+            <span className="text-[30px] font-bold text-[#0038A8]">{m.residentRating.toFixed(1)}</span>
+            <span className="text-[11px] text-stone-400">/ 5 average rating</span>
+          </div>
+          <StarRating rating={m.residentRating} />
+          <p className="mt-3 text-[11px] leading-relaxed text-stone-400">
+            Based on <span className="font-semibold text-stone-600">{m.feedbackResponses}</span> resident
+            feedback responses this period. Individual comments, puroks and ratings are reviewable per
+            closed incident.
+          </p>
         </div>
       </div>
 
@@ -289,7 +309,7 @@ export default function OperationalReports() {
           <div className="mb-4 flex items-center gap-2">
             <Camera size={16} className="text-[#0038A8]" />
             <div>
-              <h3 className="text-[14px] font-semibold text-stone-900">CCTV Camera Availability</h3>
+              <h3 className="text-[14px] font-semibold text-stone-900">CCTV Availability</h3>
               <p className="text-[11px] text-stone-400">Online feeds across the barangay</p>
             </div>
           </div>
@@ -305,26 +325,26 @@ export default function OperationalReports() {
           <div className="mb-4 flex items-center gap-2">
             <Send size={16} className="text-[#0038A8]" />
             <div>
-              <h3 className="text-[14px] font-semibold text-stone-900">Notification Delivery</h3>
-              <p className="text-[11px] text-stone-400">Push &amp; SMS success / failure</p>
+              <h3 className="text-[14px] font-semibold text-stone-900">Broadcast Delivery</h3>
+              <p className="text-[11px] text-stone-400">Push &amp; SMS broadcast success</p>
             </div>
           </div>
           <div className="mb-3 flex items-end justify-between">
-            <span className="text-[22px] font-bold text-stone-900">{m.notifSuccess.toFixed(1)}%</span>
-            <span className="text-[10px] text-stone-400">delivery success</span>
+            <span className="text-[22px] font-bold text-stone-900">{broadcastRate.toFixed(1)}%</span>
+            <span className="text-[10px] text-stone-400">delivery rate</span>
           </div>
           <div className="flex h-2 w-full overflow-hidden rounded-full bg-stone-200">
-            <div className="h-full bg-emerald-500" style={{ width: `${m.notifSuccess}%` }} />
-            <div className="h-full bg-rose-500" style={{ width: `${100 - m.notifSuccess}%` }} />
+            <div className="h-full bg-emerald-500" style={{ width: `${broadcastRate}%` }} />
+            <div className="h-full bg-rose-500" style={{ width: `${100 - broadcastRate}%` }} />
           </div>
           <div className="mt-4 space-y-2 text-[11px]">
             <div className="flex items-center justify-between text-stone-500">
               <span>Delivered</span>
-              <span className="font-semibold text-emerald-600">{m.notifDelivered}/{m.notifTotal}</span>
+              <span className="font-semibold text-emerald-600">{m.broadcastDelivered}/{m.broadcastTotal}</span>
             </div>
             <div className="flex items-center justify-between text-stone-500">
               <span>Failed</span>
-              <span className="font-semibold text-rose-600">{m.notifFailed}</span>
+              <span className="font-semibold text-rose-600">{m.broadcastTotal - m.broadcastDelivered}</span>
             </div>
           </div>
         </div>
@@ -335,7 +355,7 @@ export default function OperationalReports() {
           <ShieldCheck size={16} className="text-[#0038A8]" />
           <div>
             <h3 className="text-[14px] font-semibold text-stone-900">Operational Report Summary</h3>
-            <p className="text-[11px] text-stone-400">Consolidated metrics for {m.rangeLabel.toLowerCase()} — exported as PDF / CSV</p>
+            <p className="text-[11px] text-stone-400">Consolidated executive metrics for {m.rangeLabel.toLowerCase()} — exported as PDF / CSV</p>
           </div>
         </div>
         <div className="overflow-x-auto">

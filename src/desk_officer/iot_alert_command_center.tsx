@@ -1,13 +1,10 @@
 ﻿import { useState, useEffect, useRef } from "react";
 import {
   Radio,
-  Activity,
   AlertTriangle,
   Siren,
   Zap,
   BellRing,
-  Wifi,
-  WifiOff,
   Megaphone,
   Send,
   CheckCircle2,
@@ -22,7 +19,6 @@ import {
   UserCheck,
   HelpCircle,
   Timer,
-  Gauge,
   BadgeCheck,
   MessageSquare,
   ArrowUpRight,
@@ -140,12 +136,6 @@ interface BroadcastItem {
   trigger: string;
 }
 
-const DEVICE_STATUS = {
-  online: { label: "Online", dot: "bg-emerald-500", pill: "bg-emerald-50 text-emerald-700" },
-  warning: { label: "Warning", dot: "bg-amber-400", pill: "bg-amber-50 text-amber-700" },
-  offline: { label: "Offline", dot: "bg-rose-500", pill: "bg-rose-50 text-rose-600" },
-} as const;
-
 const INITIAL_DEVICES: Device[] = [
   { id: "d1", name: "SM-GATE-01", type: "smoke", purok: "Purok 1", status: "online", value: 512, threshold: 500, battery: 87, rssi: -68, lastPing: "2 min ago" },
   { id: "d2", name: "SM-PLAZA-02", type: "smoke", purok: "Purok 2", status: "online", value: 85, threshold: 500, battery: 54, rssi: -71, lastPing: "4 min ago" },
@@ -228,12 +218,6 @@ function deviceRisk(d: Device) {
   return "online";
 }
 
-function barColor(pct: number, risk: string) {
-  if (risk === "critical") return "bg-rose-500";
-  if (pct > 50) return "bg-amber-400";
-  return "bg-emerald-500";
-}
-
 function nextBroadcastId(broadcasts: { id: string }[]) {
   const max = broadcasts.reduce((acc, b) => {
     const n = parseInt(b.id.replace(/^BC-/, ""), 10);
@@ -281,7 +265,7 @@ function AlertPopUp({ alert, onDispatch, onBroadcast, onClose }) {
             className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2.5 text-[12px] font-semibold text-rose-700 transition hover:bg-rose-100"
           >
             <Megaphone size={13} />
-            Cascade Mass Broadcast
+            Request Emergency Broadcast
           </button>
         </>
       }
@@ -373,7 +357,7 @@ function CaptainAuthModal({ broadcast, onClose, onApprove }) {
       onClose={onClose}
       size="md"
       title="Captain Authorization"
-      subtitle="Finalize high-severity mass community broadcast"
+      subtitle="Review and authorize high-severity emergency broadcast"
       icon={<ShieldCheck size={18} className="text-rose-600" />}
       iconClass="bg-rose-100"
       footer={
@@ -420,14 +404,12 @@ export default function IotAlertCommandCenter() {
   const { flash, ToastPortal } = useToast();
 
   const [devices, setDevices] = useState<Device[]>(INITIAL_DEVICES);
-  const [telemetryLog, setTelemetryLog] = useState<string[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>(INITIAL_ALERTS);
   const [broadcasts, setBroadcasts] = useState<BroadcastItem[]>(INITIAL_BROADCASTS);
   const [routes, setRoutes] = useState(INITIAL_ROUTES);
 
   const [popAlert, setPopAlert] = useState<AlertItem | null>(null);
   const triggeredRef = useRef<string[]>([]);
-  const logRef = useRef<HTMLDivElement | null>(null);
   const devicesRef = useRef(devices);
   const alertCounterRef = useRef(119);
   const [expandedClusters, setExpandedClusters] = useState<string[]>([]);
@@ -471,17 +453,6 @@ export default function IotAlertCommandCenter() {
       }
     }, 4000);
 
-    const logInterval = setInterval(() => {
-      setTelemetryLog((prev) => {
-        const sample = devicesRef.current[Math.floor(Math.random() * devicesRef.current.length)];
-        if (!sample) return prev;
-        const line = sample.status === "offline"
-          ? `[${new Date().toLocaleTimeString()}] MQTT sensors/${sample.name.toLowerCase()}/heartbeat — NO RESPONSE rssi=-999`
-          : `[${new Date().toLocaleTimeString()}] MQTT sensors/${sample.name.toLowerCase()}/telemetry {"${sample.type === "smoke" ? "smoke_ppm" : "noise_db"}":${sample.value},"battery":${sample.battery},"rssi":${sample.rssi}}`;
-        return [line, ...prev].slice(0, 40);
-      });
-    }, 2500);
-
     const sosTimer = setTimeout(() => {
       setPopAlert((p) => p ?? {
         id: "SOS-043",
@@ -502,14 +473,9 @@ export default function IotAlertCommandCenter() {
 
     return () => {
       clearInterval(interval);
-      clearInterval(logInterval);
       clearTimeout(sosTimer);
     };
   }, []);
-
-  useEffect(() => {
-    if (logRef.current) logRef.current.scrollTop = 0;
-  }, [telemetryLog]);
 
   function confirmDispatch(alert: AlertItem, teamId: string) {
     const team = ON_DUTY_TANODS.find((t) => t.id === teamId)?.name ?? "Team Charlie";
@@ -574,7 +540,7 @@ export default function IotAlertCommandCenter() {
   const kpis = [
     { label: "SENSORS DEPLOYED", value: `${onlineCount}/${devices.length}`, sub: `${devices.filter((d) => deviceRisk(d) === "critical").length} require attention`, icon: Radio },
     { label: "ACTIVE ALERTS", value: openAlerts, sub: `${openSos} SOS · threshold bypasses live`, icon: BellRing, pulse: !!popAlert },
-    { label: "BROADCASTS QUEUED", value: pendingBc, sub: `${pendingBc} awaiting Captain approval`, icon: Megaphone },
+    { label: "BROADCASTS QUEUED", value: pendingBc, sub: `${pendingBc} awaiting Captain authorization`, icon: Megaphone },
     { label: "ACTIVE ROUTES", value: routes.filter((r) => r.status === "en_route").length, sub: `tanods navigating in field`, icon: Navigation },
   ];
 
@@ -588,7 +554,7 @@ export default function IotAlertCommandCenter() {
             <div>
               <h1 className="text-2xl font-bold text-stone-900">IoT Alert Command Center</h1>
               <p className="mt-1 text-sm text-stone-500">
-                Live ESP32 telemetry ingestion, threshold bypasses &amp; cascading mass broadcasts
+                Live ESP32 telemetry, threshold breaches &amp; emergency broadcast requests
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -599,13 +565,6 @@ export default function IotAlertCommandCenter() {
                 </span>
                 Gateway Live
               </span>
-              <button
-                onClick={() => setTelemetryLog((prev) => [`: connected to mqtt://broker.barangay.local — subscription active`, ...prev])}
-                className="flex items-center gap-1.5 rounded-lg border border-black/10 bg-white px-3 py-1.5 text-[11px] font-medium text-[#0038A8] transition hover:bg-[#E9EDFB]"
-              >
-                <Zap size={12} />
-                Force Ping
-              </button>
             </div>
           </div>
         </header>
@@ -628,78 +587,7 @@ export default function IotAlertCommandCenter() {
           ))}
         </div>
 
-        <div className="mb-5 grid grid-cols-1 gap-5 xl:grid-cols-3" style={{ height: 500 }}>
-          <div className="xl:col-span-2 flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
-            <div className="flex items-center justify-between px-5 py-4">
-              <div className="flex items-center gap-2">
-                <Radio size={16} className="text-[#0038A8]" />
-                <div>
-                  <h3 className="text-[14px] font-semibold text-[#334155]">IoT Telemetry Ingestion Gateway</h3>
-                  <p className="text-[11px] text-[#94A3B8]">Constant MQTT / WebSocket listening from ESP32 field units</p>
-                </div>
-              </div>
-              <span className="flex items-center gap-1 text-[10px] text-emerald-600">
-                <Activity size={11} />
-                Streaming
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2 px-5 pb-3 sm:grid-cols-3">
-              {devices.map((d) => {
-                const risk = deviceRisk(d);
-                const st = DEVICE_STATUS[d.status];
-                const pct = Math.min(100, (d.value / d.threshold) * 100);
-                return (
-                  <div key={d.id} className={`rounded-lg border px-3 py-2.5 ${risk === "critical" ? "border-rose-200 bg-rose-50/60" : "border-stone-200 bg-white"}`}>
-                    <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 text-[11px] font-semibold text-stone-900">
-                        <span className={`h-2 w-2 rounded-full ${risk === "critical" ? "bg-rose-500" : risk === "warning" ? "bg-amber-400" : "bg-emerald-500"}`} />
-                        {d.name}
-                      </span>
-                      <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${st.pill}`}>
-                        {d.status === "online" ? <Wifi size={9} /> : d.status === "offline" ? <WifiOff size={9} /> : <Zap size={9} />}
-                        {risk === "critical" ? "Breach" : st.label}
-                      </span>
-                    </div>
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-stone-200">
-                        <div className={`h-full rounded-full transition-all duration-500 ${barColor(pct, risk)}`} style={{ width: `${pct}%` }} />
-                      </div>
-                      <span className="text-[10px] font-bold text-stone-800">
-                        {d.value}<span className="text-[9px] font-normal text-stone-400">{d.type === "smoke" ? "ppm" : "dB"}</span>
-                      </span>
-                    </div>
-                    <div className="mt-1 flex items-center justify-between text-[9px] text-stone-400">
-                      <span className="flex items-center gap-1">
-                        <Gauge size={9} />
-                        {d.battery}%
-                      </span>
-                      <span>{d.rssi} dBm</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mx-5 mb-4 flex-1 overflow-hidden rounded-lg border border-stone-700 bg-stone-900">
-              <div className="flex items-center justify-between border-b border-white/10 px-4 py-2">
-                <p className="text-[10px] font-semibold tracking-wider text-stone-400">MQTT STREAM — sensors/&lt;unit&gt;/telemetry</p>
-                <span className="text-[9px] text-emerald-400">● LIVE</span>
-              </div>
-              <div ref={logRef} className="h-full max-h-[200px] space-y-1 overflow-y-auto p-4 font-mono text-[11px] leading-relaxed text-emerald-400">
-                {telemetryLog.length === 0 ? (
-                  <p className="text-stone-500">Listening for incoming telemetry payloads…</p>
-                ) : (
-                  telemetryLog.map((line, i) => (
-                    <div key={i} className={line.includes("BREACH") || line.includes("NO RESPONSE") ? "text-rose-400" : line.startsWith(":") ? "text-sky-300" : "text-emerald-400/80"}>
-                      {line}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-
+        <div className="mb-5">
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
@@ -804,18 +692,20 @@ export default function IotAlertCommandCenter() {
                                         <Navigation size={9} />
                                         Dispatch
                                       </button>
-                                      <button
-                                        onClick={() => requestBroadcast(a)}
-                                        className="flex h-6 items-center gap-1 rounded-md border border-rose-200 bg-white px-2 text-[9px] font-semibold text-rose-600 transition hover:bg-rose-50"
-                                      >
-                                        <Megaphone size={9} />
-                                        Broadcast
-                                      </button>
+                                      {a.severity === "critical" && (
+                                        <button
+                                          onClick={() => requestBroadcast(a)}
+                                          className="flex h-6 items-center gap-1 rounded-md border border-rose-200 bg-white px-2 text-[9px] font-semibold text-rose-600 transition hover:bg-rose-50"
+                                        >
+                                          <Megaphone size={9} />
+                                          Request Emergency Broadcast
+                                        </button>
+                                      )}
                                     </>
                                   ) : (
                                     <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-medium text-emerald-600">
                                       <CheckCircle2 size={9} />
-                                      {a.status === "dispatched" ? "Dispatched" : "Broadcasting"}
+                                      {a.status === "dispatched" ? "Dispatched" : "Broadcast Sent"}
                                     </span>
                                   )}
                                 </div>
@@ -839,7 +729,7 @@ export default function IotAlertCommandCenter() {
                 <Megaphone size={16} className="text-[#0038A8]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Cascading Mass Broadcast Engine</h3>
-                  <p className="text-[11px] text-[#94A3B8]">Severity-based notification routing across the barangay</p>
+                  <p className="text-[11px] text-[#94A3B8]">Desk Officer requests → Captain authorization → broadcast sent</p>
                 </div>
               </div>
             </div>

@@ -31,6 +31,7 @@ import { formatTime } from "../utils/format";
 import { SEVERITY_MAP } from "../constants/severity";
 import { Modal } from "../components/ui";
 import ExportReportModal from "../components/ExportReportModal";
+import { addCaptainInboxItem } from "../utils/captainInboxStore";
 
 const PUROK_NAMES = ["Purok 1", "Purok 2", "Purok 3", "Purok 4", "Purok 5", "Purok 6"];
 
@@ -657,8 +658,33 @@ function EscalationModal({ type, zone, onClose }: { type: string; zone: string; 
 
   const priorities = type === "broadcast" ? broadcastPriorities : defaultPriorities;
 
+  const PRIORITY_LABEL: Record<string, string> = {
+    critical: "Critical",
+    urgent: "High",
+    routine: "Low",
+  };
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (type === "reroute") {
+      addCaptainInboxItem({
+        type: "patrol_recommendation",
+        incidentId: "—",
+        title: `Re-route request — ${patrolUnit} for ${zone}`,
+        purok: zone,
+        priority: PRIORITY_LABEL[priority] ?? "Medium",
+        submittedBy: "Capt. Reyes",
+      });
+    } else if (type === "flag") {
+      addCaptainInboxItem({
+        type: "other_request",
+        incidentId: "—",
+        title: `Escalation sent to ${assignTo} — ${zone}`,
+        purok: zone,
+        priority: PRIORITY_LABEL[priority] ?? "Medium",
+        submittedBy: "Capt. Reyes",
+      });
+    }
     setSubmitted(true);
   }
 

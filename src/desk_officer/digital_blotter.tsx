@@ -21,6 +21,9 @@ import { formatTime } from "../utils/format";
 import { SEVERITY_MAP } from "../constants/severity";
 import { ConfirmModal, Modal } from "../components/ui";
 
+// §15.12 — Pending cases now track closure reason. Only properly resolved incidents
+// (status === "resolved") appear here. False alarms, duplicates, and unverified closures
+// are excluded from blotter conversion.
 interface PendingCase {
   id: string;
   category: string;
@@ -36,6 +39,8 @@ interface PendingCase {
   feedback: string;
   lat: number;
   lng: number;
+  closureReason?: string;
+  eligible: boolean;
 }
 
 interface Blotter {
@@ -57,6 +62,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   "IoT/SOS Alerts": { bg: "bg-violet-50", text: "text-violet-600" },
 };
 
+// §15.13 — Only eligible (resolved) cases appear. False alarm / duplicate closures are excluded.
 const INITIAL_PENDING: PendingCase[] = [
   {
     id: "INC-2065",
@@ -73,6 +79,8 @@ const INITIAL_PENDING: PendingCase[] = [
     feedback: "Mabilis at malinaw ang pagtugon ng mga tanod. Salamat po!",
     lat: 85,
     lng: 310,
+    closureReason: "Normal Resolution",
+    eligible: true,
   },
   {
     id: "INC-2064",
@@ -89,6 +97,8 @@ const INITIAL_PENDING: PendingCase[] = [
     feedback: "Na-address agad ang concern. Salamat sa mabilis na aksyon.",
     lat: 225,
     lng: 60,
+    closureReason: "Normal Resolution",
+    eligible: true,
   },
   {
     id: "INC-2063",
@@ -105,6 +115,8 @@ const INITIAL_PENDING: PendingCase[] = [
     feedback: "Naresolba naman pero sana mas mabilis ang response next time.",
     lat: 330,
     lng: 240,
+    closureReason: "Normal Resolution",
+    eligible: true,
   },
 ];
 
@@ -263,7 +275,12 @@ export default function DigitalBlotter() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
 
+  // §15.14 — Only eligible (resolved) cases can be converted. Unresolved/false alarm cases are blocked.
   function convertCase(inc: PendingCase) {
+    if (!inc.eligible) {
+      flash(`${inc.id} is not eligible for blotter conversion — only resolved incidents can be archived`);
+      return;
+    }
     const nextId = nextBlotterId(blotters);
     const blotter: Blotter = {
       id: nextId,
@@ -391,7 +408,7 @@ export default function DigitalBlotter() {
                 pending.map((inc) => {
                   const sev = SEVERITY_MAP[inc.severity];
                   return (
-                    <div key={inc.id} className="rounded-lg border border-stone-200 bg-white px-4 py-3.5">
+                    <div key={inc.id} className={`rounded-lg border bg-white px-4 py-3.5 ${inc.eligible ? "border-stone-200" : "border-rose-200 opacity-60"}`}>
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <span className="text-[12px] font-bold text-stone-900">{inc.id}</span>
@@ -399,6 +416,12 @@ export default function DigitalBlotter() {
                           <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${CATEGORY_COLORS[inc.category]?.bg ?? "bg-stone-100"} ${CATEGORY_COLORS[inc.category]?.text ?? "text-stone-600"}`}>
                             {inc.category}
                           </span>
+                          {/* §15.18 — Eligibility badge */}
+                          {inc.eligible ? (
+                            <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-medium text-emerald-700">Eligible</span>
+                          ) : (
+                            <span className="rounded-full bg-rose-100 px-1.5 py-0.5 text-[9px] font-medium text-rose-700">Not Eligible</span>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <RatingStars value={inc.rating} />
@@ -410,6 +433,9 @@ export default function DigitalBlotter() {
                       <p className="text-[10px] text-stone-400">
                         {inc.purok} · reported by {inc.reporter} · resolved {formatTime(inc.resolvedAt)}
                       </p>
+                      {inc.closureReason && (
+                        <p className="mt-0.5 text-[10px] text-stone-500">Closure: <span className="font-medium text-stone-600">{inc.closureReason}</span></p>
+                      )}
 
                       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-500">
                         <span className="flex items-center gap-1 rounded-md bg-stone-100 px-2 py-1">
@@ -436,10 +462,13 @@ export default function DigitalBlotter() {
 
                       <button
                         onClick={() => convertCase(inc)}
-                        className="mt-2.5 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-[#0038A8] px-3 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                        disabled={!inc.eligible}
+                        className={`mt-2.5 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg px-3 text-[11px] font-semibold text-white transition ${
+                          inc.eligible ? "bg-[#0038A8] hover:bg-[#002A8C]" : "bg-stone-400 cursor-not-allowed"
+                        }`}
                       >
                         <Archive size={12} />
-                        Convert to Blotter
+                        {inc.eligible ? "Convert to Blotter" : "Not Eligible"}
                       </button>
                     </div>
                   );

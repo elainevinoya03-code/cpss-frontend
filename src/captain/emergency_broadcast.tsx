@@ -21,6 +21,8 @@ import {
   Flame,
   Volume2,
   Zap,
+  LifeBuoy,
+  UserX,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { formatTime } from "../utils/format";
@@ -33,10 +35,15 @@ import {
   seedPendingBroadcasts,
   removePendingBroadcast,
   addPendingBroadcast,
+  getBroadcastHistory,
+  subscribeBroadcastHistory,
+  seedBroadcastHistory,
+  addBroadcastRecord,
 } from "../utils/broadcastStore";
-import type { PendingBroadcast } from "../utils/broadcastStore";
+import type { PendingBroadcast, BroadcastRecord } from "../utils/broadcastStore";
+import { addCaptainInboxItem } from "../utils/captainInboxStore";
 
-const MOCK_BROADCAST_HISTORY = [
+export const MOCK_BROADCAST_HISTORY: BroadcastRecord[] = [
   { id: "BCAST-007", title: "Flash Flood Warning â€” Purok 3 & 5", severity: "critical", purok: "All Puroks", message: "Rising water levels detected in Purok 3 and 5. Residents in low-lying areas must evacuate immediately to the Barangay Hall evacuation center.", sentAt: "2026-07-20T11:15:00", sentBy: "Capt. Reyes", status: "delivered", smsCount: 1247, pushCount: 1247, safeCount: 1089, helpCount: 42, category: "Fire/Smoke", deliveryMethod: "push+sms" },
   { id: "BCAST-006", title: "Fire Alarm â€” Purok 4 Residential", severity: "critical", purok: "Purok 4", message: "Structure fire reported near the school district. All residents within a 200m radius must evacuate. Tanod units and BFP dispatched.", sentAt: "2026-07-19T22:30:00", sentBy: "Capt. Reyes", status: "delivered", smsCount: 312, pushCount: 312, safeCount: 285, helpCount: 8, category: "Fire/Smoke", deliveryMethod: "push+sms" },
   { id: "BCAST-005", title: "Noise Disturbance Advisory", severity: "warning", purok: "Purok 6", message: "Sustained noise complaint near the commercial strip. Desk Officer and Purok 6 Leader have been notified. Residents advised to keep noise to a minimum.", sentAt: "2026-07-19T14:10:00", sentBy: "Capt. Reyes", status: "delivered", smsCount: 0, pushCount: 28, safeCount: 28, helpCount: 0, category: "Noise Disturbance", deliveryMethod: "push" },
@@ -71,6 +78,16 @@ const MOCK_ACK_DATA: Record<string, { purok: string; safe: number; help: number;
   ],
 };
 
+function ackSummary(broadcast: any) {
+  const ackData = MOCK_ACK_DATA[broadcast.id] || null;
+  const totalReached = ackData ? ackData.reduce((a, d) => a + d.total, 0) : (broadcast.pushCount || 0);
+  const safe = ackData ? ackData.reduce((a, d) => a + d.safe, 0) : (broadcast.safeCount || 0);
+  const help = ackData ? ackData.reduce((a, d) => a + d.help, 0) : (broadcast.helpCount || 0);
+  const noResponse = Math.max(0, totalReached - safe - help);
+  const ackRate = totalReached > 0 ? Math.round((safe / totalReached) * 100) : 0;
+  return { ackData, totalReached, safe, help, noResponse, ackRate };
+}
+
 const CATEGORY_ICONS: Record<string, any> = {
   "Fire/Smoke": Flame,
   "Noise Disturbance": Volume2,
@@ -99,7 +116,7 @@ const DELIVERY_LABELS: Record<string, { icon: any; label: string; color: string 
   "push": { icon: Bell, label: "Push Only", color: "text-amber-600" },
 };
 
-export function ComposeBroadcastModal({ onClose, onSend, incidentHint }: { onClose: () => void; onSend: (alert: any) => void; incidentHint?: any }) {
+export function ComposeBroadcastModal({ onClose, onSend, incidentHint, onDraftReady }: { onClose: () => void; onSend: (alert: any) => PendingBroadcast | void; incidentHint?: any; onDraftReady?: (draft: PendingBroadcast) => void }) {
   const [title, setTitle] = useState(
     incidentHint ? `EMERGENCY ALERT: ${incidentHint.id} — ${incidentHint.category} reported in ${incidentHint.purok}` : ""
   );
@@ -121,7 +138,12 @@ export function ComposeBroadcastModal({ onClose, onSend, incidentHint }: { onClo
 
   function handleSubmit() {
     if (!title.trim() || !message.trim()) return;
-    onSend({ title: title.trim(), message: message.trim(), severity, purok, deliveryMethod });
+    const draft = onSend({ title: title.trim(), message: message.trim(), severity, purok, deliveryMethod });
+    if (onDraftReady && draft) {
+      onClose();
+      onDraftReady(draft);
+      return;
+    }
     setSubmitted(true);
   }
 
@@ -266,11 +288,163 @@ export function ComposeBroadcastModal({ onClose, onSend, incidentHint }: { onClo
   );
 }
 
-function BroadcastDetailDrawer({ broadcast, onClose }: { broadcast: any; onClose: () => void }) {
+export function AuthorizeBroadcastModal({ alert, onConfirm, onClose }: { alert: any; onConfirm: () => void; onClose: () => void }) {
+  if (!alert) return null;
+  const sev = SEVERITY_MAP[alert.severity];
+  const delInfo = DELIVERY_LABELS[alert.deliveryMethod];
+  const DelIcon = delInfo.icon;
+  const CatIcon = CATEGORY_ICONS[alert.category] || AlertTriangle;
+  return (
+    <Modal
+      size="md"
+      onClose={onClose}
+      icon={<ShieldCheck size={16} className="text-[#0038A8]" />}
+      title="Authorize Emergency Broadcast"
+      footer={
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-900 hover:bg-stone-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+          >
+            <ShieldCheck size={14} />
+            Confirm &amp; Blast
+          </button>
+        </div>
+      }
+    >
+      <div>
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+          <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${sev.badge.split(" ")[0]}`}>
+            <CatIcon size={14} className={sev.badge.split(" ")[1]} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[12px] font-semibold text-stone-900">{alert.title}</span>
+              <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${sev.badge}`}>
+                {sev.label}
+              </span>
+            </div>
+            <p className="mt-0.5 text-[11px] text-stone-500">{alert.message}</p>
+            <div className="mt-1.5 flex items-center gap-3 text-[10px] text-stone-400">
+              <span className="flex items-center gap-1"><MapPin size={9} /> {alert.purok}</span>
+              <span className={`flex items-center gap-1 font-medium ${delInfo.color}`}><DelIcon size={9} /> {delInfo.label}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle size={13} className="mt-0.5 shrink-0 text-amber-500" />
+            <div>
+              <p className="text-[11px] font-semibold text-amber-800">Confirm Executive Authorization</p>
+              <p className="mt-0.5 text-[11px] text-amber-600">
+                This action is <span className="font-semibold">irreversible</span>. The alert will be immediately distributed to
+                {alert.deliveryMethod === "push+sms"
+                  ? " all residents via simultaneous push notification + SMS broadcast."
+                  : " targeted recipients via push notification."}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function BroadcastFollowUpModal({ broadcast, summary, onClose, onSubmit }: { broadcast: any; summary: any; onClose: () => void; onSubmit: (targetPurok: string, note: string) => void }) {
+  const [purok, setPurok] = useState(() =>
+    PUROK_ZONES.some((z) => z.name === broadcast.purok) ? broadcast.purok : "All Puroks"
+  );
+  const [note, setNote] = useState("");
+  return (
+    <Modal
+      size="md"
+      onClose={onClose}
+      icon={<LifeBuoy size={16} className="text-rose-600" />}
+      title="Send Follow-up to Desk Officer"
+      subtitle="Forward the Need Help report for operational response"
+      footer={
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-900 hover:bg-stone-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onSubmit(purok, note.trim())}
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-rose-700"
+          >
+            <Send size={13} />
+            Send Follow-up
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+            <p className="text-[10px] font-medium tracking-wider text-stone-400">BROADCAST ID</p>
+            <p className="mt-1 text-[12px] font-semibold text-stone-900">{broadcast.id}</p>
+          </div>
+          <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+            <p className="text-[10px] font-medium tracking-wider text-stone-400">NEEDING HELP</p>
+            <p className="mt-1 flex items-center gap-1.5 text-[12px] font-semibold text-rose-600">
+              <HelpCircle size={12} />
+              {summary.help} resident{summary.help !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">TARGET PUROK</p>
+          <div className="relative">
+            <MapPin size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+            <select
+              value={purok}
+              onChange={(e) => setPurok(e.target.value)}
+              className="w-full appearance-none rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-8 text-[12px] text-stone-900 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+            >
+              <option value="All Puroks">All Puroks â€” Community-wide</option>
+              {PUROK_ZONES.map((z) => (
+                <option key={z.id} value={z.name}>{z.name}</option>
+              ))}
+            </select>
+            <ChevronDown size={12} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
+          </div>
+        </div>
+
+        <div>
+          <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">CAPTAIN NOTE (OPTIONAL)</p>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={3}
+            placeholder="e.g. Priority check on the low-lying area â€” please verify residents are accounted for."
+            className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+          />
+        </div>
+
+        <p className="text-[10px] text-stone-400">
+          The Desk Officer remains responsible for operational response; this request only identifies the need for follow-up.
+        </p>
+      </div>
+    </Modal>
+  );
+}
+
+function BroadcastDetailDrawer({ broadcast, onClose, onFollowUp }: { broadcast: any; onClose: () => void; onFollowUp: (broadcast: any) => void }) {
   if (!broadcast) return null;
   const sev = SEVERITY_MAP[broadcast.severity];
   const CatIcon = CATEGORY_ICONS[broadcast.category] || AlertTriangle;
-  const ackData = MOCK_ACK_DATA[broadcast.id] || null;
+  const summary = ackSummary(broadcast);
+  const ackData = summary.ackData;
 
   return (
     <Modal
@@ -340,37 +514,84 @@ function BroadcastDetailDrawer({ broadcast, onClose }: { broadcast: any; onClose
             </div>
           </div>
 
-          {ackData && (
-            <div>
-              <p className="mb-3 text-[11px] font-semibold text-stone-900">Citizen Acknowledgement Roll-Call</p>
-              <div className="space-y-2">
-                {ackData.map((row) => {
-                  const ackPct = row.total > 0 ? ((row.safe / row.total) * 100).toFixed(0) : "0";
-                  return (
-                    <div key={row.purok} className="flex items-center gap-3 rounded-lg border border-stone-200 bg-white px-3 py-2.5">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-medium text-stone-900">{row.purok}</span>
-                          <span className="text-[10px] text-stone-400">{ackPct}% acknowledged</span>
-                        </div>
-                        <div className="mt-1.5 flex h-2 w-full overflow-hidden rounded-full bg-stone-100">
-                          <div className="bg-emerald-400 transition-all duration-500" style={{ width: `${ackPct}%` }} />
-                        </div>
-                        <div className="mt-1 flex items-center gap-3 text-[10px]">
-                          <span className="flex items-center gap-1 text-emerald-600">
-                            <CheckCircle2 size={10} /> {row.safe} Safe
-                          </span>
-                          {row.help > 0 && (
-                            <span className="flex items-center gap-1 text-rose-600">
-                              <HelpCircle size={10} /> {row.help} Need Help
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+          <div className="mb-5 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+            <p className="mb-3 flex items-center gap-1.5 text-[10px] font-medium tracking-wider text-stone-400">
+              <Users size={11} />
+              COMMUNITY ACKNOWLEDGMENT
+            </p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              <div className="text-center">
+                <p className="text-[18px] font-bold text-[#0038A8]">{summary.totalReached.toLocaleString()}</p>
+                <p className="text-[10px] text-stone-400">Total Reached</p>
               </div>
+              <div className="text-center">
+                <p className="text-[18px] font-bold text-emerald-600">{summary.safe.toLocaleString()}</p>
+                <p className="text-[10px] text-stone-400">Safe</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[18px] font-bold text-rose-600">{summary.help.toLocaleString()}</p>
+                <p className="text-[10px] text-stone-400">Need Help</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[18px] font-bold text-stone-500">{summary.noResponse.toLocaleString()}</p>
+                <p className="text-[10px] text-stone-400">No Response</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[18px] font-bold text-[#0038A8]">{summary.ackRate}%</p>
+                <p className="text-[10px] text-stone-400">Ack Rate</p>
+              </div>
+            </div>
+          </div>
+
+          {summary.help > 0 && (
+            <div className="mb-5 flex flex-col gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-2">
+                <HelpCircle size={16} className="mt-0.5 shrink-0 text-rose-600" />
+                <div>
+                  <p className="text-[12px] font-semibold text-rose-700">
+                    {summary.help} resident{summary.help !== 1 ? "s" : ""} need help
+                  </p>
+                  <p className="text-[11px] text-rose-600">Residents marked Need Help after this broadcast.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => onFollowUp(broadcast)}
+                className="flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-rose-600 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-rose-700"
+              >
+                <LifeBuoy size={13} />
+                Send Follow-up to Desk Officer
+              </button>
+            </div>
+          )}
+
+          {ackData && (
+            <div className="mb-5 overflow-hidden rounded-lg border border-stone-200">
+              <p className="border-b border-stone-200 bg-stone-50 px-4 py-2.5 text-[11px] font-semibold text-stone-900">
+                Acknowledgement by Purok
+              </p>
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-stone-200 bg-white text-[9px] uppercase tracking-wider text-stone-400">
+                    <th className="px-4 py-2 font-medium">Purok</th>
+                    <th className="px-2 py-2 text-center font-medium">Safe</th>
+                    <th className="px-2 py-2 text-center font-medium">Need Help</th>
+                    <th className="px-4 py-2 text-right font-medium">No Response</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ackData.map((row) => {
+                    const rowNoResponse = Math.max(0, row.total - row.safe - row.help);
+                    return (
+                      <tr key={row.purok} className="border-b border-stone-100 bg-white text-[11px] last:border-0">
+                        <td className="px-4 py-2 font-medium text-stone-900">{row.purok}</td>
+                        <td className="px-2 py-2 text-center text-emerald-600">{row.safe}</td>
+                        <td className={`px-2 py-2 text-center ${row.help > 0 ? "font-semibold text-rose-600" : "text-stone-400"}`}>{row.help}</td>
+                        <td className="px-4 py-2 text-right text-stone-500">{rowNoResponse}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -381,7 +602,7 @@ function BroadcastDetailDrawer({ broadcast, onClose }: { broadcast: any; onClose
 export default function EmergencyBroadcast() {
   const { ToastPortal } = useToast();
 
-  const [history, setHistory] = useState(MOCK_BROADCAST_HISTORY);
+  const [history, setHistory] = useState<BroadcastRecord[]>(getBroadcastHistory());
   const [pendingAlerts, setPendingAlerts] = useState<PendingBroadcast[]>(getPendingBroadcasts());
   const [timeRange, setTimeRange] = useState("all");
   const [severityFilter, setSeverityFilter] = useState("all");
@@ -392,6 +613,7 @@ export default function EmergencyBroadcast() {
   const [authorizeTarget, setAuthorizeTarget] = useState<any>(null);
   const [dismissTarget, setDismissTarget] = useState<any>(null);
   const [successModal, setSuccessModal] = useState<{ title: string; message: string; detail?: string; icon?: any } | null>(null);
+  const [followUpTarget, setFollowUpTarget] = useState<any>(null);
 
   useEffect(() => {
     seedPendingBroadcasts(
@@ -403,9 +625,18 @@ export default function EmergencyBroadcast() {
       }))
     );
     setPendingAlerts(getPendingBroadcasts());
-    return subscribePendingBroadcasts(() => {
+    seedBroadcastHistory(MOCK_BROADCAST_HISTORY);
+    setHistory(getBroadcastHistory());
+    const unsubPending = subscribePendingBroadcasts(() => {
       setPendingAlerts(getPendingBroadcasts());
     });
+    const unsubHistory = subscribeBroadcastHistory(() => {
+      setHistory(getBroadcastHistory());
+    });
+    return () => {
+      unsubPending();
+      unsubHistory();
+    };
   }, []);
 
   const filteredHistory = useMemo(() => {
@@ -438,8 +669,7 @@ export default function EmergencyBroadcast() {
   ];
 
   function handleAuthorizeAlert(alert: any) {
-    const newBroadcast = {
-      id: `BCAST-${String(history.length + 1).padStart(3, "0")}`,
+    addBroadcastRecord({
       title: alert.title,
       severity: alert.severity,
       purok: alert.purok,
@@ -453,8 +683,7 @@ export default function EmergencyBroadcast() {
       helpCount: 0,
       category: alert.category,
       deliveryMethod: alert.deliveryMethod,
-    };
-    setHistory((prev) => [newBroadcast, ...prev]);
+    });
     removePendingBroadcast(alert.id);
     setSuccessModal({ title: "Broadcast Authorized & Sent", message: `${alert.title} has been distributed to all residents.`, detail: alert.deliveryMethod === "push+sms" ? "Push notification + SMS delivered simultaneously." : "Push notification delivered to targeted recipients." });
   }
@@ -475,6 +704,27 @@ export default function EmergencyBroadcast() {
       deliveryMethod: alert.deliveryMethod,
       createdAt: new Date().toISOString(),
       submittedBy: "Capt. Reyes",
+    });
+  }
+
+  function handleFollowUpSubmit(targetPurok: string, note: string) {
+    if (!followUpTarget) return;
+    const summary = ackSummary(followUpTarget);
+    const bcastId = followUpTarget.id;
+    addCaptainInboxItem({
+      type: "other_request",
+      incidentId: "—",
+      title: `Follow-up — ${bcastId}`,
+      purok: targetPurok,
+      priority: summary.help >= 10 ? "High" : "Medium",
+      reason: note || `${summary.help} resident${summary.help !== 1 ? "s" : ""} in ${targetPurok} marked Need Help after ${bcastId}.`,
+      submittedBy: "Capt. Reyes",
+    });
+    setFollowUpTarget(null);
+    setSuccessModal({
+      title: "Follow-up Request Sent",
+      message: `Follow-up for ${bcastId} sent to the Desk Officer.`,
+      detail: "The request is tracked under Operational Follow-ups on the dashboard.",
     });
   }
 
@@ -660,12 +910,7 @@ export default function EmergencyBroadcast() {
                 const CatIcon = CATEGORY_ICONS[broadcast.category] || AlertTriangle;
                 const delInfo = DELIVERY_LABELS[broadcast.deliveryMethod];
                 const DelIcon = delInfo.icon;
-                const ackData = MOCK_ACK_DATA[broadcast.id];
-                const totalSafeBc = ackData ? ackData.reduce((a, d) => a + d.safe, 0) : broadcast.safeCount;
-                const totalHelpBc = ackData ? ackData.reduce((a, d) => a + d.help, 0) : broadcast.helpCount;
-                const totalResBc = ackData ? ackData.reduce((a, d) => a + d.total, 0) : broadcast.pushCount || 1;
-                const ackPct = totalResBc > 0 ? ((totalSafeBc / totalResBc) * 100).toFixed(0) : "0";
-                const hasAck = ackData && (broadcast.safeCount > 0 || broadcast.helpCount > 0);
+                const summary = ackSummary(broadcast);
 
                 return (
                   <div
@@ -695,26 +940,24 @@ export default function EmergencyBroadcast() {
                           <span className="flex items-center gap-1"><Bell size={9} /> {broadcast.pushCount.toLocaleString()} Push</span>
                         </div>
 
-                        {hasAck && (
-                          <div className="mt-2.5 flex items-center gap-4">
-                            <div className="flex items-center gap-1.5">
-                              <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600">
-                                <CheckCircle2 size={10} /> {totalSafeBc} Safe
-                              </span>
-                              <span className="text-[10px] text-stone-300">|</span>
-                              <span className="text-[10px] text-stone-400">{ackPct}%</span>
-                            </div>
-                            {totalHelpBc > 0 && (
-                              <span className="flex items-center gap-1 text-[10px] font-medium text-rose-600">
-                                <HelpCircle size={10} /> {totalHelpBc} Need Help
-                              </span>
-                            )}
-                          </div>
-                        )}
+                        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+                          <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600">
+                            <CheckCircle2 size={10} /> {summary.safe} Safe
+                          </span>
+                          <span className="flex items-center gap-1 text-[10px] font-medium text-stone-500">
+                            <UserX size={10} /> {summary.noResponse} No Response
+                          </span>
+                          <span className="text-[10px] text-stone-400">{summary.ackRate}% ack</span>
+                          {summary.help > 0 && (
+                            <span className="flex items-center gap-1 text-[10px] font-medium text-rose-600">
+                              <HelpCircle size={10} /> {summary.help} Need Help
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex shrink-0 items-center gap-1.5">
-                        {hasAck && (
+                        {summary.ackData && (
                           <button
                             onClick={() => setShowAckPanel(showAckPanel === broadcast.id ? null : broadcast.id)}
                             className={`flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium transition ${
@@ -727,6 +970,15 @@ export default function EmergencyBroadcast() {
                             Ack Roll-Call
 </button>
                         )}
+                        {summary.help > 0 && (
+                          <button
+                            onClick={() => setFollowUpTarget(broadcast)}
+                            className="flex items-center gap-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-medium text-rose-600 transition hover:bg-rose-100"
+                          >
+                            <LifeBuoy size={11} />
+                            Follow-up
+                          </button>
+                        )}
                         <button
                           onClick={() => setSelectedBroadcast(broadcast)}
                           className="flex items-center gap-1 rounded-md border border-stone-200 px-2 py-1 text-[11px] font-medium text-stone-600 transition hover:bg-stone-50"
@@ -737,14 +989,14 @@ export default function EmergencyBroadcast() {
                       </div>
                     </div>
 
-                    {showAckPanel === broadcast.id && hasAck && (
+                    {showAckPanel === broadcast.id && summary.ackData && (
                       <div className="mt-3 ml-11 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
                         <div className="mb-2 flex items-center gap-2">
                           <Users size={12} className="text-[#0038A8]" />
                           <span className="text-[11px] font-semibold text-stone-900">Acknowledgement Roll-Call</span>
                         </div>
                         <div className="space-y-1.5">
-                          {ackData!.map((row) => {
+                          {summary.ackData!.map((row) => {
                             const rowAckPct = row.total > 0 ? ((row.safe / row.total) * 100).toFixed(0) : "0";
                             return (
                               <div key={row.purok} className="flex items-center gap-3">
@@ -785,75 +1037,13 @@ export default function EmergencyBroadcast() {
         />
       )}
 
-      {authorizeTarget && (() => {
-        const alert = authorizeTarget;
-        const sev = SEVERITY_MAP[alert.severity];
-        const delInfo = DELIVERY_LABELS[alert.deliveryMethod];
-        const DelIcon = delInfo.icon;
-        const CatIcon = CATEGORY_ICONS[alert.category] || AlertTriangle;
-        return (
-          <Modal
-            size="md"
-            onClose={() => setAuthorizeTarget(null)}
-            icon={<ShieldCheck size={16} className="text-[#0038A8]" />}
-            title="Authorize Emergency Broadcast"
-            footer={
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setAuthorizeTarget(null)}
-                  className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-900 hover:bg-stone-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => { handleAuthorizeAlert(alert); setAuthorizeTarget(null); }}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
-                >
-                  <ShieldCheck size={14} />
-                  Confirm &amp; Blast
-                </button>
-              </div>
-            }
-          >
-            <div>
-                <div className="mb-4 flex items-start gap-3 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
-                  <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${sev.badge.split(" ")[0]}`}>
-                    <CatIcon size={14} className={sev.badge.split(" ")[1]} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[12px] font-semibold text-stone-900">{alert.title}</span>
-                      <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${sev.badge}`}>
-                        {sev.label}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-[11px] text-stone-500">{alert.message}</p>
-                    <div className="mt-1.5 flex items-center gap-3 text-[10px] text-stone-400">
-                      <span className="flex items-center gap-1"><MapPin size={9} /> {alert.purok}</span>
-                      <span className={`flex items-center gap-1 font-medium ${delInfo.color}`}><DelIcon size={9} /> {delInfo.label}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle size={13} className="mt-0.5 shrink-0 text-amber-500" />
-                    <div>
-                      <p className="text-[11px] font-semibold text-amber-800">Confirm Executive Authorization</p>
-                      <p className="mt-0.5 text-[11px] text-amber-600">
-                        This action is <span className="font-semibold">irreversible</span>. The alert will be immediately distributed to
-                        {alert.deliveryMethod === "push+sms"
-                          ? " all residents via simultaneous push notification + SMS broadcast."
-                          : " targeted recipients via push notification."}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-          </Modal>
-        );
-      })()}
+      {authorizeTarget && (
+        <AuthorizeBroadcastModal
+          alert={authorizeTarget}
+          onClose={() => setAuthorizeTarget(null)}
+          onConfirm={() => { handleAuthorizeAlert(authorizeTarget); setAuthorizeTarget(null); }}
+        />
+      )}
 
       {dismissTarget && (() => {
         const alert = dismissTarget;
@@ -873,7 +1063,17 @@ export default function EmergencyBroadcast() {
       <BroadcastDetailDrawer
         broadcast={selectedBroadcast}
         onClose={() => setSelectedBroadcast(null)}
+        onFollowUp={setFollowUpTarget}
       />
+
+      {followUpTarget && (
+        <BroadcastFollowUpModal
+          broadcast={followUpTarget}
+          summary={ackSummary(followUpTarget)}
+          onClose={() => setFollowUpTarget(null)}
+          onSubmit={handleFollowUpSubmit}
+        />
+      )}
 
       {successModal && (() => {
         return (

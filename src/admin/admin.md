@@ -36,144 +36,74 @@ key `bgyauth` and restored on reload.
 
 ## 1. `dashboard.tsx` — Dashboard Overview
 
-System health and real-time device monitoring — the admin's daily landing page. This is the
-single Administrative Health Dashboard: platform infrastructure health (database, background jobs,
-storage, notification providers), fleet status (IoT + CCTV), public-safety operational metrics, and
-a consolidated alert / error / maintenance view.
+The **System Administration and Infrastructure Health Dashboard** — the admin's daily landing page.
+It answers one question: *"Is the system configured, accessible, and healthy?"* It is a concise
+administrative overview — **not** an incident-response or operational dashboard. It renders in five
+sections, top to bottom: **System Overview → Device Health → Infrastructure Health → System Alerts →
+Recent Audit Activity**.
 
-### KPI stat cards (rows 1 + 2)
-- **TOTAL ACTIVE USERS** — `6` active of `7` total accounts; click navigates to **User Management**.
-- **DEPLOYED IOT DEVICES** — `7` deployed, `4` online · `1` warning · `1` offline · `1` possible
-  tamper (sums to 7, matching the device table); click navigates to **IoT Provisioning**.
-- **CAMERA AVAILABILITY** — `12` placed, `10` online · `1` offline · `1` pending; click navigates
+### 1. System Overview
+- **KPI stat cards** (clickable, with hover highlight, tooltip, and corner-arrow affordance), each
+  navigating to its corresponding admin module:
+  - **ACTIVE USERS** — `6` active of `7` total accounts → **User Management**.
+  - **IOT DEVICES** — `8` deployed (`5 online · 1 offline · 1 pending · 1 maintenance`) → **IoT Provisioning**.
+  - **CCTV CAMERAS** — `12` placed (`10 online · 1 offline · 1 pending`) → **CCTV Placement**.
+  - **SYSTEM STATUS** — `Healthy` (`99.2%` uptime, last 30 days) → **System Settings**.
+
+### 2. Device Health
+- **IoT Device Health** (panel spanning two columns): status chips counting **Online / Offline /
+  Pending / Maintenance Required**, plus a compact table of every deployed node — **DEVICE NAME**,
+  **TYPE**, **STATUS** (Online / Offline / Pending / **Maintenance Required** amber badge), **BATTERY** (color-coded meter), **LAST PING**, **ACTIONS** (**Ping** — simulated
+  heartbeat probe, ~1.5 s, confirmed with a **Ping Complete** modal). **Open IoT Provisioning**
+  jumps to the full module.
+  - **Maintenance Required** is a passive status/indicator: a device whose battery/fault state needs
+    attention (e.g. `DB-HALL-01` at 21%) carries an amber badge; clicking it opens **IoT
+    Provisioning** to view the device's maintenance records. There is **no dispatch or ticket
+    workflow** — the dashboard only surfaces the indicator and points to the maintenance
+    information in IoT Provisioning.
+- **CCTV Availability** (right rail): status chips counting **Online / Offline / Pending**, a
+  compact camera list (status dot, ID, name · purok, status pill, last-seen), and a **Manage** link
   to **CCTV Placement**.
-- **SYSTEM UPTIME** — `99.2%` (last 30 days average); click navigates to **System Settings**.
-- **ACTIVE ALERTS** — total open alerts (default `9`, split `4 critical · 3 high · 1 warning ·
-  1 informational`); the card is clickable and toggles the alert panel.
-- **API REQUESTS (24H)** — `48.2k` (`▲ 12%` vs. yesterday); click navigates to **Audit Logs**.
-- **AVG API RESPONSE** — `184ms` with `p95 410ms · target ≤ 500ms`; click navigates to **System
-  Settings**.
-- **API ERROR RATE** — `0.42%` against a `1%` threshold; click navigates to **Audit Logs**.
-- All clickable KPI cards show a hover highlight, tooltip, and a corner arrow affordance.
 
-### Active Alerts banner
-- Collapsible banner shown whenever alerts exist; its border tone follows the **top severity**
-  present (rose critical → orange high → amber warning → sky informational). The summary line
-  reports all four levels, e.g. `4 critical · 3 high · 1 warning · 1 informational`.
-- Each alert lists a **severity badge** (Critical / High / Warning / Informational), an
-  **escalation-routing chip** (e.g. `Desk Officer → Captain`, `CCTV Operator → Admin`), the reason
-  and time, and scope-appropriate actions:
-  - **IoT alerts** (`SM-PUROK3-01` offline, `DB-HALL-01` low battery, `SM-KIOSK-01` tamper):
-    - **Ping** — simulated heartbeat probe, confirmed with a **Ping Complete** modal (240 ms
-      latency for the offline node).
-    - **Dispatch** — opens the **Dispatch Field Maintenance** modal (see below).
-  - **Operational / security / CCTV / provider alerts** (failed SOS notification, repeated failed
-    logins, camera outage, SMS rate limit, authentication-service failure, audit-log failure) —
-    **Details** opens a modal with the full reason, category, detection time, source IP where
-    relevant, and the **§14.12 escalation routing** explanation.
-- Seed alerts cover all four severities and the Section 14.11 classes: smoke sensor offline,
-  low battery, **failed SOS notification** (→ Desk Officer → Captain), **possible tamper**,
-  **repeated failed logins** (with source IP), **camera outage** (→ CCTV Operator → Admin),
-  **authentication-service failure**, **audit-log failure** (both critical, → Admin), and
-  an informational **SMS rate-limit** notice.
+### 3. Infrastructure Health
+- Four simple status cards, each with an icon, service name, one-line description, and a
+  **Healthy / Warning / Unavailable** badge:
+  - **Database** — Healthy (`Connected · pool at 42% capacity`).
+  - **Storage** — Healthy / **Warning** (`1,730 GB of 2,750 GB used · 63%`); the Warning state is
+    derived live from the shared `utils/cctvStorage.ts` threshold (live-synced with CCTV Placement
+    and System Settings → Data Retention).
+  - **Notification Service** — **Warning** (`Push notifications degraded — 4 failures (24h)`).
+  - **Backend / API** — Healthy (`All endpoints responding · 12ms latency`).
+- Deliberately **no** excessive technical metrics — no per-job detail, queue depths, or per-volume
+  breakdowns on this surface.
 
-### System Health & Infrastructure
-A four-column panel (with **Open System Settings** shortcut) covering the Administrative Health
-Dashboard infrastructure requirements:
-- **Database Connection** — status badge (**Connected**), connection-pool utilization meter
-  (`42%`), active/max connections (`7 / 50`), and latency (`12ms`).
-- **Background Jobs** — per-job status for **SLA Monitoring**, **Notification Dispatch**
-  (**Running**, pulsing dot), **Retention Processing**, and **Backup Verification** (**Healthy**),
-  each with its last-run time (14.10).
-- **Object Storage** — overall utilized-vs-total (`1,730 / 2,750 GB`, `63%`) with a
-  **warning-threshold marker** driven by the shared `utils/cctvStorage.ts` store (live-synced with
-  CCTV Placement and System Settings → Data Retention); a **Within threshold** / **Capacity
-  warning** badge, plus per-volume rows for CCTV Clip Footage, IoT Telemetry, Audit Trail, and
-  Incident & Evidence (3.2.3 / 6.2.13 / 12.6).
-- **Notification Providers** — **SMS Gateway (Twilio)** and **Push Notifications (FCM / Web Push)**
-  with **Operational** / **Degraded** badges, queue depth, 24h failure counts, and last-send time
-  (14.9).
+### 4. System Alerts
+- Collapsible banner (border tone follows the **top severity**: rose critical → orange high → amber
+  warning → sky informational) listing administrative / system-level alerts only. Seed classes:
+  **device offline**, **maintenance required** (low battery), **repeated
+  failed logins** (with source IP), **camera offline**, **SMS rate-limit** notice,
+  **authentication-service failure**, **audit-log failure**, and a **storage warning** that appears
+  only when the shared storage threshold is exceeded.
+- Per-alert actions: **Ping** (IoT alerts) or **Details** (a modal with category, detection time,
+  source IP where relevant, and the §14.12 escalation-routing explanation).
+- **No operational incident queues** — SOS/incident triage, incident-response, and patrol metrics do
+  not appear here.
 
-### Public Safety Metrics (system-health panel)
-- **Incident Rate** — `12.4` incidents per 1,000 residents this month, with a green `8.2%` down
-  badge vs. last month.
-- **Average Response Time** — `8.3` minutes with an **On Target** badge against the `≤ 10`-minute
-  target and an `83%` meter bar.
-- **Incidents Resolved** — `96.8%` closed this month, shown with a `96.8%` completion meter and a
-  green badge.
-- A **last-7-days incidents-by-day** bar chart renders alongside the KPI blocks: color-coded bars
-  (blue < 5, amber 5–6, rose 7+), per-day value labels, a dashed **daily average 4.4** reference
-  line, and a summary footer (`31` incidents · peak **Wed** · avg 4.4/day).
-- **Backup & Disaster Recovery** — a status row in the same health panel: a **Backup Status** badge
-  (**Healthy** / Overdue / Failed), the **last successful backup** timestamp (`2026-07-20 02:00`,
-  nightly full backup verified on completion), the **last restoration test** date and result
-  (`2026-06-28 · Success`, restore verified end-to-end, next monthly test due late July 2026), and
-  **Coverage** (all retention categories — user directory, IoT/CCTV config, audit trail, and
-  incident/evidence records subject to retention). This is a read-only operational view; backup
-  schedule and retention windows are configured under System Settings → Data Retention.
-
-### IoT System Health Monitor (table)
-- Real-time status of all deployed nodes: **DEVICE NAME**, **TYPE**, **STATUS** (online /
-  warning / offline / **possible tamper** — violet badge — with colored dot + badge), **BATTERY**
-  (color-coded meter bar), **UPTIME**, **LAST PING**, **COORDINATES**, **ACTIONS**.
-- The **coordinates** button jumps to the **Digital Boundaries** map (`onNavigate("boundaries")`).
-- Per-row actions:
-  - **Ping / Force Reconnect** (spinner while pinging, ~1.5 s).
-  - **Logs** — opens the **Telemetry Stream** modal with simulated MQTT payload lines
-    (`MQTT CONNECT`, `SUB sensors/.../telemetry`, `{"temp":…,"smoke_ppm":…,"battery":…}`, `PING OK
-    rssi=…`), annotated *"live in production via WebSocket broker"*, with a shortcut to **Adjust
-    Thresholds**.
-  - **Report** — opens the same **Dispatch Field Maintenance** modal for the device.
-- Header actions: **Thresholds** (→ System Settings) and **Refresh**.
-
-### CCTV Fleet Availability (right rail)
-- Compact camera health panel: header counts **`12` placed · `10` online · `1` offline ·
-  `1` pending**, a scrollable camera list with status dot + pill, location / purok, last-seen, and a
-  **coordinates** link that jumps to the **Digital Boundaries** map (cameras carry `location_geom`
-  in the data model). **Manage** jumps to **CCTV Placement** (`onNavigate("cctv")`). A footer note
-  states that offline cameras route to **CCTV Operator → Admin** per §14.12.
-
-### System Errors (left rail)
-- A dedicated infrastructure-fault feed **distinct from user-audit events**: each row shows a
-  severity dot (error / warning / info), the fault message, the source worker/component in mono
-  (e.g. `notification-worker`, `api-gateway`, `camera-stream`, `auth-service`, `audit-writer`,
-  `retention-worker`), and a timestamp. **View All** jumps to the Audit Logs screen.
-- **Routing rule (which feed gets what):** **System Errors** carries *infrastructure faults with no
-  actor* — a service or worker failing (5xx spikes, stream drops, queue stalls, auth outages,
-  audit-writer stalls). **Audit Logs** carries *actions tied to an operator* — including actions
-  that *failed* (a rejected configuration change, a failed delete), which are logged with the
-  responsible admin, action type, description, and IP. If an infra fault is actionable by an
-  operator (e.g. an audit-writer failure requiring intervention), it additionally surfaces as an
-  alert in the banner, but the underlying fault row lives only in System Errors.
-
-### Open Maintenance Tickets (center rail)
-- Aggregated view of pending field-maintenance work (previously only surfaced per-device through
-  the Dispatch modal). Each ticket lists the device, maintenance type, priority chip
-  (critical / urgent / routine), assigned team, and open date, with a **`N open`** counter.
-  - **Update** — opens the **Dispatch Field Maintenance** modal pre-filled for that device.
-  - **Resolve** — marks the ticket resolved, writes a **Maintenance Resolved** audit entry, and
-    confirms with a modal.
-
-### Recent Audit Logs (right rail)
-- Latest system events with colored type dots (`alert` / `error` / `config` / `login`) and
-  timestamps; **View All** jumps to the Audit Logs screen. An `error` dot here marks a *failed
-  user/system action* attributed to an operator, not an infrastructure fault (see the routing rule
-  under **System Errors**).
+### 5. Recent Audit Activity
+- The latest administrative audit events — seed entries (`User Created`, `User Deactivation`,
+  `Device Registration`, `Credential Provisioned`, `Camera Registration`, `Patrol Routes`,
+  `Geofence Update`, `Data Request Processed`, `Configuration Change`) merged live with entries from
+  the shared audit store (`getAuditLogs` / `subscribeAuditLogs`, `utils/auditLog.ts`), newest first.
+  Each row shows a color-coded **action-type** badge, the description, and the timestamp · admin.
+- **View All** / **Open Audit Logs** jumps to the Audit Logs screen.
 
 ### Deliberate scope boundary
 - **Unprocessed high-priority incidents and per-role SLA breaches are not shown here.** They are
   operational-triage concerns that belong to the **Desk Officer** dashboard (14.5) and its SLA /
-  incident queues, and to the **Captain's** escalation view — the Admin's health dashboard stops at
-  infrastructure, fleet, and aggregate public-safety metrics. Their absence is intentional, not an
-  oversight.
-
-### Dispatch Field Maintenance (shared modal)
-- Reached from IoT alerts, the device table's **Report** action, or a maintenance ticket's
-  **Update**: **Maintenance Type** (Battery Replacement / Offline-Reconnect / Sensor Calibration /
-  Hardware Inspection / Firmware Update / Other), **Priority** (Routine / Urgent / Critical),
-  **Assigned Team** (Field Tech — Team A / Team B, IoT Maintenance Unit, Barangay Facilities,
-  External Contractor), and optional **Notes**. Submitting confirms with a **Dispatch Confirmed**
-  modal and writes a **Dispatch Created** audit entry.
+  incident queues, and to the **Captain's** escalation view — the Admin's dashboard stops at
+  configuration, fleet, and infrastructure health. There is no incident analytics, no API-performance
+  or telemetry console, no patrol / Tanod performance metrics, and no field-maintenance dispatch or
+  ticket lifecycle anywhere on this page.
 
 ---
 
@@ -194,10 +124,15 @@ Manage personnel accounts and access roles for the whole platform.
   **Contact**, **Status** (Active / Deactivated pill), **2FA** (per-account two-factor status),
   **Last Login**, **Actions**:
   - **Edit** — opens the update modal.
-  - **Reset** — sends a password-reset link to the user's email (audited, confirmed modal).
+  - **Reset** — **Reset Password** goes through a **confirm → send → audit** flow: a confirmation
+    modal asks to send a password-reset link to the user's email; confirming writes a **Password
+    Reset** audit entry and a success modal.
   - **2FA** — shown only for privileged accounts in a **Pending** 2FA state; re-sends the
-    two-factor enrollment invitation.
-  - **Disable / Enable** — toggles `active`; disabling a user keeps their record but blocks access.
+    two-factor enrollment invitation (audited as a `Configuration Change`).
+  - **Disable / Enable** — both go through a **confirm → toggle → audit** flow. **Disable** shows a
+    rose confirmation ("They will lose access to the platform"); **Enable** shows a primary
+    confirmation ("They will regain access"). Confirming writes a **User Disabled** / **User
+    Enabled** audit entry and a success modal; disabling keeps the record but blocks access.
 - **2FA status indicator** — privileged roles (Admin / Captain / Desk Officer) show a per-row badge:
   **Enabled** (emerald, guarded by `ShieldCheck`) or **Pending** (amber, guarded by `Clock`).
   Non-privileged roles show a dash — 2FA is optional for them. A privileged account in the Pending
@@ -207,13 +142,16 @@ Manage personnel accounts and access roles for the whole platform.
 
 ### Create / Edit modal
 - Fields: **Full Name**, **Email Address**, **Contact Number**, **System Role** (Captain, Desk
-  Officer, CCTV Operator, Tanod, Purok Leader).
+  Officer, CCTV Operator, Tanod, Purok Leader — no Resident accounts are created here).
 - **Assigned Purok / Zone** appears only for **Tanod** (patrol zone) and **Purok Leader** (report
   feed zone), sourced from `PUROK_OPTIONS`.
 - **2FA policy notice** — picking **Captain** or **Desk Officer** shows an amber notice that two-factor
   authentication is **mandatory per policy** for that role; on create the account is minted in a
   **Pending 2FA** state (writes a `Configuration Change` entry) and cannot become **Active** until
-  enrollment completes. The confirmation modal reads **"User Created — 2FA Pending"**.
+  enrollment completes. The confirmation modal reads **"User Created — 2FA Pending"**. **Editing a
+  role** applies the same policy: promoting a user to a privileged role sets 2FA to **Pending**
+  (audited as a `Configuration Change`); demoting out of a privileged role clears the mandatory
+  requirement.
 - On create, an **AUTHENTICATION** option: *Send email invitation to set password* (checked) or, if
   unchecked, a temporary password is generated and shown on creation.
 - Every create / edit writes an audit entry and resolves in a **User Created** / **User Updated**
@@ -221,9 +159,10 @@ Manage personnel accounts and access roles for the whole platform.
 
 ### Audit trail
 - Actions push to the shared audit store via `pushAuditLog`: **User Created**, **User Updated**,
-  **User Deactivation** (activate/deactivate), **Password Reset**, and **Configuration Change** for
-  every 2FA-policy event (privileged account created with enrollment pending, enrollment invitation
-  re-sent).
+  **User Enabled** (enable), **User Disabled** (disable — both gated by a confirmation modal),
+  **Password Reset** (confirm → send), and **Configuration Change** for every 2FA-policy event
+  (privileged account created with enrollment pending, role promoted to a privileged role,
+  enrollment invitation re-sent).
 
 ---
 
@@ -283,17 +222,16 @@ Register devices, monitor health, and configure sensor thresholds for the field-
 
 ### Device Map
 - Geographic placement of all enabled nodes as color-coded `MapPin` markers with a status dot; legend
-  for **Online**, **Low Battery** (derived), **Possible Tamper**, **Pending**, and **Offline**, plus
+  for **Online**, **Low Battery** (derived), **Pending**, and **Offline**, plus
   an **`N` active** counter. **Low Battery is a derived indicator from battery voltage, not a stored
-  status value** — the stored enum is `pending / online / offline / possible_tamper` (plus the
-  derived Disabled power state).
+  status value** — the stored enum is `pending / online / offline` (plus the
+  derived Disabled / Decommissioned power states; both drop the node off the map).
 
 ### Device Inventory (table)
 - Columns: status pill, device ID, type, purok, battery meter, signal meter, last ping,
   **Credential Status**, and actions:
-  - **Edit** — type, purok, firmware version, coordinates, the **Maintenance Records** block (see
-    **Device Maintenance Records**), and an optional **Custom Threshold Override** (device-specific
-    relative smoke / noise thresholds and persistence durations instead of the global defaults). The
+  - **Edit** — type, purok, firmware version, coordinates, and the **Maintenance Records** block (see
+    **Device Maintenance Records**). The
     **Device ID is shown read-only and immutable** after registration.
   - **View (info icon)** — opens the **Device Details** modal: the full device overview (operational
     status, type, barangay, purok, firmware, MAC, coordinates, battery/signal, calibration note, last
@@ -303,30 +241,18 @@ Register devices, monitor health, and configure sensor thresholds for the field-
     **Revoked** (revoked-recovery path); generates a unique credential. See **Device Credential
     Lifecycle**.
   - **Rotate (refresh icon)** — rotates the enrollment credential for devices that already have one
-    (Active / Expired); see **Device Credential Lifecycle**.
+    (Active); see **Device Credential Lifecycle**.
   - **Revoke (shield-x icon)** — revokes the enrollment credential; see **Device Credential
     Lifecycle**. Hidden for Not Provisioned devices (nothing to revoke) and revoked devices.
   - **Power** — enable/disable the device (disabled rows render dimmed and drop off the map); both
     transitions write distinct **Device Enabled** / **Device Disabled** audit entries (§12.14).
-  - **Tamper flag (shield-alert icon)** — flags the device as **Possible Tamper** (§6.5.15), and
-    **Tamper clear (shield-check icon)** restores it to Active after inspection; see **Possible
-    Tamper** below.
   - **Decommission (archive icon)** — gated by a **Confirm Decommission** dialog: the node is
     disabled and dropped from the map, but the record and its operational history are **retained for
     the audit trail — never destroyed** (§10.1).
-- **Credential Status column** — a per-device badge with the **Active / Revoked / Expired / Not
-  Provisioned** status (`KeyRound` icon; emerald / rose / amber / stone), tooltipped: revoked devices
-  "cannot authenticate until a new credential is provisioned", expired devices "rotate to restore",
+- **Credential Status column** — a per-device badge with the **Active / Revoked / Not
+  Provisioned** status (`KeyRound` icon; emerald / rose / stone), tooltipped: revoked devices
+  "cannot authenticate until a new credential is provisioned",
   Not Provisioned devices "registration did not create one".
-
-### Possible Tamper (§6.5.15)
-- A distinct violet **Possible Tamper** status (the node may still transmit — it is *not* Offline),
-  reachable from a documented trigger: unexpected transmission stop with no low-power explanation,
-  a location change, repeated disconnects after inspection, or a manual admin flag.
-- **Flagging** is gated by a modal that captures the detection/flag reason (and optional notes),
-  moves the node to `possible_tamper`, **raises an administrative alert on the Admin dashboard**
-  (§14.7), and writes a **Device Tamper Flagged** audit entry. **Clearing** after inspection restores
-  the node to Active and writes a **Device Tamper Cleared** audit entry.
 
 ### Device Credential Lifecycle (Provision · Rotate · Revoke)
 - **Registration does not create or assign a credential.** A newly registered device is **Pending**
@@ -350,7 +276,7 @@ Register devices, monitor health, and configure sensor thresholds for the field-
   **Credential Provisioned** audit entry (Device ID, previous status → new status: active, result:
   Successful) — never the full credential.
 - **Rotate Credential** (refresh icon) — rotates the enrollment credential for a device that already
-  has an active one (Active / Expired); disabled for decommissioned devices. The **Rotate Device
+  has an active one; disabled for decommissioned devices. The **Rotate Device
   Credential?** modal shows the device and its **current masked credential**, explains that the
   current credential will be invalidated and a **new unique credential generated**, and confirms with
   **[Cancel] / [Rotate Credential]**. The flow:
@@ -363,12 +289,11 @@ Register devices, monitor health, and configure sensor thresholds for the field-
      reconnect (§ see **Device Connection Test** below). Writes a **Credential Rotated** audit entry
      recording the Device ID, previous status → new status: active, and result: Successful — never
      the full credential.
-- **Rotation never changes operational status** — an Online / Pending / Offline / Possible Tamper
+- **Rotation never changes operational status** — an Online / Pending / Offline
   device keeps that status; a rotated credential is *not* proof the physical ESP32 has reconnected.
-  Rotation also does not clear a **Possible Tamper** flag. A simulated failure state is supported: a
-  **Credential Rotation Failed** modal offers **[Close] / [Try Again]** (Try Again reopens the Rotate
-  modal); on failure the old credential is not invalidated, no new credential is generated, statuses
-  are unchanged, and no successful audit entry is written.
+  As in the prototype, credential changes are **not simulated on the physical device** — the UI
+  states plainly that changes must be applied to the physical ESP32 during actual deployment, then
+  verified with the **Device Connection Test**.
 - **Revoke Credential** (shield-x icon) — gated by a **Revoke Device Credential?** modal showing the
   device and its **current masked credential**, noting this is *distinct from powering the device
   off*: the device is **blocked from authenticating even if re-enabled** until a new credential is
@@ -397,23 +322,21 @@ Register devices, monitor health, and configure sensor thresholds for the field-
   changed (installation date, last inspection, inspector, reported faults/replacements).
 
 ### Device Connection Test
-- Pick any enabled device and **Test Connection** — a ~1.5 s **full acceptance check** (§5.10) that
-  verifies, per check: **Credential Authentication**, **MQTT/WebSocket reachability** (latency +
-  RSSI), **telemetry payload format** (schema-valid payload), **threshold-event generation** (alert
-  emitted on a breach), and **backend storage write** (telemetry persisted). The result renders a
-  per-check pass/fail checklist; a failed check explains the cause (revoked credentials block the
-  run, Not Provisioned devices have no credential to authenticate with, offline devices time out).
+- Pick any enabled device and **Test Connection** — a ~1.5 s **acceptance check** (§5.10) that
+  verifies four checks: **Credential Authentication**, **Connectivity**, **Telemetry**, and
+  **Backend Storage**. The result renders a per-check **PASS / FAIL** checklist plus an overall
+  **Result: PASS / FAIL** (latency + RSSI on success); a failed check explains the cause (revoked
+  credentials block the run, Not Provisioned devices have no credential to authenticate with,
+  offline devices time out).
 - **Credential Authentication** ties into the credential lifecycle:
   - **Not Provisioned** — a device registered without a credential fails this check with the notice
     that a valid credential must be **provisioned** before the acceptance test can run; the device
     stays **Pending**.
   - **After Rotate** — the physical ESP32 is *not yet* using the new secret, so this check fails
     with the notice that the previous enrollment credential has been invalidated and the device must
-    be updated. A **"Mark ESP32 updated with new credential"** toggle appears in the panel for such
-    devices — once the device is marked as holding the new credential, re-running the test verifies
-    reconnection and the device passes the full acceptance check.
-- A device **must pass** the acceptance check before it can be **Active** (§9.12): a **Pending**
-  row that passes is promoted to `online` (Active); a failed run leaves it Pending. Every run stamps
+    be updated to the new credential through the real provisioning process before re-running the test.
+- A device **must pass** the acceptance check before it can be **Online** (§9.12): a **Pending**
+  row that passes is promoted to `online`; a failed run leaves it Pending. Every run stamps
   the device's **Last Connectivity Test** and writes a **Device Connectivity Test** audit entry noting
   the pass/fail and the resulting state.
 
@@ -431,6 +354,9 @@ Register devices, monitor health, and configure sensor thresholds for the field-
   **Configuration Change** audit entry. The Apply button is disabled until a justification is entered.
 - **Revert to Defaults** restores 50 / 50 relative + 30s / 10s persistence and is audited as a
   **Configuration Change** (restoration, not an adjustment).
+- **Thresholds are configured globally here only** — the **Edit Device** modal carries no
+  per-device threshold override; every threshold change passes through this justification-gated
+  panel (§5.9).
 
 ### Audit trail
 - **Device Registration** (full record — name, ID, type, module, serial, MAC, barangay, purok,
@@ -438,7 +364,7 @@ Register devices, monitor health, and configure sensor thresholds for the field-
   **Device Updated** (incl. what changed), **Device Connectivity Test** (acceptance pass/fail +
   resulting state),
   **Device Disabled** / **Device Enabled** (§12.14), **Device Decommissioned** (record retained),
-  **Device Tamper Flagged** / **Device Tamper Cleared**, **Configuration Change** (threshold
+  **Configuration Change** (threshold
   applies/reverts, incl. justification), **Credential Provisioned**, **Credential Rotated**,
   **Credential Revoked**.
 
@@ -447,7 +373,11 @@ Register devices, monitor health, and configure sensor thresholds for the field-
 ## 4. `cctv_placement.tsx` — CCTV Placement & Assignment
 
 Assign CCTV cameras to mapped locations and configure camera hardware — the Admin's configuration
-side of the surveillance mesh that the **CCTV Operator** operates and the **Captain** reviews.
+side of the surveillance mesh that the **CCTV Operator** operates and the **Captain** reviews. The
+Admin page is **configuration-only**: it carries **no surveillance-operation features** — no live feed
+viewing, no event tagging, no incident creation from footage, no recorded-footage search, no evidence
+clips or footage export, and no CCTV event investigation. Those functions belong exclusively to the
+**CCTV Operator** and other authorized operational roles.
 
 ### Camera Registration
 - **Camera ID** (required, e.g. `CAM-PUROK5-01`), **Display Name / Location Label**, **Purok /
@@ -470,7 +400,7 @@ side of the surveillance mesh that the **CCTV Operator** operates and the **Capt
   doubles as the click-to-place surface when arming Click-to-Pin.
 
 ### Camera Inventory (table)
-- Status pill (Online / Degraded / Offline / **Pending**), camera ID, location name, **assigned
+- Status pill (Online / Offline / Pending / **Disabled**), camera ID, location name, **assigned
   boundary**, resolution, network IP, and actions:
   - **Test Connection (radio icon)** — runs the ~1.5 s connectivity check; see below.
   - **View (info icon)** — opens the **Camera Details** modal: overview (status, location, purok,
@@ -481,8 +411,8 @@ side of the surveillance mesh that the **CCTV Operator** operates and the **Capt
   - **Edit** — rename, reassign purok / mapped location, change resolution, and set the
     **Responsible Maintenance Contact**; **Date Registered** and **Date Last Tested** render
     read-only (the latter auto-filled from connection-test runs).
-  - **Power** — enable/disable the node (disabled rows render dimmed and leave the map).
-  - **Delete** — gated by a **Confirm Delete** dialog.
+  - **Power** — enable/disable the node (disabled rows render dimmed and leave the map; a re-enabled
+    camera returns in a **Pending** state and must pass a connection test again).
 
 ### Camera Maintenance Records
 - Registered cameras track the same maintenance-facing fields the IoT fleet does:
@@ -506,14 +436,16 @@ side of the surveillance mesh that the **CCTV Operator** operates and the **Capt
   server-side only. Confirming writes a **Configuration Change** audit entry that never includes the
   username or token value, then resolves with a **Credentials Updated** modal.
 
-### Camera Connection Test (pre-Active requirement)
-- Mirrors the IoT **Device Connection Test**: a ~1.5 s simulated check that verifies the camera
-  stream endpoint, returning latency on success or a connection failure on timeout.
-- A camera **must pass** the test before it can be marked **Active**: the result flips a Pending row
-  to `Online`; a failure leaves it Pending (rows already Online re-test cleanly, Offline cameras
-  fail, Degraded may pass or fall back to Pending). Each successful run stamps the camera's
-  **Date Last Tested** and writes a **Camera Connectivity Test** audit entry noting the pass/fail and
-  the resulting state.
+### Camera Connection Test (pre-Online requirement)
+- Mirrors the IoT **Device Connection Test**: a ~1.5 s simulated check that verifies four results —
+  **Stream Reachability**, **Authentication**, **Response Time**, and an **Overall Result** rendered
+  as a per-check **PASS / FAIL** checklist. A failed check explains the cause (endpoint unreachable
+  on timeout, invalid credentials rejected, or response time exceeded).
+- A camera **must pass** the test before it can go **Online**: the result flips a Pending row to
+  `online`; a failure leaves it Pending (rows already Online re-test cleanly; Offline cameras stay
+  Offline on failure). Disabled cameras cannot be tested until re-enabled. Each successful run stamps
+  the camera's **Date Last Tested** and writes a **Camera Connectivity Test** audit entry recording
+  the per-check pass/fail, the overall result, and the resulting state.
 
 ### CCTV Clip Storage
 - A **Storage Usage** panel between the placement grid and the inventory shows **utilized vs.
@@ -526,9 +458,9 @@ side of the surveillance mesh that the **CCTV Operator** operates and the **Capt
 
 ### Audit trail
 - **Camera Registration**, **Camera Placement** (map pin), **Camera Updated** (incl. reassignment,
-  maintenance contact), **Camera Deleted**, **Camera Connectivity Test** (per connection-test run,
-  with pass/fail and resulting state), and **Configuration Change** (camera access-credential
-  updates — the credential value itself is never recorded in the entry).
+  maintenance contact), **Camera Connectivity Test** (per connection-test run, with the per-check
+  pass/fail and resulting state), and **Configuration Change** (camera access-credential updates —
+  the credential value itself is never recorded in the entry).
 
 ---
 
@@ -538,18 +470,22 @@ Define and manage geographic zones and Purok boundaries — the polygons that po
 patrol coverage, and analytics everywhere else in the system.
 
 ### Defined Regions (sidebar)
-- Lists all configured boundaries with a badge (**Primary** / **Sub-zone**), classification chip,
-  node count, computed area in hectares (shoelace formula) and last-edit date. Clicking a region
-  selects it on the map. Each row carries:
-  - **Edit** — rename, re-badge (Primary / Sub-zone), and reclassify.
-  - **Delete** — the **primary boundary cannot be deleted** (blocked with an explanatory modal);
-    others go through a **Confirm Delete** dialog.
-- **Add New Boundary** opens a modal: name (defaults to `Purok N`), type (Primary / Sub-zone), and
+- Lists all configured boundaries with a **status** badge (**Active** / **Inactive**), a badge
+  (**Primary** / **Sub-zone**), classification chip, node count, computed area in hectares (shoelace
+  formula) and last-edit date. Clicking a region selects it on the map. Each row carries:
+  - **Edit** — rename, re-badge (Primary / Sub-zone), reclassify, and adjust status.
+  - **Archive** (Active rows) — the **primary boundary cannot be archived** (blocked with an
+    explanatory modal); other boundaries go through a **Confirm Archive** dialog. Archiving sets the
+    boundary **Inactive** and hides it from the map, but **retains the record** so historical
+    geographic references keep resolving — it is never destroyed.
+  - **Restore** (Inactive rows) — reactivates an archived boundary (**Active**) and returns it to the
+    map.
+- **Add New Boundary** opens a modal: name (defaults to `Purok N`), type (Primary / Sub-zone),
   classification, then drops the new region into **draw** mode.
 - **Import GeoJSON** — upload a `.geojson` / `.json` file (FeatureCollection, Feature, Polygon, or
   MultiPolygon). Rings are projected into the map canvas preserving aspect ratio, classified from
-  `properties.classification` when present, created as sub-zones, and logged as a **Geofence
-  Update**; invalid files surface a clear import-failed modal.
+  `properties.classification` when present, created as sub-zones, and logged as a **Boundary
+  Created**; invalid files surface a clear import-failed modal.
 - Seed data includes Main Barangay Boundary, Purok 1–4, and Evacuation Zone Alpha.
 
 ### Zone Classifications
@@ -567,20 +503,26 @@ patrol coverage, and analytics everywhere else in the system.
   - **Containment** check — sub-zones whose nodes fall outside the primary boundary get "Nodes
     outside primary boundary".
   - **Save Boundary** is disabled until the polygon is valid; saving stamps the edit date, logs a
-    **Geofence Update** audit entry (with computed hectares), and confirms with a modal.
+    **Boundary Updated** audit entry (with computed hectares), and confirms with a modal.
 - Non-selected regions render faintly with dash strokes; a legend maps primary / sub-zone / node
   colors.
 
 ### Audit trail
-- **Geofence Update** — boundary created, updated, reclassified, or deleted.
+- **Boundary Created** — new boundary added via **Add New Boundary** or imported via GeoJSON.
+- **Boundary Updated** — boundary renamed, re-badged, reclassified, re-shaped, or restored to
+  **Active**.
+- **Boundary Archived** — boundary set **Inactive** (retained, hidden from the map).
 
 ---
 
 ## 6. `patrol_configuration.tsx` — Patrol Routes & Checkpoints
 
 Define and edit patrol routes and checkpoint boundaries — the routes the **Desk Officer** schedules
-and the **Captain** tracks live, but defined here by the Admin (no scheduling / live-tracking /
-dispatch features live on this page).
+and the **Captain** tracks live, but defined here by the Admin. This page is **configuration-only**:
+the Admin creates routes and checkpoints but never executes patrols. **No patrol execution controls
+exist here** — starting/ending patrols, live Tanod tracking, checkpoint verification, Tanod shift
+assignment, patrol attendance, and field-status recording remain operational functions for other
+roles and are deliberately absent.
 
 ### Patrol Routes (sidebar)
 - Lists all configured routes with a **status** badge (**Active** / **Draft**), patrol type, zone,
@@ -589,9 +531,9 @@ dispatch features live on this page).
   - **Delete** — gated by a **Confirm Delete** dialog. Routes referenced by active patrol schedules
     (`SCHEDULE_USAGE`) cannot be deleted — an explanatory dialog names the schedule count and tells
     the admin to end/reassign schedules first.
-- **Add New Patrol Route** opens a modal: name (must be unique), **patrol type** (Foot / Mobile /
-  Bicycle), and **assigned zone**, then drops the route into **Add Checkpoints** draw mode as a
-  **Draft**.
+- **Add New Patrol Route** opens a modal: name (must be unique), **description**, **patrol type**
+  (Foot / Mobile / Bicycle), and **purok / zone / boundary** (drawn from the configured boundaries),
+  then drops the route into **Add Checkpoints** draw mode as a **Draft**.
 - Seed data includes a Purok 1 perimeter patrol, a market-row sweep, and a draft flood-line route.
 
 ### Route map (SVG editor)
@@ -611,11 +553,17 @@ dispatch features live on this page).
 - Clicking a marker (map or the details-panel chip strip) opens a modal to edit: **name**, **type**
   (Regular / High-risk / Entry-Exit), **stop duration** (minutes, feeds the estimated patrol time),
   and **notes**; a **Delete** action removes it when more than 2 remain.
+- **Sequence** — each checkpoint is numbered by its position in the route; the arrows beside each
+  chip in the details panel **reorder** the sequence (move a checkpoint earlier/later), which the
+  map reflects immediately (START/END markers and numbering follow the reorder).
 
 ### Route Details panel
-- Below the map: route name, patrol type, assigned zone, **status**, checkpoint count, **total
-  distance (km)**, **estimated duration** (travel time by patrol-type speed + stop durations), last
-  updated, created by, and last edited by, plus a chip strip of all checkpoints (click to configure).
+- Below the map: route name, patrol type, purok / zone / boundary, **description**, **status**,
+  checkpoint count, **total distance (km)**, **estimated duration** (travel time by patrol-type speed
+  + stop durations), last updated, created by, and last edited by, plus a chip strip of all
+  checkpoints (click to configure, arrows to reorder).
+- **Edit Route Info** opens a modal to rename the route, update its **description**, change the
+  **patrol type**, or reassign its **purok / zone / boundary** — every change is audited immediately.
 
 ### Status & validation
 - Routes are **Draft** or **Active**; saving a valid route stamps the edit date and marks it
@@ -638,7 +586,8 @@ dispatch features live on this page).
   `beforeunload` handler.
 
 ### Audit trail
-- **Patrol Routes** — route created, saved/updated (counts, km, status), or deleted.
+- **Patrol Routes** — route created, saved/updated (counts, km, status), renamed / description /
+  patrol-type / zone changed via **Edit Route Info**, or deleted.
 
 ---
 
@@ -649,20 +598,26 @@ Immutable record of all administrative actions — a live, searchable, exportabl
 - The list merges a set of static seed entries with **live entries** emitted by every admin action
   through `pushAuditLog` (`subscribeAuditLogs` refreshes the table in real time across the admin
   screens).
-- **Search** spans admin, action type, description, and IP; a **filter** dropdown enumerates every
-  action type present (seed + live): `Configuration Change`, `User Deactivation`, `Device
-  Registration`, `Geofence Update`, `User Created`, `User Updated`, `Password Reset`, `Device
-  Updated`, `Device Decommissioned`, `Device Disabled`, `Device Enabled`, `Device Tamper Flagged`,
-  `Device Tamper Cleared`, `Device Connectivity Test`, `System Alert`, `Camera Registration`,
-  `Camera Placement`, `Camera Updated`, `Camera Deleted`, `Patrol Routes`, `Dispatch Created`,
-  `Maintenance Resolved`, `Data Request Processed`,
+- **Read only** — a **READ ONLY** badge and notice state that logs cannot be edited, deleted,
+  re-timed, or re-attributed by any user; the page exposes no row actions, only viewing and export.
+- **Columns** — Timestamp, **Actor** (BA avatar + email), **Role** (derived from the actor, e.g.
+  System Admin), **Action** (color-coded type badge), **Affected Record** (device / camera / request /
+  incident / boundary / account identified from the description, or `—`), **Description**,
+  **Result** (Success / Denied / Failed derived from the description), and **IP Address** where
+  available.
+- **Filters** — free-text **search** (actor, role, action, affected record, result, description, IP),
+  **date** (exact day), **actor** dropdown, **action type** dropdown (enumerating every type
+  present, seed + live), and **result** dropdown (All / Success / Denied / Failed).
+- Action types present include: `Configuration Change`, `User Deactivation`, `User Disabled`,
+  `User Enabled`, `Device
+  Registration`, `Geofence Update`, `Boundary Created`, `Boundary Updated`, `Boundary Archived`,
+  `Boundary Restored`, `User Created`, `User Updated`, `Password Reset`, `Device
+  Updated`, `Device Decommissioned`, `Device Disabled`, `Device Enabled`, `Device Connectivity
+  Test`, `System Alert`, `Camera Registration`, `Camera Placement`, `Camera Updated`, `Camera
+  Deleted`, `Patrol Routes`, `Data Request Processed`,
   `Credential Provisioned`, `Credential Rotated`, `Credential Revoked`, `Camera Connectivity Test`.
-- Rows show timestamp, admin (BA avatar + email), color-coded **Action Type** badge, description,
-  and IP address. The new action types carry their own badge colors (teal for data requests, sky for
-  credential provisioning, indigo for credential rotation, rose for revocation/credential
-  deletion, cyan for connectivity tests).
 - **Export CSV** downloads `system-audit-logs.csv` of the currently filtered rows (quoted, escaped
-  header + data).
+  header + data), matching the table columns.
 
 ---
 
@@ -674,23 +629,34 @@ requests, reachable from the **Data Requests** nav item.
 ### Incoming Requests
 - Lists each request with: **request** ID (`DR-00x`), **Requester** (name + contact), **Type**
   (Access / Correction / Anonymization / Deletion, color-coded), **Date Submitted**, **Status**
-  (Pending / In Review / Approved / Denied / Completed), the **subject** of the request, and actions.
+  (Pending / In Review / Verified / Approved / Denied / Completed), the **subject** of the request,
+  the **Related Record** (e.g. `INC-2068`, `INC-2071`, device/account refs — the data the request
+  actually touches, or `—`), and actions.
 - **Filter chips** (with live counts) cover **All** plus each status; a **`N pending · M total`**
-  summary sits in the card header. A persistent blue notice states the policy upfront: official
-  incident, audit, and evidence records subject to retention are **anonymized, never deleted**;
-  deletion applies only to personal account and notification data.
+  summary sits in the card header. A persistent blue notice states the policy upfront: every request
+  moves **Pending → In Review → Verified** before a decision, and official incident, audit, and
+  evidence records subject to retention are **anonymized, never deleted**; when deletion cannot be
+  performed the request is **denied / Retention Required**.
 
 ### Actions
 - **Review** (pending → In Review) — marks the request as under review (audited).
-- **Approve & Process** — gated by a **ConfirmModal** that restates the anonymization rule, then
-  resolves the request to **Completed** (audited). Deletion / anonymization requests are recorded as
-  *anonymized rather than deleted*; access/correction approvals note redaction of third-party data.
-- **Deny** — opens a modal requiring a **reason for denial** (button disabled until provided); the
-  requester is notified of the grounds and the request resolves to **Denied** (audited).
+- **Verify** (In Review → Verified) — confirms requester identity and legal basis before a decision;
+  the audit entry records the request, type, requester, and the related record (audited). Approve and
+  Deny buttons are only offered from **Verified** (or In Review while a case is being triaged).
+- **Approve & Process** — gated by a **ConfirmModal** that restates the anonymization rule (and
+  names the related record), then resolves the request to **Completed** (audited). Deletion /
+  anonymization requests are recorded as *anonymized rather than deleted*; access/correction
+  approvals note redaction of third-party data.
+- **Deny** — opens a modal requiring a **reason for denial** (button disabled until provided); a
+  **Denied / Retention Required** toggle switches the denial to the fixed retention explanation
+  (active investigation, legal hold, approved retention, or official incident/blotter/audit
+  requirements), locking the reason field. The requester is notified of the grounds and the request
+  resolves to **Denied** (audited).
 
 ### Audit trail
-- Every decision — mark In Review, Approve & Process, Deny — writes a **Data Request Processed**
-  audit entry carrying the request ID, type, requester, and disposition (reason on denials).
+- Every decision — mark In Review, Verify, Approve & Process, Deny — writes a **Data Request
+  Processed** audit entry carrying the request ID, type, requester, and disposition (related record
+  on verification; reason on denials, including the fixed Retention Required wording).
 - **Boundary:** processing a request never deletes official incident/blotter/audit/evidence records
   (they are anonymized under retention); the Admin has no incident-status or blotter-deletion lever
   here.
@@ -699,23 +665,25 @@ requests, reachable from the **Data Requests** nav item.
 
 ## 9. `system_settings.tsx` — System Settings
 
-Global configuration for integrations, thresholds, feature flags, retention, and platform
-preferences, split across seven tabs (**SMS API Config**, **IoT Thresholds**, **Alert Rules**,
-**Data Retention**, **Purok Coordination**, **Feature Flags**, **Localization**). Any edited tab is
+Global configuration for system identity, sensor thresholds, notifications, security, retention, and
+feature flags, split across seven tabs (**General**, **IoT Thresholds**, **Notifications & Alerts**,
+**Security**, **Data Retention**, **Purok Coordination**, **Feature Flags**). Any edited tab is
 flagged **dirty**; switching tabs with unsaved changes prompts an **Unsaved Changes** modal
-(**Stay** / **Discard & Switch**).
+(**Stay** / **Discard & Switch**). The page deliberately exposes only settings with prototype
+behavior — no SMS gateway connection details, no maintenance mode, and no out-of-scope integrations.
 
-### SMS API Config
-- **SMS Gateway Connection**: API endpoint URL (default Twilio `…/2010-04-01/Accounts/{AccountSID}/Messages.json`), masked **API Key** with show/hide toggle, **Sender Name / ID** (`BRGY-ALERT`), and **Rate Limit** per minute.
-- **Credit Monitoring**: remaining credits balance plus a **Test SMS** recipient field with a
-  **Send Test** button (~1.5 s, "Test SMS Sent" modal).
+### General
+- **Barangay Identity**: official **Barangay Name** shown across the system.
+- **Language & Regional Format**: default system language (English / Filipino-Tagalog), timezone
+  (Asia/Manila or UTC), and date format (YYYY-MM-DD / MM/DD/YYYY / DD/MM/YYYY / MMMM D, YYYY).
 
 ### IoT Thresholds
-- **Global Sensor Threshold Defaults**: global smoke sensitivity (ppm) and global decibel ceiling (dB).
-  An amber note explains that these apply to *newly* registered devices; existing devices keep their
-  individual limits until overridden in IoT Provisioning.
+- **Global Sensor Threshold Defaults**: global smoke sensitivity (ppm), global **smoke persistence**
+  (seconds), global decibel ceiling (dB), and global **noise persistence** (seconds) — mirroring the
+  per-device threshold fields in IoT Provisioning. An amber note explains that these apply to
+  *newly* registered devices; existing devices keep their individual limits until overridden.
 
-### Alert Rules
+### Notifications & Alerts
 - **Escalation & Broadcast Rules**: automatic escalation timer (minutes before an unacknowledged
   incident escalates to the Admin) and geofence proximity radius (meters for resident mass alerts).
   Toggles: **Require Admin Approval for Broadcasts**, **Enable SMS Mass Broadcast**, **Enable Push
@@ -725,12 +693,15 @@ flagged **dirty**; switching tabs with unsaved changes prompts an **Unsaved Chan
   "Sounds Disabled" notice).
 - **Notification Role Matrix**: which roles (Desk Officer, CCTV Operator, Tanod, Purok Leader)
   receive alerts at each severity level (Low / Medium / High / Critical) — click any cell to flip it.
-- **Security & Access**: a **Require Two-Factor Authentication** toggle scoped to the privileged
-  roles (Admin / Captain / Desk Officer), with an explanatory note that 2FA is **mandatory per
-  policy** for those roles (privileged accounts hold a **Pending 2FA** state in User Management
-  until enrollment) and optional for all other roles. The **Save Settings** commit writes a
-  **Configuration Change** audit entry; 2FA state changes in User Management audit the same way
-  every time.
+
+### Security
+- **Require Two-Factor Authentication** toggle scoped to the privileged roles (Admin / Captain /
+  Desk Officer), with an explanatory note that 2FA is **mandatory per policy** for those roles
+  (privileged accounts hold a **Pending 2FA** state in User Management until enrollment) and
+  optional for all other roles.
+- **Session Timeout** — minutes of inactivity before a signed-in session expires (default 30).
+- A note clarifies that login protection (attempt lockouts) is **not implemented** in this prototype
+  and is therefore not configurable here.
 
 ### Data Retention
 - **Data Retention Schedule** — one row per data category (numeric value + **Days / Months / Years**
@@ -741,11 +712,11 @@ flagged **dirty**; switching tabs with unsaved changes prompts an **Unsaved Chan
 - **CCTV Clip Storage Warning Threshold** — percentage (default 85%, range 10–100) that drives the
   warning banner in CCTV Placement; saved through the shared `utils/cctvStorage.ts` store so the
   Placement screen updates live.
-- A persistent **retention-shortening** warning: shortening a period does **not** retroactively
-  delete records that are under **active legal hold** or tied to **unresolved incidents** — purge
-  jobs only reclaim records past their retention window.
-- **Save / Revert** follows the same footer pattern as the other tabs and writes a **Configuration
-  Change** entry.
+- A **retention-shortening** warning: shortening a period does **not** retroactively delete records
+  under **active legal hold** or tied to **unresolved incidents** — purge jobs only reclaim records
+  past their retention window.
+- A **configuration values, not legal advice** notice: the retention values are scheduling inputs for
+  this prototype, not legal advice; real periods must comply with applicable data protection laws.
 
 ### Purok Coordination
 - **Module Status & Oversight**: an **Enable Purok Coordination Module** toggle, plus an
@@ -755,22 +726,17 @@ flagged **dirty**; switching tabs with unsaved changes prompts an **Unsaved Chan
   resident reports (advisory only — the Desk Officer retains final authority).
 
 ### Feature Flags
-- **Module Feature Flags**: an enable/disable toggle for each whole module — CCTV, IoT Monitoring,
-  Digital Boundaries, Patrol Management, Purok Coordination, SMS Mass Broadcast, Push
-  Notifications, and Emergency Broadcast — each with a short description.
-- **Maintenance Mode**: **Enable Maintenance Mode** toggle plus a **Maintenance Notice** message.
-  While active, non-admin roles see the notice and cannot perform operations; an amber notice
-  surfaces on this tab.
-
-### Localization
-- **Language & Regional Format**: default system language (English / Filipino-Tagalog), timezone
-  (Asia/Manila or UTC), date format (YYYY-MM-DD / MM/DD/YYYY / DD/MM/YYYY / MMMM D, YYYY).
-- **Barangay Identity**: official barangay name and seal/logo upload (PNG/SVG, max 2 MB) used on
-  printable blotter reports and headers.
+- **Module Feature Flags**: an enable/disable toggle for each whole existing module — CCTV, IoT
+  Monitoring, Digital Boundaries, Patrol Management, Purok Coordination, SMS Mass Broadcast, Push
+  Notifications, and Emergency Broadcast — each with a short description. A note states that
+  experimental or out-of-scope capabilities (AI, facial recognition, predictive analytics, national
+  emergency / PNP / 911 integration, drones, payments, multi-barangay tenancy) are not part of the
+  prototype and are not configurable here.
 
 ### Save / Revert
-- Footer bar: **Revert to Defaults** and **Save Settings** (both confirm with a **Settings Saved** /
-  **Settings Reverted** modal and write a **Configuration Change** audit entry).
+- Footer bar: **Revert to Defaults** (restores retention, CCTV warning threshold, persistence, and
+  session timeout) and **Save Settings** (both confirm with a **Settings Saved** / **Settings
+  Reverted** modal and write a **Configuration Change** audit entry).
 
 ---
 
@@ -782,18 +748,12 @@ record**. Here is a representative day.
 
 ### 1. Monitor — Dashboard
 The admin signs in (any non-special username routes to `admin`) and lands on **Dashboard**. The
-**ACTIVE ALERTS** card shows 9 open alerts split across all four severities. The admin expands the
-banner and **Pings** `SM-PUROK3-01` (240 ms latency — node is alive, likely a radio drop), then
-**Dispatches** the low-battery decibel meter `DB-HALL-01` through the **Dispatch Field
-Maintenance** modal — Offline-Reconnect type, Urgent priority, Field Tech — Team A — landing on a
-**Dispatch Confirmed** modal and a **Dispatch Created** audit entry. The
-**IoT System Health Monitor** confirms `SM-PUROK3-01` is the only red row (and that `SM-KIOSK-01`
-carries the distinct violet **Possible Tamper** status); clicking its coordinates
-opens the boundaries map to confirm where it sits. The **System Health & Infrastructure** panel
-shows the DB pool, background jobs, storage, and notification providers all healthy at a glance;
-the **CCTV Fleet Availability** rail flags `CAM-MARKET-03` offline; and the **Open Maintenance
-Tickets** rail aggregates the day's dispatches. The **Public Safety Metrics** panel shows a
-healthy incident rate and response time.
+**System Alerts** banner shows open alerts split across all four severities. The admin expands the
+banner and **Pings** `SM-PUROK3-01` (240 ms latency — node is alive, likely a radio drop). The
+**IoT Device Health** table confirms `SM-PUROK3-01` is the only red row; the **Infrastructure
+Health** cards show
+Database, Storage, Notification Service, and Backend/API all healthy at a glance; and the
+**CCTV Availability** rail flags `CAM-MARKET-03` offline.
 
 ### 2. Provision people — User Management
 A new Tanod joins. The admin goes to **User Management**, clicks **Create New User**, fills name /
@@ -809,10 +769,10 @@ re-invited via the **2FA** row action (each step auditing a **Configuration Chan
 The admin registers a new smoke sensor for the market zone: **Hardware Type** = Smoke Sensor, purok =
 Purok 3 — Market Zone (the **Device ID** auto-generates as `SM-P3-…`), and coordinates picked with
 **Click-to-Pin** on the device map. **Register Device** places the node in **Pending** — the admin
-then runs the **Device Connection Test**, which confirms reachability, telemetry format,
-threshold-event generation, and backend storage, and promotes the node to **Active** (§9.12). The
-fleet status map is verified (including the violet **Possible Tamper** node, which is inspected and
-cleared), and the admin tunes sensitivity in the **Threshold Configuration Panel** — documenting the
+then runs the **Device Connection Test**, which confirms credential authentication, connectivity,
+telemetry, and backend storage, and promotes the node to **Online** (§9.12). The
+fleet status map is verified, and the admin tunes sensitivity in the **Threshold Configuration
+Panel** — documenting the
 field test in the required justification field (§5.9) — then **Applies** it. Every node's
 maintenance records — installation date, last inspection, connectivity-test timestamp, inspector, and
 reported faults — are kept in the **Edit Device** modal and readable from the **Device Details** view.
@@ -825,7 +785,8 @@ Active → Revoked → Active.
 On **CCTV Placement**, the admin registers `CAM-MARKET-03`, assigns it to **Purok 3 — Market Zone**,
 picks a **4K** camera, and places it with **Click-to-Pin** on the map. The new node appears on the
 placement map in a **Pending** state — to go live, the admin runs **Test Connection**, which returns
-a latency on success and marks the camera **Active** (a failed run keeps it Pending). Registration
+a **Stream Reachability / Authentication / Response Time / Overall Result** PASS-FAIL breakdown and
+marks the camera **Online** on success (a failed run keeps it Pending). Registration
 captures the camera's masked **access credentials** (server-side only); the admin later opens the
 inventory's key icon to rotate the token — gated by a confirm modal and audited as a **Configuration
 Change** without the value — records `Field Tech — Team A` as the maintenance contact, and checks the
@@ -838,47 +799,60 @@ On **Digital Boundaries**, the admin selects **Purok 3 — Market Zone**, hits *
 four points to extend the boundary, and **Saves** it (the self-intersection/containment checks
 pass). A new **Evacuation Zone Bravo** is created with an **Evacuation / Emergency** classification,
 then drawn on the map. The admin also **Imports GeoJSON** for an updated coastal polygon, which
-lands on the map with its own **Geofence Update** audit entry.
+lands on the map with its own **Boundary Created** audit entry. An obsolete sub-zone is later
+**Archived** (retained as **Inactive** for historical references) instead of deleted — a **Boundary
+Archived** entry — then **Restored** when it is needed again.
 
 ### 6. Define the routes — Patrol Routes & Checkpoints
-On **Patrol Routes**, the admin creates a **Foot Patrol** route for the market district, adds five
-numbered checkpoints along the stall front, and configures each one (type, stop duration, notes)
-through the checkpoint modal. The validation banner is clear, so **Saves** marks it **Active**
-(~2.1 km) and audits the change; undoing a stray click with **Undo** is a no-op on the saved layout.
-A draft **Riverside Flood Line** mobile route stays **Draft** until the next patrol cycle, and its
-**Delete** is blocked while it remains referenced by active patrol schedules.
+On **Patrol Routes**, the admin creates a **Foot Patrol** route for the market district with a short
+**description**, adds five numbered checkpoints along the stall front, configures each one (type,
+stop duration, notes) through the checkpoint modal, and uses the chip-strip **arrows to reorder**
+two checkpoints so the sequence matches the intended walking order. The validation banner is clear,
+so **Saves** marks it **Active** (~2.1 km) and audits the change; undoing a stray click with
+**Undo** is a no-op on the saved layout. Later the admin opens **Edit Route Info** to rename the
+route and update its description. A draft **Riverside Flood Line** mobile route stays **Draft** until
+the next patrol cycle, and its **Delete** is blocked while it remains referenced by active patrol
+schedules. Throughout, the page offers **no patrol execution controls** — starting patrols, live
+tracking, checkpoint verification, shift assignment, and attendance stay with the Desk Officer,
+Captain, and Tanod roles.
 
 ### 7. Tune the rules — System Settings
-In **System Settings**, the admin tests the Twilio SMS gateway (**Send Test**), adjusts the heartbeat
-interval and escalation timer, flips the **Notification Role Matrix** so CCTV Operator stops
-receiving low-severity alerts, disables **Push Notifications** via the **Feature Flags** tab, and
-sets **Maintenance Mode** ahead of a peek. The **Alert Rules → Security & Access** card keeps
-**Require Two-Factor Authentication** enforced for privileged roles, the **Data Retention** tab
-confirms the approved schedule (7-year incidents, 10-year audit trail, 90-day app/telemetry) and
-lowers the **CCTV Clip Storage Warning Threshold** to 80%, and the **Purok Coordination** tab caps
-which validation labels leaders may use. Switching an edited tab triggers the **Unsaved Changes**
-guard before **Save Settings** commits everything as a **Configuration Change** audit entry.
+In **System Settings**, the admin adjusts the escalation timer, flips the **Notification Role
+Matrix** so CCTV Operator stops receiving low-severity alerts, disables **Push Notifications** via
+the **Feature Flags** tab, and confirms the platform identity in **General**. The **Security** tab
+keeps **Require Two-Factor Authentication** enforced for privileged roles and confirms the
+**Session Timeout**. The **Data Retention** tab confirms the approved schedule (7-year incidents,
+10-year audit trail, 90-day app/telemetry — with the **configuration values, not legal advice**
+notice visible) and lowers the **CCTV Clip Storage Warning Threshold** to 80%. The **IoT
+Thresholds** tab sets the global smoke/noise thresholds and their persistence durations, and the
+**Purok Coordination** tab caps which validation labels leaders may use. Switching an edited tab
+triggers the **Unsaved Changes** guard before **Save Settings** commits everything as a
+**Configuration Change** audit entry.
 
 ### 8. Honor the data — Data Requests
-Later, a resident files a **Deletion** request (`DR-007`) and another an **Access** request
-(`DR-008`). The admin opens **Data Requests**, marks the first **In Review**, then **Approve &
-Process** — the confirm modal restates that official incident/audit/evidence records under retention
-are *anonymized rather than deleted* — and the personal account data is purged. The second is
-**Denied** with a required reason (no legal basis identified). Both decisions resolve to
-**Completed** / **Denied** and write **Data Request Processed** audit entries.
+Later, a resident files a **Deletion** request (`DR-007`, related to official blotter records under
+`INC-2071`) and another an **Access** request (`DR-008`). The admin opens **Data Requests** and
+drives the first through **Pending → In Review → Verified** (Verify records the related record), then
+**Approve & Process** — the confirm modal restates that official incident/audit/evidence records
+under retention are *anonymized rather than deleted* — and the personal account data is purged. For
+`DR-007`-type deletions that cannot proceed because the records sit under an active investigation,
+the admin toggles **Denied / Retention Required** so the fixed retention explanation is sent to the
+requester. The second request is **Denied** with a required reason (no legal basis identified). All
+decisions write **Data Request Processed** audit entries.
 
 ### 9. Prove the record — Audit Logs
-Finally the admin opens **Audit Logs**. The day's session shows in real time: the user creation, the
-device registration and credential provisioning/replacement, the camera assignment and connectivity
-tests, the two
-geofence updates, the patrol-route save, the settings commit, the feature-flag flip, and the two
-data-request decisions. The admin filters by **Geofence Update**, then **Export CSV** to produce
+Finally the admin opens **Audit Logs** — a read-only trail. The day's session shows in real time: the
+user creation, the device registration and credential provisioning/replacement, the camera assignment
+and connectivity tests, the boundary created/updated/archived entries, the patrol-route save and
+route-info rename, the settings commit, the feature-flag flip, and the data-request decisions with
+their **Result** (Success / Denied / Failed) and **Affected Record**. The admin filters by
+**Boundary Created**, narrows by **date** and **actor**, then **Export CSV** to produce
 `system-audit-logs.csv` for the council — an immutable, attributed record of every administrative
-action, each tied to an admin email, action type, description, and IP address.
+action, each tied to an admin email, role, action type, affected record, result, and IP address.
 
 > Every artifact the admin touches — account, device, boundary, threshold, log — carries a
 > consistent ID and an audit entry, so the platform trail reads back from a sensor's low battery to
-> the maintenance dispatch that resolved it.
+> the connectivity test that verified it.
 
 ---
 
@@ -887,7 +861,7 @@ action, each tied to an admin email, action type, description, and IP address.
 - **UI language** — all nine screens use the shared design system: `#0038A8` accent (hover
   `#002A8C`), `#E9EDFB` panel background, slate text tones (`#334155` / `#94A3B8` / `#64748B`), and a
   navy `#06122B` sidebar; `ConfirmModal` / `Modal` patterns, and centered confirmation/success
-  modals for irreversible or notable actions (delete device, delete boundary, delete route, delete
+  modals for irreversible or notable actions (delete device, archive boundary, delete route, delete
   camera, disable user, save settings).
 - **Notification modal** — every action resolves into a centered dialog via the shared
   `ConfirmModal` (`components/ui`) — a title, message, and dismiss — matching the toast conventions
@@ -909,22 +883,20 @@ action, each tied to an admin email, action type, description, and IP address.
 - **Purok data** — zones and options come from `PUROK_OPTIONS` (`constants/purok.ts`); device
   coordinates and boundary polygons reuse the same zone vocabulary used by the Captain's maps and
   the Desk Officer's scheduling, so a device pinned here matches a purok on the hazard map.
-- **Status conventions** — device status uses the shared `pending / online / offline /
-  possible_tamper` scale (§10.6.1 / §6.5.15): a **Pending** node becomes **Active** only after a
-  passing connection-test acceptance check (§9.12); **possible tamper** is a violet state distinct
-  from offline (the node still transmits); and **Low Battery** is a *derived* indicator from
-  battery voltage, not a stored status. Disabled power state is also derived (dimmed, off-map).
+- **Status conventions** — device status uses the shared `pending / online / offline` scale
+  (§10.6.1): a **Pending** node becomes **Online** only after a
+  passing connection-test acceptance check (§9.12), and **Low Battery** is a *derived* indicator from
+  battery voltage, not a stored status. Disabled and **Decommissioned** power states are also derived
+  (dimmed, off-map; decommissioning retains the record and its history, §10.1).
   Battery/signal meters reuse `batteryColor` / `signalColor` (`utils/colors.ts`), identical to the
   Captain's dashboard sensor readings. CCTV cameras add a **Pending** pre-Active state with its own
-  status pill and map badge, and a compact **CCTV Fleet Availability** panel on the Dashboard
+  status pill and map badge, and a compact **CCTV Availability** panel on the Dashboard
   mirrors the same online/offline/pending scale. Alerts follow the four-severity scale from §14.11
   (Critical / High / Warning / Informational).
 - **Admin boundary** — the Admin owns *configuration, not operations*: no incident triage, no
-  broadcast authorization, no incident dispatch, no CCTV footage review, no audit-record or
-  blotter/incident deletion. The sole operational levers are **field-maintenance dispatch** and
-  **ticket resolution** for IoT nodes from the Dashboard (writes a `Dispatch Created` /
-  `Maintenance Resolved` audit entry) and **data-request
-  processing** (anonymize/deny — never delete retained official records). Broadcast
+  broadcast authorization, no incident dispatch, no field-maintenance dispatch, no CCTV footage
+  review, no audit-record or blotter/incident deletion. The sole operational lever is
+  **data-request processing** (anonymize/deny — never delete retained official records). Broadcast
   approval lives with the Captain (`AuthorizeEmergencyBroadcast`); incident routing and dispatch stay
   with the Desk Officer. The Admin's broadcast-relevant levers are the **Alert Rules** toggles in
   System Settings (approval requirement, SMS master switch, push notifications) and the

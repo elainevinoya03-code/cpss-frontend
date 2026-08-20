@@ -1,7 +1,8 @@
 ﻿import { useState, useRef, useCallback, useMemo, useEffect, type ReactNode } from "react";
 import {
   Pencil,
-  Trash2,
+  Archive,
+  ArchiveRestore,
   MapPin,
   Pentagon,
   MousePointer2,
@@ -493,7 +494,7 @@ export default function DigitalBoundaries() {
   const [mode, setMode] = useState("view"); // view | draw | editNodes | editDetails
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [modalMessage, setModalMessage] = useState<{ title: string; message: string } | null>(null);
-  const [confirmDeleteRegion, setConfirmDeleteRegion] = useState<string | null>(null);
+  const [confirmArchive, setConfirmArchive] = useState<{ id: string; restore: boolean } | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newBoundaryName, setNewBoundaryName] = useState("");
   const [newBoundaryType, setNewBoundaryType] = useState<Badge>("Sub-zone");
@@ -779,12 +780,16 @@ export default function DigitalBoundaries() {
     });
   };
 
-  const requestDelete = (r: Region) => {
+  const requestArchive = (r: Region) => {
     if (r.badge === "Primary") {
-      showProtected(`"${r.name}" is the Primary boundary and cannot be deleted.`);
+      showProtected(`"${r.name}" is the Primary boundary and cannot be archived.`);
       return;
     }
-    runOrGuard(() => setConfirmDeleteRegion(r.id));
+    runOrGuard(() => setConfirmArchive({ id: r.id, restore: false }));
+  };
+
+  const requestRestore = (r: Region) => {
+    runOrGuard(() => setConfirmArchive({ id: r.id, restore: true }));
   };
 
   const startDetailsEdit = () => {
@@ -800,7 +805,7 @@ export default function DigitalBoundaries() {
     setRegions((rs) => rs.map((r) => (r.id === selectedId ? { ...r, edited: now } : r)));
     setSavedRegions((rs) => rs.map((r) => (r.id === selectedId ? { ...selected, edited: now } : r)));
     pushAuditLog(
-      "Geofence Update",
+      "Boundary Updated",
       auditDesc({
         action: reclassified ? "Reclassified" : "Updated",
         name: selected.name,
@@ -860,7 +865,7 @@ export default function DigitalBoundaries() {
     setShowAddModal(false);
     setMode("draw");
     pushAuditLog(
-      "Geofence Update",
+      "Boundary Created",
       [
         `Created new boundary "${name}"`,
         `Classification: ${newBoundaryClassification}`,
@@ -935,7 +940,7 @@ export default function DigitalBoundaries() {
     setSelectedId(added[0].id);
     setMode("view");
     pushAuditLog(
-      "Geofence Update",
+      "Boundary Created",
       [
         `Imported ${added.length} boundary polygon(s) from GeoJSON "${file.name}"`,
         `Updated by: ${currentAdmin()}`,
@@ -1090,6 +1095,11 @@ export default function DigitalBoundaries() {
                       </span>
                       <div className="flex shrink-0 flex-wrap justify-end gap-1.5" style={{ maxWidth: "150px" }}>
                         <span
+                          className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10.5px] font-medium ${STATUS_STYLES[r.status]}`}
+                        >
+                          {r.status}
+                        </span>
+                        <span
                           className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10.5px] font-medium ${BADGE_STYLES[r.badge]}`}
                         >
                           {r.badge}
@@ -1125,11 +1135,27 @@ export default function DigitalBoundaries() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          requestDelete(r);
+                          if (r.status === "Inactive") {
+                            requestRestore(r);
+                          } else {
+                            requestArchive(r);
+                          }
                         }}
-                        className="flex items-center gap-1.5 rounded-full border border-rose-200 px-3 py-1 text-[12px] font-medium text-rose-600 hover:bg-rose-50"
+                        className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-medium ${
+                          r.status === "Inactive"
+                            ? "border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                            : "border-rose-200 text-rose-600 hover:bg-rose-50"
+                        }`}
                       >
-                        <Trash2 className="h-3 w-3" /> Delete
+                        {r.status === "Inactive" ? (
+                          <>
+                            <ArchiveRestore className="h-3 w-3" /> Restore
+                          </>
+                        ) : (
+                          <>
+                            <Archive className="h-3 w-3" /> Archive
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -1783,31 +1809,45 @@ export default function DigitalBoundaries() {
         </Modal>
       )}
 
-      {confirmDeleteRegion && (
+      {confirmArchive && (
         <ConfirmModal
           type="confirm"
-          title="Confirm Delete"
-          message="Are you sure you want to delete this boundary?"
+          title={confirmArchive.restore ? "Confirm Restore" : "Confirm Archive"}
+          message={
+            confirmArchive.restore
+              ? "Are you sure you want to restore this archived boundary? It becomes Active again and returns to the map."
+              : "Are you sure you want to archive this boundary? It is retained for historical records and references, but hidden from the map as Inactive."
+          }
           onConfirm={() => {
-            const id = confirmDeleteRegion;
-            const deleted = regions.find((r) => r.id === id);
-            if (!deleted) return;
-            if (deleted.badge === "Primary") {
-              showProtected(`"${deleted.name}" is the Primary boundary and cannot be deleted.`);
-              setConfirmDeleteRegion(null);
+            const { id, restore } = confirmArchive;
+            const target = regions.find((r) => r.id === id);
+            if (!target) return;
+            if (target.badge === "Primary") {
+              showProtected(`"${target.name}" is the Primary boundary and cannot be archived.`);
+              setConfirmArchive(null);
               return;
             }
-            setRegions((rs) => rs.filter((r) => r.id !== id));
-            setSavedRegions((rs) => rs.filter((r) => r.id !== id));
-            if (selectedId === id) setSelectedId("main");
+            const next = restore ? { ...target, status: "Active" as const, visible: true } : { ...target, status: "Inactive" as const, visible: false };
+            setRegions((rs) => rs.map((r) => (r.id === id ? next : r)));
+            setSavedRegions((rs) => rs.map((r) => (r.id === id ? { ...next } : r)));
             pushAuditLog(
-              "Geofence Update",
-              [`${deleted.name} deleted`, `Updated by: ${currentAdmin()}`, fmtStamp(new Date())].join("\n")
+              restore ? "Boundary Restored" : "Boundary Archived",
+              [
+                restore
+                  ? `Restored archived boundary "${target.name}" (Inactive → Active)`
+                  : `Archived boundary "${target.name}" (retained for historical references, Active → Inactive)`,
+                `Updated by: ${currentAdmin()}`,
+                fmtStamp(new Date()),
+              ].join("\n")
             );
-            setModalMessage({ title: "Boundary Deleted", message: "Boundary deleted" });
-            setConfirmDeleteRegion(null);
+            setModalMessage(
+              restore
+                ? { title: "Boundary Restored", message: `Restored "${target.name}"` }
+                : { title: "Boundary Archived", message: `Archived "${target.name}" — retained for historical references` }
+            );
+            setConfirmArchive(null);
           }}
-          onClose={() => setConfirmDeleteRegion(null)}
+          onClose={() => setConfirmArchive(null)}
         />
       )}
 

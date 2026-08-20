@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import {
   UserRound,
-  Eye,
   ShieldCheck,
   ShieldX,
   ClipboardCheck,
@@ -12,7 +11,7 @@ import { ConfirmModal, Modal } from "../components/ui";
 import { pushAuditLog } from "../utils/auditLog";
 
 type RequestType = "Access" | "Correction" | "Anonymization" | "Deletion";
-type RequestStatus = "Pending" | "In Review" | "Approved" | "Denied" | "Completed";
+type RequestStatus = "Pending" | "In Review" | "Verified" | "Approved" | "Denied" | "Completed";
 
 interface DataRequest {
   id: string;
@@ -22,6 +21,7 @@ interface DataRequest {
   dateSubmitted: string;
   status: RequestStatus;
   subject: string;
+  relatedRecord?: string;
   processedAt?: string;
 }
 
@@ -35,12 +35,13 @@ const TYPE_STYLES: Record<RequestType, string> = {
 const STATUS_STYLES: Record<RequestStatus, string> = {
   Pending: "bg-amber-50 text-amber-700",
   "In Review": "bg-blue-50 text-blue-700",
+  Verified: "bg-emerald-50 text-emerald-700",
   Approved: "bg-emerald-50 text-emerald-700",
   Denied: "bg-rose-50 text-rose-600",
   Completed: "bg-teal-50 text-teal-700",
 };
 
-const FILTERS: RequestStatus[] = ["Pending", "In Review", "Approved", "Denied", "Completed"];
+const FILTERS: RequestStatus[] = ["Pending", "In Review", "Verified", "Approved", "Denied", "Completed"];
 
 const INITIAL_REQUESTS: DataRequest[] = [
   {
@@ -51,6 +52,7 @@ const INITIAL_REQUESTS: DataRequest[] = [
     dateSubmitted: "2026-07-18",
     status: "Pending",
     subject: "Request to delete Citizen App account and personal records",
+    relatedRecord: "Citizen App account",
   },
   {
     id: "DR-002",
@@ -60,6 +62,7 @@ const INITIAL_REQUESTS: DataRequest[] = [
     dateSubmitted: "2026-07-16",
     status: "In Review",
     subject: "Access copy of incident records naming the requester (INC-2068)",
+    relatedRecord: "INC-2068",
   },
   {
     id: "DR-003",
@@ -69,6 +72,7 @@ const INITIAL_REQUESTS: DataRequest[] = [
     dateSubmitted: "2026-07-14",
     status: "Approved",
     subject: "Correct phone number and purok on profile and report history",
+    relatedRecord: "Profile & report history",
   },
   {
     id: "DR-004",
@@ -78,6 +82,7 @@ const INITIAL_REQUESTS: DataRequest[] = [
     dateSubmitted: "2026-07-12",
     status: "Pending",
     subject: "Anonymize identity across archived blotter records",
+    relatedRecord: "Archived blotter records",
   },
   {
     id: "DR-005",
@@ -87,6 +92,7 @@ const INITIAL_REQUESTS: DataRequest[] = [
     dateSubmitted: "2026-07-09",
     status: "Completed",
     subject: "Request to close account and purge notification history",
+    relatedRecord: "Citizen App account & notification history",
     processedAt: "2026-07-11",
   },
   {
@@ -97,7 +103,18 @@ const INITIAL_REQUESTS: DataRequest[] = [
     dateSubmitted: "2026-07-05",
     status: "Denied",
     subject: "Access to CCTV footage review log — no legitimate interest established",
+    relatedRecord: "CCTV review log",
     processedAt: "2026-07-08",
+  },
+  {
+    id: "DR-007",
+    requester: "Melissa Ocampo",
+    contact: "melissa.ocampo@residents.ph",
+    type: "Deletion",
+    dateSubmitted: "2026-07-19",
+    status: "In Review",
+    subject: "Delete account and all records referencing the requester in official blotter entries",
+    relatedRecord: "INC-2071 (official blotter records)",
   },
 ];
 
@@ -110,6 +127,7 @@ export default function DataRequests() {
   const [approveId, setApproveId] = useState<string | null>(null);
   const [denyId, setDenyId] = useState<string | null>(null);
   const [denyReason, setDenyReason] = useState("");
+  const [retentionDeny, setRetentionDeny] = useState(false);
   const [modalMessage, setModalMessage] = useState<{ title: string; message: string } | null>(null);
 
   const filtered = useMemo(() => {
@@ -124,6 +142,14 @@ export default function DataRequests() {
   function beginReview(r: DataRequest) {
     setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: "In Review" } : x)));
     pushAuditLog("Data Request Processed", `Marked data request ${r.id} (${r.type}) from ${r.requester} as In Review`);
+  }
+
+  function verifyRequest(r: DataRequest) {
+    setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: "Verified" } : x)));
+    pushAuditLog(
+      "Data Request Processed",
+      `Verified data request ${r.id} (${r.type}) from ${r.requester} — identity and legal basis checked${r.relatedRecord ? `, related record ${r.relatedRecord}` : ""}`
+    );
   }
 
   function approveRequest(r: DataRequest) {
@@ -146,7 +172,9 @@ export default function DataRequests() {
   }
 
   function denyRequest(r: DataRequest) {
-    const reason = denyReason.trim();
+    const reason = retentionDeny
+      ? "Denied / Retention Required — official records under active investigation, legal hold, approved retention, or official incident/blotter/audit requirements"
+      : denyReason.trim();
     setRequests((prev) =>
       prev.map((x) =>
         x.id === r.id
@@ -154,15 +182,24 @@ export default function DataRequests() {
           : x
       )
     );
-    pushAuditLog("Data Request Processed", `Denied data request ${r.id} (${r.type}) from ${r.requester} — reason: ${reason}`);
+    pushAuditLog(
+      "Data Request Processed",
+      `Denied data request ${r.id} (${r.type}) from ${r.requester} — reason: ${reason}`
+    );
     setDenyId(null);
     setDenyReason("");
-    setModalMessage({ title: "Request Denied", message: `${r.id} denied and the requester notified of the reason.` });
+    setRetentionDeny(false);
+    setModalMessage({
+      title: retentionDeny ? "Denied — Retention Required" : "Request Denied",
+      message: retentionDeny
+        ? `${r.id} denied because official records under retention cannot be deleted (active investigation, legal hold, approved retention, or official incident/blotter/audit requirements). The requester is notified with the explanation.`
+        : `${r.id} denied and the requester notified of the reason.`,
+    });
   }
 
   const approveTarget = requests.find((r) => r.id === approveId);
   const denyTarget = requests.find((r) => r.id === denyId);
-  const denyReady = denyReason.trim().length > 0;
+  const denyReady = retentionDeny || denyReason.trim().length > 0;
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
@@ -177,9 +214,11 @@ export default function DataRequests() {
         <div className="mb-5 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
           <ShieldCheck size={16} className="mt-0.5 shrink-0" />
           <p className="text-xs">
-            Approving a request processes it against the Data Privacy Act. Official incident, audit,
-            and evidence records subject to retention are <strong>anonymized, never deleted</strong>;
-            deletion applies only to personal account and notification data. Every decision is
+            Each request moves <strong>Pending → In Review → Verified</strong> before it can be
+            approved or denied. Approving processes it against the Data Privacy Act. Official
+            incident, audit, and evidence records subject to retention are <strong>anonymized, never
+            deleted</strong>; when deletion cannot be performed, the request is
+            <strong> denied / Retention Required </strong> with an explanation. Every decision is
             written to the audit trail.
           </p>
         </div>
@@ -230,6 +269,7 @@ export default function DataRequests() {
                   <th className="px-6 py-3 font-medium whitespace-nowrap">Date Submitted</th>
                   <th className="px-6 py-3 font-medium whitespace-nowrap">Status</th>
                   <th className="px-6 py-3 font-medium whitespace-nowrap">Subject</th>
+                  <th className="px-6 py-3 font-medium whitespace-nowrap">Related Record</th>
                   <th className="px-6 py-3 font-medium whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
@@ -268,6 +308,9 @@ export default function DataRequests() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-xs text-stone-500">{r.subject}</td>
+                    <td className="px-6 py-4 font-mono text-xs text-stone-500">
+                      {r.relatedRecord ?? "—"}
+                    </td>
                     <td className="px-6 py-4">
                       {r.status === "Completed" || r.status === "Denied" ? (
                         <span className="text-xs text-stone-300">—</span>
@@ -283,23 +326,38 @@ export default function DataRequests() {
                               Review
                             </button>
                           )}
-                          <button
-                            onClick={() => setApproveId(r.id)}
-                            className="flex items-center gap-1 rounded-md border border-emerald-200 px-2.5 py-1.5 text-xs font-medium text-emerald-600 transition hover:bg-emerald-50"
-                          >
-                            <ShieldCheck size={12} />
-                            Approve &amp; Process
-                          </button>
-                          <button
-                            onClick={() => {
-                              setDenyId(r.id);
-                              setDenyReason("");
-                            }}
-                            className="flex items-center gap-1 rounded-md border border-rose-200 px-2.5 py-1.5 text-xs font-medium text-rose-500 transition hover:bg-rose-50"
-                          >
-                            <ShieldX size={12} />
-                            Deny
-                          </button>
+                          {r.status === "In Review" && (
+                            <button
+                              onClick={() => verifyRequest(r)}
+                              title="Verify identity and legal basis"
+                              className="flex items-center gap-1 rounded-md border border-sky-200 px-2.5 py-1.5 text-xs font-medium text-sky-600 transition hover:bg-sky-50"
+                            >
+                              <ShieldCheck size={12} />
+                              Verify
+                            </button>
+                          )}
+                          {(r.status === "Verified" || r.status === "In Review") && (
+                            <button
+                              onClick={() => setApproveId(r.id)}
+                              className="flex items-center gap-1 rounded-md border border-emerald-200 px-2.5 py-1.5 text-xs font-medium text-emerald-600 transition hover:bg-emerald-50"
+                            >
+                              <ShieldCheck size={12} />
+                              Approve &amp; Process
+                            </button>
+                          )}
+                          {(r.status === "Verified" || r.status === "In Review") && (
+                            <button
+                              onClick={() => {
+                                setDenyId(r.id);
+                                setDenyReason("");
+                                setRetentionDeny(false);
+                              }}
+                              className="flex items-center gap-1 rounded-md border border-rose-200 px-2.5 py-1.5 text-xs font-medium text-rose-500 transition hover:bg-rose-50"
+                            >
+                              <ShieldX size={12} />
+                              Deny
+                            </button>
+                          )}
                         </div>
                       )}
                     </td>
@@ -307,7 +365,7 @@ export default function DataRequests() {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-sm text-stone-400">
+                    <td colSpan={8} className="px-6 py-10 text-center text-sm text-stone-400">
                       No data requests match this filter.
                     </td>
                   </tr>
@@ -323,7 +381,7 @@ export default function DataRequests() {
           type="confirm"
           title="Approve & Process Request"
           confirmLabel="Approve & Process"
-          message={`Process ${approveTarget.id} (${approveTarget.type}) from ${approveTarget.requester}? Official incident, audit, and evidence records subject to retention will be anonymized rather than deleted.`}
+          message={`Process ${approveTarget.id} (${approveTarget.type}) from ${approveTarget.requester}${approveTarget.relatedRecord ? ` — related record: ${approveTarget.relatedRecord}` : ""}? Official incident, audit, and evidence records subject to retention will be anonymized rather than deleted.`}
           onConfirm={() => {
             approveRequest(approveTarget);
             setApproveId(null);
@@ -334,14 +392,20 @@ export default function DataRequests() {
 
       {denyTarget && (
         <Modal
-          onClose={() => setDenyId(null)}
+          onClose={() => {
+            setDenyId(null);
+            setRetentionDeny(false);
+          }}
           title="Deny Data Request"
           subtitle={`${denyTarget.id} — ${denyTarget.type} · ${denyTarget.requester}`}
           icon={<ShieldX size={18} />}
           footer={
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => setDenyId(null)}
+                onClick={() => {
+                  setDenyId(null);
+                  setRetentionDeny(false);
+                }}
                 className="rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-600 transition hover:bg-stone-50"
               >
                 Cancel
@@ -352,7 +416,7 @@ export default function DataRequests() {
                 className="flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-[12px] font-medium text-white transition hover:bg-rose-700 disabled:opacity-40"
               >
                 <ShieldX size={13} />
-                Confirm Denial
+                {retentionDeny ? "Confirm Denial — Retention Required" : "Confirm Denial"}
               </button>
             </div>
           }
@@ -360,18 +424,38 @@ export default function DataRequests() {
           <div className="space-y-4">
             <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-800">
               <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-              <span>A reason is required. The requester is notified of the denial and the grounds.</span>
+              <span>
+                {retentionDeny
+                  ? "The request is denied because the affected official records cannot be deleted."
+                  : "A reason is required. The requester is notified of the denial and the grounds."}
+              </span>
             </div>
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-md border border-stone-200 bg-stone-50 px-3 py-2.5 text-[11px] text-stone-600">
+              <input
+                type="checkbox"
+                checked={retentionDeny}
+                onChange={(e) => setRetentionDeny(e.target.checked)}
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-rose-600"
+              />
+              <span>
+                <strong>Denied / Retention Required</strong> — deletion cannot be performed because
+                official records are under an active investigation, legal hold, approved retention,
+                or official incident/blotter/audit requirements.
+              </span>
+            </label>
             <div>
               <label className="mb-1.5 block text-[11px] font-semibold tracking-wide text-stone-500">
                 REASON FOR DENIAL
               </label>
               <textarea
-                value={denyReason}
-                onChange={(e) => setDenyReason(e.target.value)}
+                value={retentionDeny ? "Denied / Retention Required — official records under active investigation, legal hold, approved retention, or official incident/blotter/audit requirements" : denyReason}
+                onChange={(e) => {
+                  if (!retentionDeny) setDenyReason(e.target.value);
+                }}
+                disabled={retentionDeny}
                 rows={4}
                 placeholder="e.g. No legal basis identified under the Data Privacy Act for this request..."
-                className={inputClass + " resize-none"}
+                className={inputClass + " resize-none" + (retentionDeny ? " bg-stone-100 text-stone-500" : "")}
               />
             </div>
           </div>

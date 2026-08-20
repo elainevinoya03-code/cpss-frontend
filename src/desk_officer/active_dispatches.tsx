@@ -28,17 +28,25 @@ import {
   AlertTriangle,
   PhoneCall,
   RefreshCw,
+  RefreshCcw,
+  ShieldAlert,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { formatTime } from "../utils/format";
 import { SEVERITY_MAP } from "../constants/severity";
 import { Modal } from "../components/ui";
 
+// §14.1 — Dispatch states: Available, Responding, On Scene, Resolving, Unavailable
 type DispatchStatus = "responding" | "on_scene" | "resolving" | "resolved";
 
 type Priority = "High" | "Medium" | "Low";
 
 type NotificationStatus = "queued" | "sent" | "delivered" | "failed";
+
+// §14.2 — Reassignment reasons
+type ReassignReason = "Team unavailable" | "Team reassigned to emergency" | "Closer responder available" | "Operational change" | "Other";
+
+const REASSIGN_REASONS: ReassignReason[] = ["Team unavailable", "Team reassigned to emergency", "Closer responder available", "Operational change", "Other"];
 
 interface Incident {
   id: string;
@@ -65,6 +73,8 @@ interface Dispatch {
   distance: string;
   evidence: number;
   priority: Priority;
+  // §14.3 — Assignment history tracks each reassignment
+  assignmentHistory?: { from: string; to: string; reason: ReassignReason; customReason?: string; reassignedBy: string; reassignedAt: string }[];
 }
 
 interface Evidence {
@@ -393,6 +403,120 @@ function ChatModal({ team, onClose }) {
   );
 }
 
+// §14.6 — Reassign modal: select new team, choose reason (with custom text for "Other")
+function ReassignModal({ dispatch, onClose, onReassign, availableTeams }) {
+  const [selectedTeam, setSelectedTeam] = useState("");
+  const [reason, setReason] = useState<ReassignReason>("Team unavailable");
+  const [customReason, setCustomReason] = useState("");
+  const effectiveTeam = selectedTeam || availableTeams[0]?.id || "";
+
+  function submit() {
+    if (!effectiveTeam || !reason) return;
+    onReassign(dispatch.id, effectiveTeam, reason, reason === "Other" ? customReason : undefined);
+  }
+
+  return (
+    <Modal
+      onClose={onClose}
+      size="md"
+      title="Reassign Dispatch"
+      subtitle={`${dispatch.id} · ${dispatch.incident} · currently ${dispatch.team}`}
+      icon={<RefreshCcw size={18} className="text-amber-600" />}
+      iconClass="bg-amber-50"
+      footer={
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-900 hover:bg-stone-50">
+            Cancel
+          </button>
+          <button
+            onClick={submit}
+            disabled={!effectiveTeam}
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-amber-700 disabled:opacity-50"
+          >
+            <RefreshCcw size={13} />
+            Confirm Reassignment
+          </button>
+        </div>
+      }
+    >
+      <div className="mb-4 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] font-bold text-stone-900">{dispatch.incident}</span>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${DISPATCH_META[dispatch.status].badge}`}>
+            {DISPATCH_META[dispatch.status].label}
+          </span>
+        </div>
+        <p className="mt-1 text-[11px] text-stone-600">Purok: {dispatch.purok} · Priority: {dispatch.priority}</p>
+      </div>
+
+      <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">REASSIGN TO</p>
+      <div className="mb-4 space-y-2">
+        {availableTeams.map((team) => {
+          const isActive = effectiveTeam === team.id;
+          const alreadyAssigned = team.name === dispatch.team;
+          return (
+            <button
+              key={team.id}
+              onClick={() => !alreadyAssigned && setSelectedTeam(team.id)}
+              disabled={alreadyAssigned}
+              className={`flex w-full items-center justify-between rounded-lg border px-3.5 py-2.5 transition ${
+                isActive ? "border-amber-400 bg-amber-50" : alreadyAssigned ? "border-stone-100 bg-stone-50 opacity-50 cursor-not-allowed" : "border-stone-200 bg-white hover:bg-stone-50"
+              }`}
+            >
+              <span className="flex items-center gap-2.5">
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold text-white ${alreadyAssigned ? "bg-stone-400" : "bg-amber-600"}`}>
+                  {team.name.replace("Team ", "")}
+                </span>
+                <span className="text-left">
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-[12px] font-semibold text-stone-900">{team.name}</span>
+                    {alreadyAssigned && <span className="rounded-full bg-stone-200 px-1.5 py-0.5 text-[9px] font-medium text-stone-500">Current</span>}
+                    {team.availability === "available" && <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-medium text-emerald-700">Available</span>}
+                  </span>
+                  <span className="block text-[10px] text-stone-400">{team.members} members · {team.purok}</span>
+                </span>
+              </span>
+              {isActive && <CheckCircle2 size={15} className="text-amber-600" />}
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="mb-1.5 text-[10px] font-semibold tracking-wider text-stone-400">REASON</p>
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {REASSIGN_REASONS.map((r) => (
+          <button
+            key={r}
+            onClick={() => setReason(r)}
+            className={`rounded-full border px-2.5 py-1 text-[10px] font-medium transition ${
+              reason === r ? "border-amber-400 bg-amber-50 text-amber-700" : "border-stone-200 text-stone-500 hover:bg-stone-50"
+            }`}
+          >
+            {r}
+          </button>
+        ))}
+      </div>
+
+      {reason === "Other" && (
+        <textarea
+          value={customReason}
+          onChange={(e) => setCustomReason(e.target.value)}
+          placeholder="Specify reassignment reason…"
+          className="mb-3 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[11px] text-stone-700 placeholder:text-stone-300 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400/30"
+          rows={2}
+        />
+      )}
+
+      <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+        <ShieldAlert size={12} className="mt-0.5 shrink-0 text-amber-600" />
+        <p className="text-[10px] leading-snug text-stone-600">
+          Reassignment records the previous team, new team, reason, officer, and timestamp. The resident is automatically notified of the team change.
+        </p>
+      </div>
+    </Modal>
+  );
+}
+
 export default function ActiveDispatches() {
   const { flash, ToastPortal } = useToast();
 
@@ -404,6 +528,8 @@ export default function ActiveDispatches() {
   const [assignIncident, setAssignIncident] = useState<Incident | null>(null);
   const [routeTarget, setRouteTarget] = useState<Dispatch | null>(null);
   const [chatTarget, setChatTarget] = useState<string | null>(null);
+  // §14.4 — Reassignment state
+  const [reassignTarget, setReassignTarget] = useState<Dispatch | null>(null);
 
   function confirmAssign(teamId: string) {
     const inc = assignIncident;
@@ -436,6 +562,28 @@ export default function ActiveDispatches() {
       ...prev,
     ]);
     flash(`${dp.id} → ${DISPATCH_META[next].label}. Resident auto-notified via ${channel === "Push + SMS" ? "push + SMS" : "push"}`);
+  }
+
+  // §14.5 — Reassignment handler. Records history, updates dispatch, notifies resident.
+  function reassignDispatch(dispatchId: string, newTeamId: string, reason: ReassignReason, customReason?: string) {
+    const dp = dispatches.find((d) => d.id === dispatchId);
+    if (!dp) return;
+    const newTeam = ON_DUTY_TANODS.find((t) => t.id === newTeamId)?.name ?? "Team Charlie";
+    const historyEntry = { from: dp.team, to: newTeam, reason, customReason, reassignedBy: "Desk Officer", reassignedAt: new Date().toISOString() };
+    setDispatches((prev) =>
+      prev.map((d) =>
+        d.id === dispatchId
+          ? { ...d, team: newTeam, assignmentHistory: [...(d.assignmentHistory ?? []), historyEntry] }
+          : d
+      )
+    );
+    const channel = residentUpdateChannel(dp.priority);
+    setResidentUpdates((prev) => [
+      { id: `RU-${53 + prev.length}`, dispatch: dispatchId, trackingId: `Tracking ${8000 + prev.length}`, channel, message: `${newTeam} has been assigned to your case (reassigned from ${dp.team})`, time: new Date().toISOString(), status: "sent" },
+      ...prev,
+    ]);
+    setReassignTarget(null);
+    flash(`${dp.id} reassigned to ${newTeam}. Reason: ${reason}. Resident notified.`);
   }
 
   function retryUpdate(id: string) {
@@ -588,6 +736,16 @@ export default function ActiveDispatches() {
                           Evidence
                         </button>
                       )}
+                      {/* §14.7 — Reassign button only shown for active (non-resolved) dispatches */}
+                      {meta.action && (
+                        <button
+                          onClick={() => setReassignTarget(dp)}
+                          className="flex h-7 items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100"
+                        >
+                          <RefreshCcw size={11} />
+                          Reassign
+                        </button>
+                      )}
                       {meta.action && (
                         <button
                           onClick={() => advanceStatus(dp.id)}
@@ -598,6 +756,19 @@ export default function ActiveDispatches() {
                         </button>
                       )}
                     </div>
+                    {/* §14.8 — Show assignment history if this dispatch was reassigned */}
+                    {dp.assignmentHistory && dp.assignmentHistory.length > 0 && (
+                      <div className="mt-2 rounded-md border border-amber-200 bg-amber-50/50 px-3 py-2">
+                        <p className="text-[9px] font-semibold tracking-wide text-amber-600">REASSIGNMENT HISTORY</p>
+                        {dp.assignmentHistory.map((entry, idx) => (
+                          <p key={idx} className="mt-0.5 text-[10px] text-stone-500">
+                            <span className="font-medium text-stone-600">{entry.from}</span> → <span className="font-medium text-stone-600">{entry.to}</span>
+                            {" · "}{entry.reason}{entry.customReason ? `: ${entry.customReason}` : ""}
+                            {" · "}{entry.reassignedBy} · {formatTime(entry.reassignedAt)}
+                          </p>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -884,6 +1055,15 @@ export default function ActiveDispatches() {
 
       {assignIncident && (
         <AssignModal incident={assignIncident} onClose={() => setAssignIncident(null)} onAssign={confirmAssign} />
+      )}
+
+      {reassignTarget && (
+        <ReassignModal
+          dispatch={reassignTarget}
+          onClose={() => setReassignTarget(null)}
+          onReassign={reassignDispatch}
+          availableTeams={ON_DUTY_TANODS}
+        />
       )}
 
       {routeTarget && <RouteModal dispatch={routeTarget} onClose={() => setRouteTarget(null)} />}

@@ -5,7 +5,6 @@ import {
   Wifi,
   WifiOff,
   Video,
-  Trash2,
   Pencil,
   Power,
   Save,
@@ -19,22 +18,18 @@ import {
   CheckCircle2,
   Info,
   ArrowUp,
-  Wrench,
   PowerOff,
-  MonitorPlay,
-  Maximize2,
-  Minimize2,
   Loader2,
-  Signal,
   Search,
   RotateCw,
+  XCircle,
 } from "lucide-react";
 import { PUROK_OPTIONS } from "../constants/purok";
 import { ConfirmModal, Modal } from "../components/ui";
 import { pushAuditLog } from "../utils/auditLog";
 import { getCctvStorageConfig, subscribeCctvStorage } from "../utils/cctvStorage";
 
-type CameraStatus = "pending" | "online" | "degraded" | "offline" | "maintenance" | "disabled";
+type CameraStatus = "pending" | "online" | "offline" | "disabled";
 
 type SimMode = "auto" | "pass" | "fail-timeout" | "fail-endpoint" | "fail-credentials";
 
@@ -235,13 +230,6 @@ const STATUS_CONFIG: Record<
     label: "Online",
     icon: Wifi,
   },
-  degraded: {
-    dot: "bg-amber-400",
-    badge: "bg-amber-50 text-amber-700 border-amber-200",
-    pin: "#c98a1f",
-    label: "Degraded",
-    icon: AlertTriangle,
-  },
   offline: {
     dot: "bg-rose-500",
     badge: "bg-rose-50 text-rose-600 border-rose-200",
@@ -255,13 +243,6 @@ const STATUS_CONFIG: Record<
     pin: "#94a3b8",
     label: "Pending",
     icon: Clock,
-  },
-  maintenance: {
-    dot: "bg-sky-500",
-    badge: "bg-sky-50 text-sky-700 border-sky-200",
-    pin: "#0284c7",
-    label: "Maintenance",
-    icon: Wrench,
   },
   disabled: {
     dot: "bg-stone-400",
@@ -537,7 +518,7 @@ const INITIAL_CAMERAS: Camera[] = [
     purpose: "Barangay Hall",
     resolution: "1080p",
     ip: "10.0.4.15",
-    status: "degraded",
+    status: "offline",
     top: 68,
     left: 40,
     enabled: true,
@@ -580,14 +561,14 @@ const INITIAL_CAMERAS: Camera[] = [
         result: "Passed",
         reason: "—",
         latency: "142ms",
-        resultingStatus: "degraded",
+        resultingStatus: "online",
       },
       {
         timestamp: "2026-07-19 21:40",
         result: "Failed",
         reason: "Connection Timeout",
         latency: "—",
-        resultingStatus: "degraded",
+        resultingStatus: "offline",
       },
     ],
     credUser: "svc_cam_hall_05",
@@ -909,256 +890,14 @@ function MaintenanceResultBadge({ result }: { result: string }) {
   );
 }
 
-function LiveStreamPreview({
-  camera,
-  onOpenOperatorView,
-}: {
-  camera: Camera;
-  onOpenOperatorView?: () => void;
-}) {
-  const feedRef = useRef<HTMLDivElement>(null);
-  const [nowTs, setNowTs] = useState(() => new Date());
-  const [isFull, setIsFull] = useState(false);
-
-  useEffect(() => {
-    const t = setInterval(() => setNowTs(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => {
-    function onFsChange() {
-      const el = feedRef.current;
-      setIsFull(Boolean(el && document.fullscreenElement === el));
-    }
-    document.addEventListener("fullscreenchange", onFsChange);
-    return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, []);
-
-  const live = camera.status === "online" || camera.status === "degraded";
-  const connecting = camera.status === "pending";
-  const noSignal =
-    camera.status === "offline" ||
-    camera.status === "maintenance" ||
-    camera.status === "disabled";
-
-  function toggleFullscreen() {
-    const el = feedRef.current;
-    if (!el) return;
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void el.requestFullscreen();
-  }
-
-  return (
-    <div className="overflow-hidden rounded-xl border border-stone-200 bg-black shadow-sm">
-      <div
-        ref={feedRef}
-        className={`relative w-full overflow-hidden bg-gradient-to-br from-stone-900 via-stone-800 to-stone-950 ${
-          isFull ? "h-full" : "h-52"
-        }`}
-      >
-        {live && (
-          <>
-            <div className="absolute right-6 top-4 h-10 w-10 rounded-full bg-stone-600/70" />
-            <div className="absolute bottom-0 left-[8%] h-28 w-20 rounded-t-lg bg-stone-700/80" />
-            <div className="absolute bottom-0 left-[20%] h-16 w-12 rounded-t-lg bg-stone-700/60" />
-            <div className="absolute bottom-0 right-[10%] h-24 w-28 rounded-t-lg bg-stone-700/80" />
-            <div className="absolute bottom-0 left-[44%] h-4 w-16 rounded-t bg-stone-500 shadow-lg" />
-            <div className="feed-scan absolute inset-x-0" />
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded border border-white/10 bg-black/50 px-3 py-1.5 text-center">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
-                Simulated Preview
-              </p>
-              <p className="mt-0.5 text-[8px] text-white/40">
-                No live CCTV feed connected — prototype stream
-              </p>
-            </div>
-          </>
-        )}
-
-        {connecting && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-950/70">
-            <Loader2 size={22} className="animate-spin text-white" />
-            <p className="mt-2 text-[11px] font-semibold text-white">Connecting to stream…</p>
-            <p className="mt-0.5 text-[9px] text-white/50">
-              Camera has not passed its first connection test
-            </p>
-          </div>
-        )}
-
-        {noSignal && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-900">
-            <PowerOff
-              size={20}
-              className={`mb-2 ${camera.status === "disabled" ? "text-stone-500" : "text-stone-400"}`}
-            />
-            <p className="text-[11px] font-semibold text-stone-500">
-              {camera.status === "maintenance"
-                ? "No Signal — Under Maintenance"
-                : camera.status === "disabled"
-                  ? "No Signal — Camera Disabled"
-                  : "No Signal — Camera Offline"}
-            </p>
-          </div>
-        )}
-
-        <div className="absolute left-2 top-2 flex items-center gap-1.5">
-          {live && (
-            <span className="flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white">
-              <span
-                className={`h-1.5 w-1.5 animate-pulse rounded-full ${
-                  camera.status === "degraded" ? "bg-amber-400" : "bg-rose-500"
-                }`}
-              />
-              {camera.status === "degraded" ? "DEGRADED" : "LIVE"}
-            </span>
-          )}
-          {connecting && (
-            <span className="flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
-              CONNECTING
-            </span>
-          )}
-          {noSignal && (
-            <span className="flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-stone-400">
-              NO SIGNAL
-            </span>
-          )}
-        </div>
-
-        <div className="absolute right-2 top-2 flex items-center gap-1.5">
-          <span className="rounded-md bg-black/60 px-1.5 py-0.5 font-mono text-[9px] font-semibold text-white/90">
-            {camera.id}
-          </span>
-          <button
-            onClick={toggleFullscreen}
-            title={isFull ? "Exit fullscreen preview" : "Fullscreen preview"}
-            className="flex h-6 w-6 items-center justify-center rounded-md bg-black/60 text-white/80 transition hover:text-white"
-          >
-            {isFull ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
-          </button>
-        </div>
-
-        <div className="absolute inset-x-2 bottom-2 flex items-end justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-[11px] font-bold text-white">{camera.name}</p>
-            <p className="mt-0.5 text-[9px] text-white/60">
-              {live
-                ? `Last frame ${nowTs.toLocaleTimeString("en-US", { hour12: false })}`
-                : "No frames received"}
-            </p>
-          </div>
-          {live && (
-            <span className="shrink-0 rounded-md bg-black/60 px-1.5 py-0.5 font-mono text-[9px] text-white/80">
-              {nowTs.toLocaleTimeString("en-US", { hour12: false })}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-stone-800 bg-stone-900 px-3 py-2.5">
-        <div className="flex flex-wrap items-center gap-3 text-[10px] text-stone-400">
-          <span className="flex items-center gap-1">
-            <Wifi size={10} className={live ? "text-emerald-400" : "text-stone-500"} />
-            {live ? "Stream available" : "Stream unavailable"}
-          </span>
-          <span className="flex items-center gap-1">
-            <Radio size={10} />
-            {camera.latency !== "—" ? `${camera.latency} latency` : "Latency —"}
-          </span>
-          <span className="flex items-center gap-1">
-            <Signal size={10} />
-            {camera.streamProtocol}
-          </span>
-          <span className="flex items-center gap-1">
-            <Video size={10} />
-            {camera.connectionType}
-          </span>
-        </div>
-        {onOpenOperatorView && (
-          <button
-            onClick={onOpenOperatorView}
-            className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[10px] font-semibold text-white transition hover:bg-[#002A8C]"
-          >
-            <MonitorPlay size={11} />
-            Open in CCTV Operator View
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function CCTVOperatorViewModal({ camera, onClose }: { camera: Camera; onClose: () => void }) {
-  const s = STATUS_CONFIG[camera.status];
-  return (
-    <Modal
-      onClose={onClose}
-      title="CCTV Operator View"
-      subtitle={`Monitoring handoff from Admin configuration · ${camera.id}`}
-      icon={<MonitorPlay size={18} />}
-      iconClass="bg-[#0038A8]/10 text-[#0038A8]"
-      size="2xl"
-      footer={
-        <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-600 hover:bg-stone-50"
-          >
-            Close
-          </button>
-        </div>
-      }
-    >
-      <LiveStreamPreview camera={camera} />
-
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-3">
-          <p className="text-[9px] font-semibold tracking-wider text-stone-400">MONITORING CONTEXT</p>
-          <p className="mt-1 text-[11px] text-stone-700">
-            Assigned operator / group: <strong>{camera.operatorGroup}</strong>
-          </p>
-          <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-stone-700">
-            Status: <StatusBadge status={camera.status} />
-          </p>
-          <p className="mt-1.5 text-[11px] text-stone-700">
-            Stream: {camera.streamProtocol} · {camera.connectionType}
-          </p>
-          <p className="mt-1.5 text-[11px] text-stone-700">
-            Coverage: {camera.purok} · {camera.assignment}
-          </p>
-        </div>
-        <div className="rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-3">
-          <p className="text-[9px] font-semibold tracking-wider text-stone-400">
-            OPERATOR CAPABILITIES (PROTOTYPE)
-          </p>
-          <p className="mt-1 text-[10px] leading-relaxed text-stone-500">
-            In the Surveillance Matrix the CCTV Operator monitors this camera live, watches signal
-            quality, and tags/escalates events. This modal simulates the handoff so the prototype can
-            demonstrate the Admin → Operator workflow.
-          </p>
-        </div>
-      </div>
-
-      <p className="mt-3 flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2.5 text-[10px] text-amber-700">
-        <Info size={12} className="mt-0.5 shrink-0" />
-        Admin-only configuration (credentials, network, maintenance) is not exposed in the operator
-        context. Status colors remain identical across roles: {s.label} cameras are visually
-        consistent here.
-      </p>
-    </Modal>
-  );
-}
-
 function CameraDetailModal({
   camera,
   onClose,
   onEditCredentials,
-  onOpenOperatorView,
 }: {
   camera: Camera;
   onClose: () => void;
   onEditCredentials: (c: Camera) => void;
-  onOpenOperatorView: (c: Camera) => void;
 }) {
   return (
     <Modal
@@ -1168,13 +907,6 @@ function CameraDetailModal({
       size="3xl"
       footer={
         <div className="flex gap-3">
-          <button
-            onClick={() => onOpenOperatorView(camera)}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white py-2.5 text-[13px] font-medium text-stone-600 transition hover:bg-stone-50"
-          >
-            <MonitorPlay className="h-4 w-4" />
-            Open in CCTV Operator View
-          </button>
           <button
             onClick={() => onEditCredentials(camera)}
             className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white py-2.5 text-[13px] font-medium text-stone-600 transition hover:bg-stone-50"
@@ -1192,13 +924,6 @@ function CameraDetailModal({
       }
     >
       <div className="space-y-4">
-        <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#0038A8]">
-            Live Stream Preview
-          </p>
-          <LiveStreamPreview camera={camera} onOpenOperatorView={() => onOpenOperatorView(camera)} />
-        </div>
-
         <DetailGroup title="Camera Information">
           <DetailRow label="CAMERA ID" mono>
             {camera.id}
@@ -1365,7 +1090,6 @@ function CameraDetailModal({
 export default function CctvPlacement() {
   const mapRef = useRef<HTMLDivElement>(null);
   const [modalMessage, setModalMessage] = useState<{ title: string; message: string } | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [cameras, setCameras] = useState<Camera[]>(INITIAL_CAMERAS);
 
   const [cameraId, setCameraId] = useState("");
@@ -1416,8 +1140,6 @@ export default function CctvPlacement() {
 
   const [testingId, setTestingId] = useState<string | null>(null);
   const [viewId, setViewId] = useState<string | null>(null);
-  const [previewId, setPreviewId] = useState<string | null>(null);
-  const [operatorViewId, setOperatorViewId] = useState<string | null>(null);
   const [credEditId, setCredEditId] = useState<string | null>(null);
   const [credForm, setCredForm] = useState({ user: "", pass: "" });
   const [credShow, setCredShow] = useState(false);
@@ -1430,8 +1152,7 @@ export default function CctvPlacement() {
     previous: CameraStatus;
     resulting: CameraStatus;
     reason: string;
-    endpoint: string;
-    stream: string;
+    checks: { auth: boolean; reach: boolean; response: boolean };
   } | null>(null);
   const [simMode, setSimMode] = useState<SimMode>("auto");
   const [mapFilter, setMapFilter] = useState<"all" | CameraStatus>("all");
@@ -1445,18 +1166,14 @@ export default function CctvPlacement() {
   const storageAlerting = usedPctRaw >= storage.warnThresholdPct;
 
   const onlineCount = cameras.filter((c) => c.enabled && c.status === "online").length;
-  const degradedCount = cameras.filter((c) => c.enabled && c.status === "degraded").length;
   const offlineCount = cameras.filter((c) => c.enabled && c.status === "offline").length;
   const pendingCount = cameras.filter((c) => c.enabled && c.status === "pending").length;
-  const maintenanceCount = cameras.filter((c) => c.enabled && c.status === "maintenance").length;
 
   function testConnection(cam: Camera) {
-    if (cam.status === "maintenance" || cam.status === "disabled") {
+    if (cam.status === "disabled") {
       setModalMessage({
         title: "Connection Test Blocked",
-        message: `${cam.id} is ${STATUS_CONFIG[cam.status].label.toLowerCase()}. Restore it from ${
-          cam.status === "maintenance" ? "maintenance" : "disabled"
-        } state before running a connection test.`,
+        message: `${cam.id} is disabled. Enable the camera before running a connection test.`,
       });
       return;
     }
@@ -1490,14 +1207,15 @@ export default function CctvPlacement() {
       const latency = success ? `${25 + Math.floor(Math.random() * 85)}ms` : "—";
       const timestamp = now();
 
+      const auth = success || reason !== "Invalid Credentials";
+      const reach = success || reason === "Invalid Credentials";
+      const response = success;
+
       const resulting: CameraStatus = success
         ? "online"
-        : previous === "pending" || previous === "offline"
-          ? previous
+        : previous === "pending"
+          ? "pending"
           : "offline";
-
-      const endpoint = success || reason === "Invalid Credentials" ? "Reachable" : "Unreachable";
-      const stream = success ? "Available" : "Unavailable";
 
       const record: ConnectionTestRecord = {
         timestamp,
@@ -1528,9 +1246,11 @@ export default function CctvPlacement() {
 
       pushAuditLog(
         "Camera Connectivity Test",
-        `Connection test for camera ${cam.id} — Result: ${
-          success ? "Passed" : "Failed"
-        }; Previous Status: ${previous.toUpperCase()}; Resulting Status: ${resulting.toUpperCase()}; ${
+        `Connection test for camera ${cam.id} — Stream Reachability: ${
+          reach ? "PASS" : "FAIL"
+        }; Authentication: ${auth ? "PASS" : "FAIL"}; Response Time: ${
+          response ? "PASS" : "FAIL"
+        }; Overall Result: ${success ? "PASS" : "FAIL"}; Previous Status: ${previous.toUpperCase()}; Resulting Status: ${resulting.toUpperCase()}; ${
           success
             ? `Latency: ${latency}; endpoint reachable; stream available.`
             : `Reason: ${reason}; latency: —; stream unavailable.`
@@ -1546,8 +1266,7 @@ export default function CctvPlacement() {
         previous,
         resulting,
         reason,
-        endpoint,
-        stream,
+        checks: { auth, reach, response },
       });
     }, 1500);
   }
@@ -1605,7 +1324,7 @@ export default function CctvPlacement() {
     );
     setModalMessage({
       title: "Camera Registered",
-      message: `${cameraId.trim()} registered in a Pending state. Run a connection test before the camera can be marked Active.`,
+      message: `${cameraId.trim()} registered in a Pending state. Run a connection test before the camera can go Online.`,
     });
     setCameraId("");
     setCameraName("");
@@ -1713,12 +1432,6 @@ export default function CctvPlacement() {
     setModalMessage({ title: "Camera Updated", message: `Updated "${editId}"` });
   }
 
-  function deleteCamera(id: string) {
-    setCameras((prev) => prev.filter((c) => c.id !== id));
-    pushAuditLog("Camera Deleted", `Deleted camera ${id}`);
-    setModalMessage({ title: "Camera Removed", message: `Removed "${id}"` });
-  }
-
   function toggleEnable(id: string) {
     const cam = cameras.find((c) => c.id === id);
     if (!cam) return;
@@ -1735,71 +1448,10 @@ export default function CctvPlacement() {
       setCameras((prev) =>
         prev.map((c) => (c.id === id ? { ...c, enabled: true, status: "pending" } : c)),
       );
-      pushAuditLog("Camera Enabled", `Camera ${id} re-enabled — must pass a connection test before returning to Active`);
+      pushAuditLog("Camera Enabled", `Camera ${id} re-enabled — must pass a connection test before returning to Online`);
       setModalMessage({
         title: "Camera Enabled",
         message: `${id} re-enabled in a Pending state. Run a connection test to bring it Online.`,
-      });
-    }
-  }
-
-  function toggleMaintenance(id: string) {
-    const cam = cameras.find((c) => c.id === id);
-    if (!cam) return;
-    if (cam.status === "maintenance") {
-      setCameras((prev) =>
-        prev.map((c) =>
-          c.id === id
-            ? {
-                ...c,
-                status: "online",
-                lastTested: now(),
-                maintenanceStatus: "OK",
-                maintenanceHistory: [
-                  {
-                    date: today(),
-                    type: "Inspection",
-                    performedBy: cam.maintenanceContact || "Admin",
-                    description: "Restored from maintenance — connectivity verified",
-                    result: "Passed",
-                  },
-                  ...c.maintenanceHistory,
-                ],
-              }
-            : c,
-        ),
-      );
-      pushAuditLog("Camera Restored", `Camera ${id} restored from maintenance and returned to Active surveillance`);
-      setModalMessage({
-        title: "Camera Restored",
-        message: `${id} is back online after maintenance.`,
-      });
-    } else {
-      setCameras((prev) =>
-        prev.map((c) =>
-          c.id === id
-            ? {
-                ...c,
-                status: "maintenance",
-                maintenanceStatus: "Under Maintenance",
-                maintenanceHistory: [
-                  {
-                    date: today(),
-                    type: "Repair",
-                    performedBy: cam.maintenanceContact || "Admin",
-                    description: "Placed under maintenance — camera intentionally taken offline",
-                    result: "Ongoing",
-                  },
-                  ...c.maintenanceHistory,
-                ],
-              }
-            : c,
-        ),
-      );
-      pushAuditLog("Camera Placed Under Maintenance", `Camera ${id} placed under maintenance — intentionally unavailable`);
-      setModalMessage({
-        title: "Under Maintenance",
-        message: `${id} is now under maintenance and intentionally unavailable. Restore it to bring it back online.`,
       });
     }
   }
@@ -1839,9 +1491,7 @@ export default function CctvPlacement() {
   });
 
   const summaryParts = [`${onlineCount} online`];
-  if (degradedCount > 0) summaryParts.push(`${degradedCount} degraded`);
   if (pendingCount > 0) summaryParts.push(`${pendingCount} pending`);
-  if (maintenanceCount > 0) summaryParts.push(`${maintenanceCount} maintenance`);
   if (offlineCount > 0) summaryParts.push(`${offlineCount} offline`);
 
   return (
@@ -1851,23 +1501,13 @@ export default function CctvPlacement() {
         .db-scroll::-webkit-scrollbar-track { background: transparent; }
         .db-scroll::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 999px; }
         .db-scroll { scrollbar-width: thin; scrollbar-color: #d6d3d1 transparent; }
-        @keyframes feed-scan {
-          0% { top: -25%; }
-          100% { top: 115%; }
-        }
-        .feed-scan {
-          height: 24%;
-          background: linear-gradient(180deg, transparent, rgba(255,255,255,0.06), transparent);
-          animation: feed-scan 5s linear infinite;
-          pointer-events: none;
-        }
       `}</style>
 
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-5 border-b border-stone-200 pb-5">
           <h1 className="text-2xl font-bold text-stone-900">CCTV Placement &amp; Assignment</h1>
           <p className="mt-1 text-sm text-stone-500">
-            Register → Configure → Place → Assign → Test → Monitor Health → Maintain → Manage CCTV cameras
+            Register → Configure → Place → Assign → Test → Monitor Health → Manage CCTV cameras
           </p>
         </header>
 
@@ -2130,10 +1770,8 @@ export default function CctvPlacement() {
                 [
                   { key: "all", label: "All Cameras" },
                   { key: "online", label: "Online" },
-                  { key: "degraded", label: "Degraded" },
                   { key: "offline", label: "Offline" },
                   { key: "pending", label: "Pending" },
-                  { key: "maintenance", label: "Maintenance" },
                   { key: "disabled", label: "Disabled" },
                 ] as { key: "all" | CameraStatus; label: string }[]
               ).map((f) => (
@@ -2182,16 +1820,10 @@ export default function CctvPlacement() {
                 <span className="h-2 w-2 rounded-full bg-emerald-500" /> Online
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-amber-400" /> Degraded
-              </div>
-              <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-rose-500" /> Offline
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-stone-400" /> Pending
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-sky-500" /> Maintenance
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-stone-400" /> Disabled
@@ -2296,7 +1928,7 @@ export default function CctvPlacement() {
                         <button
                           onClick={() => testConnection(c)}
                           disabled={testingId !== null}
-                          title={c.status === "online" ? "Re-test camera connection" : "Test camera connection — required before Active"}
+                          title={c.status === "online" ? "Re-test camera connection" : "Test camera connection — required before Online"}
                           className="flex h-7 w-7 items-center justify-center rounded-md border border-stone-200 text-stone-400 transition hover:border-[#0038A8] hover:bg-[#0038A8]/5 hover:text-[#0038A8] disabled:opacity-50"
                         >
                           {testingId === c.id ? (
@@ -2313,13 +1945,6 @@ export default function CctvPlacement() {
                           <Info size={13} />
                         </button>
                         <button
-                          onClick={() => setPreviewId(c.id)}
-                          title="Open live stream preview"
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-stone-200 text-stone-400 transition hover:border-[#0038A8] hover:bg-[#0038A8]/5 hover:text-[#0038A8]"
-                        >
-                          <Video size={13} />
-                        </button>
-                        <button
                           onClick={() => openCredentialEdit(c)}
                           title="Manage camera access credentials (masked, server-side only)"
                           className="flex h-7 w-7 items-center justify-center rounded-md border border-stone-200 text-stone-400 transition hover:border-[#0038A8] hover:bg-[#0038A8]/5 hover:text-[#0038A8]"
@@ -2334,17 +1959,6 @@ export default function CctvPlacement() {
                           <Pencil size={13} />
                         </button>
                         <button
-                          onClick={() => toggleMaintenance(c.id)}
-                          title={c.status === "maintenance" ? "Restore from maintenance" : "Place under maintenance"}
-                          className={`flex h-7 w-7 items-center justify-center rounded-md border transition ${
-                            c.status === "maintenance"
-                              ? "border-emerald-200 text-emerald-500 hover:bg-emerald-50"
-                              : "border-sky-200 text-sky-500 hover:bg-sky-50"
-                          }`}
-                        >
-                          <Wrench size={13} />
-                        </button>
-                        <button
                           onClick={() => toggleEnable(c.id)}
                           title={c.enabled ? "Disable camera" : "Enable camera"}
                           className={`flex h-7 w-7 items-center justify-center rounded-md border transition ${
@@ -2354,13 +1968,6 @@ export default function CctvPlacement() {
                           }`}
                         >
                           <Power size={13} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirmId(c.id)}
-                          title="Delete camera"
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-rose-200 text-rose-400 transition hover:bg-rose-50 hover:text-rose-600"
-                        >
-                          <Trash2 size={13} />
                         </button>
                       </div>
                     </td>
@@ -2555,52 +2162,7 @@ export default function CctvPlacement() {
             camera={cam}
             onClose={() => setViewId(null)}
             onEditCredentials={openCredentialEdit}
-            onOpenOperatorView={(c) => {
-              setViewId(null);
-              setOperatorViewId(c.id);
-            }}
           />
-        );
-      })()}
-
-      {previewId && (() => {
-        const cam = cameras.find((c) => c.id === previewId);
-        if (!cam) return null;
-        return (
-          <Modal
-            onClose={() => setPreviewId(null)}
-            title={`Live Stream Preview — ${cam.name}`}
-            subtitle={`${cam.id} · ${cam.purok}`}
-            icon={<Video size={18} />}
-            iconClass="bg-[#0038A8]/10 text-[#0038A8]"
-            size="2xl"
-            footer={
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setPreviewId(null)}
-                  className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-600 hover:bg-stone-50"
-                >
-                  Close
-                </button>
-              </div>
-            }
-          >
-            <LiveStreamPreview
-              camera={cam}
-              onOpenOperatorView={() => {
-                setPreviewId(null);
-                setOperatorViewId(cam.id);
-              }}
-            />
-          </Modal>
-        );
-      })()}
-
-      {operatorViewId && (() => {
-        const cam = cameras.find((c) => c.id === operatorViewId);
-        if (!cam) return null;
-        return (
-          <CCTVOperatorViewModal camera={cam} onClose={() => setOperatorViewId(null)} />
         );
       })()}
 
@@ -2609,8 +2171,8 @@ export default function CctvPlacement() {
         if (!cam) return null;
         const passed = testResult.success;
         const failMessage =
-          testResult.previous === "online" || testResult.previous === "degraded"
-            ? "The camera failed the connectivity test and has been marked Offline."
+          testResult.previous === "online"
+            ? "The camera failed the connection test and has been marked Offline."
             : testResult.previous === "offline"
               ? "The camera remains offline after the failed connection test."
               : "The camera could not establish a connection. It will remain Pending until a connection test succeeds.";
@@ -2691,40 +2253,51 @@ export default function CctvPlacement() {
                   ) : (
                     <AlertTriangle size={16} className="text-rose-600" />
                   )}
-                  <p className="text-sm font-bold">{passed ? "Passed" : "Failed"}</p>
+                  <p className="text-sm font-bold">{passed ? "PASS" : "FAIL"}</p>
                 </div>
                 <p className="mt-1 text-xs opacity-90">
                   {passed
-                    ? "The camera successfully passed the connection test and is now Online."
+                    ? "The camera passed all checks — stream reachability, authentication, and response time — and is now Online."
                     : failMessage}
                 </p>
               </div>
 
+              <div className="overflow-hidden rounded-xl border border-stone-200">
+                {[
+                  { label: "Stream Reachability", pass: testResult.checks.reach },
+                  { label: "Authentication", pass: testResult.checks.auth },
+                  { label: "Response Time", pass: testResult.checks.response },
+                ].map((chk) => (
+                  <div
+                    key={chk.label}
+                    className="flex items-center justify-between border-b border-stone-100 px-4 py-2.5 last:border-0"
+                  >
+                    <span className="text-[12px] font-medium text-stone-600">{chk.label}</span>
+                    <span
+                      className={`inline-flex items-center gap-1 text-[11px] font-bold ${
+                        chk.pass ? "text-emerald-600" : "text-rose-600"
+                      }`}
+                    >
+                      {chk.pass ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                      {chk.pass ? "PASS" : "FAIL"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border border-stone-200 bg-stone-50/60 p-4 text-[12px]">
                 <DetailRow label="CAMERA">{testResult.id}</DetailRow>
-                <DetailRow label="ENDPOINT">{testResult.endpoint}</DetailRow>
-                <DetailRow label="STREAM">
-                  <span
-                    className={
-                      passed
-                        ? "font-medium text-emerald-600"
-                        : "font-medium text-rose-600"
-                    }
-                  >
-                    {testResult.stream}
+                <DetailRow label="OVERALL RESULT">
+                  <span className={`font-bold ${passed ? "text-emerald-600" : "text-rose-600"}`}>
+                    {passed ? "PASS" : "FAIL"}
                   </span>
                 </DetailRow>
-                <DetailRow label="REASON">{testResult.reason || "—"}</DetailRow>
                 <DetailRow label="LATENCY" mono>
                   {testResult.latency}
                 </DetailRow>
+                <DetailRow label="REASON">{testResult.reason || "—"}</DetailRow>
                 <DetailRow label="TEST DURATION">1.5 s</DetailRow>
                 <DetailRow label="TESTED">{testResult.timestamp}</DetailRow>
-                <DetailRow label="RESULT">
-                  <span className={`font-bold ${passed ? "text-emerald-600" : "text-rose-600"}`}>
-                    {passed ? "Passed" : "Failed"}
-                  </span>
-                </DetailRow>
                 <DetailRow label="PREVIOUS STATUS">
                   {STATUS_CONFIG[testResult.previous].label}
                 </DetailRow>
@@ -2821,19 +2394,6 @@ export default function CctvPlacement() {
           />
         );
       })()}
-
-      {deleteConfirmId && (
-        <ConfirmModal
-          type="confirm"
-          title="Confirm Delete"
-          message={`Are you sure you want to delete camera "${deleteConfirmId}"?`}
-          onConfirm={() => {
-            deleteCamera(deleteConfirmId);
-            setDeleteConfirmId(null);
-          }}
-          onClose={() => setDeleteConfirmId(null)}
-        />
-      )}
 
       {modalMessage && (
         <ConfirmModal

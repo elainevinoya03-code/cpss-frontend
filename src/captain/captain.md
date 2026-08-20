@@ -23,7 +23,9 @@ sits under one role, `captain`, guarded by `CAPTAIN_NAV` in `App.tsx` / `compone
 
 The captain lands on **Executive Safety Dashboard** by default (`defaultNav` in `App.tsx`). Login
 routing in `App.tsx` maps the username `captain` to this role. **Profile and Logout** live in the
-shared global `Header`, not the sidebar. The captain's sidebar section is labeled **PATROL MENU**.
+shared global `Header`, not the sidebar. The captain's sidebar section is labeled **EXECUTIVE
+OVERSIGHT** and the header sublabel reads **Executive Oversight** — the captain observes and directs,
+never operates the desk.
 
 The Dashboard and the Analytics screen share one component: `CaptainDashboard` renders the executive
 overview for `activeKey === "dashboard"` and the `PurokAnalyticsPage` for `activeKey === "analytics"`.
@@ -70,21 +72,35 @@ captain's daily view.
 
 ### Active Incident Queue (right rail)
 - Live list of `active` / `investigating` incidents with severity badge, category icon, description,
-  time, and photo count. **View** opens the `IncidentDetail` slide-over; **Broadcast** jumps straight
-  into the shared draft compose modal pre-filled with that incident's details.
+  time, and photo count. **View** opens the **Incident Review** slide-over (see below); **Broadcast**
+  jumps straight into the shared draft compose modal pre-filled with that incident's details.
 - Incidents sourced from IoT/CCTV (`source: "IoT Sensor" | "CCTV"`) that are not yet `verified`
   show a pulsing amber **Pending Verification** badge beside the severity badge; `verified`
   IoT/CCTV incidents show an emerald **Verified** badge instead, and non-IoT/CCTV reports carry no
   verification badge.
 
-### IncidentDetail slide-over
-- Full record: category + description, reporter, status, **Attached Evidence** thumbnails, and
-  **Location Coordinates**. For any non-resolved incident a **Draft Emergency Broadcast** button
-  routes to the shared `ComposeBroadcastModal` with the incident hint.
-- For IoT/CCTV-sourced records an amber **VERIFICATION** panel lists the current
-  `SecurityAlert.status` (`received` / `acknowledged` / `verification_in_progress` /
-  `verified` / `false_or_unverified` / `closed`) with a **Pending Verification** indicator unless
-  the Desk Officer has already marked it `verified`.
+### Incident Review panel (IncidentDetail slide-over)
+- **Executive-only review** of a high-severity incident — informational, with **no operational
+  lifecycle controls** (no assign / dispatch / verify / resolve / close; those stay with the Desk
+  Officer). Fields shown: incident ID, category, severity, current status, source, date/time, purok,
+  location (+ coordinates), description, reporter, attached evidence thumbnails, the Desk Officer's
+  latest update, and the current response status.
+- For IoT/CCTV-sourced records a **VERIFICATION** panel clearly shows one of four states using
+  `VERIFICATION_META`:
+  - **Pending Verification** (amber, pulsing) — `received` / `acknowledged` / `verification_in_progress`
+  - **Verified** (emerald) — `verified`
+  - **False / Unverified** (stone) — `false_or_unverified`
+  - **Closed** (stone) — `closed`
+- Three executive actions only:
+  - **Request Follow-up** → small `RequestFollowUpModal` (reason textarea); **Send Request** pushes an
+    `other_request` into the Operational Follow-ups store (`addCaptainInboxItem`, defaults to
+    `Pending`) and flashes a confirmation toast.
+  - **Prepare Broadcast** → opens the shared `ComposeBroadcastModal` pre-filled from the incident
+    (title/message/severity/target). Submitting creates a `DRAFT-0xx` **without sending**, then (when
+    composed from this panel) immediately opens the shared `AuthorizeBroadcastModal` for executive
+    review; **Cancel** keeps the draft in Pending Authorization for later.
+  - **Close Review** → returns to the dashboard.
+- Resolved incidents show a muted "Incident resolved" placeholder instead of the broadcast action.
 
 ### SensorDetail modal
 - Per-sensor card: status pill, smoke density / decibel progress bar vs threshold, **Ping Device** and
@@ -99,42 +115,58 @@ captain's daily view.
 - Latest patrol sweeps, broadcasts, incident assignments, check-ins, resolutions and sensor heartbeat
   events, each with a colored type dot and timestamp.
 
-### Desk Officer Inbox widget
-- A third column on the overview grid (`utils/captainInboxStore.ts`) that surfaces what the Desk
-  Officer pushed upstream so the Captain can stay informed without opening every case:
-  - **Escalation** items (violet) — incidents the Desk Officer chose to escalate via the slide-over's
-    **Escalate to Captain** action, including the Desk's required reason (quoted) and `submittedBy`.
-  - **SLA breach** items (rose) — `new` incidents left unacknowledged past their priority target
-    (High 15 / Medium 60 / Low 240 min) auto-reported by the system.
-- Each card shows the type chip, incident ID, priority, title, purok, time, and a rose **unread dot**;
-  clicking a card marks it read, and **Mark all read** clears the queue. An unread count pill shows in
-  the widget header, and a **Up to date** state appears once everything is read. Items dedupe by
-  type + incident ID while unread, so the same breach/escalation never double-counts.
+### Operational Follow-ups widget
+- A third column on the overview grid (`utils/captainInboxStore.ts`) that consolidates the executive
+  follow-up trail between the Captain and the Desk Officer — a **simplified tracker**, not a full
+  messaging/inbox system. It shows only four categories:
+  - **Pending escalations** (`escalation`) — incidents the Desk Officer pushed upstream via
+    **Escalate to Captain**, including the Desk's required reason (quoted) and `submittedBy`.
+  - **SLA / response concerns** (`sla_breach`) — `new` incidents left unacknowledged past their
+    priority target (High 15 / Medium 60 / Low 240 min) auto-reported by the system.
+  - **Patrol recommendations** (`patrol_recommendation`) — the Captain's coverage-gap suggestions and
+    patrol adjustment recommendations sent to the Desk Officer queue (from **Patrol Coverage &
+    Oversight** and **Purok Analytics & Reports**).
+  - **Other requests sent to the Desk Officer** (`other_request`) — the Captain's desk escalations and
+    follow-ups (e.g. "Desk Officer notified", broadcast follow-up requests).
+- Each card shows the six required fields: **Request ID** (`CAP-0xx`), **Type** chip, **Related
+  incident/Purok**, **Priority**, **Date/time**, and a **Status** badge drawn from
+  `Pending / Acknowledged / In Progress / Completed`. Outbound items default to `Pending` when the
+  Captain sends them (`addCaptainInboxItem` defaults `status: "pending"`); Desk Officer pushes arrive
+  as `Pending` too. Clicking a card marks it read, and **Mark all read** clears the queue. An unread
+  count pill shows in the widget header, and an **Up to date** state appears once everything is read.
+  Items dedupe by type + incident ID while unread, so the same breach/escalation never double-counts.
 
 ### Operational Reports tab
 - Second sub-tab of the Executive Safety Dashboard (`dashboard.tsx`, `dashTab: "overview" |
-  "reports"`), rendered by `operational_reports.tsx`. A lightweight, high-level summary for the
-  selected period (This Week / This Month / Last Quarter / Custom) — read-only, with **no drill-down
-  into individual infrastructure logs**, consistent with spec §14.6.
+  "reports"`), rendered by `operational_reports.tsx`. A lightweight, **executive-level summary** for
+  the selected period (This Week / This Month / Last Quarter / Custom) — read-only, with **no
+  drill-down into individual infrastructure logs**, consistent with spec §14.6.
 - Surfaced metrics:
-  - **Period availability** — big % with an amber **Placeholder** pill: backend availability telemetry
-    is not connected yet, so the figure is estimated from incident / IoT / CCTV data for the period.
-  - **Average acknowledgment & resolution time** plus **SLA breach count** (vs the 10 min resolution
-    target) under **Response & SLA Summary**.
+  - **KPIs** — **TOTAL INCIDENTS**, **CRITICAL INCIDENTS**, **RESOLVED INCIDENTS**, and
+    **AVG RESPONSE TIME**.
+  - **Response & SLA Summary** — average response time, average resolution time, and **SLA breach
+    count** (vs the 10 min resolution target).
+  - **Resident Satisfaction** — `x / 5` average rating with star display and response count, noted as
+    executive evaluation rather than case management.
   - **IoT device health** — uptime % and alert counts by severity (Critical / Warning / Low).
-  - **CCTV camera availability** — `x/y` cameras online with availability bar.
-  - **Notification delivery** — success rate, delivered/total and failed counts.
+  - **CCTV availability** — `x/y` cameras online with availability bar.
+  - **Broadcast delivery** — delivery rate (%), delivered/total and failed counts.
 - **Export Report** opens the shared `ExportReportModal` (see §2) pre-loaded with the consolidated
-  metric table for the current range; CSV downloads a `.csv` file, PDF opens a print-friendly report
-  (browser **Save as PDF**). An **Operational Report Summary** table on screen mirrors the export rows.
+  **summary-metric table** for the current range; CSV downloads a `.csv` file, PDF opens a
+  print-friendly report (browser **Save as PDF**). An **Operational Report Summary** table on screen
+  mirrors the export rows — summary metrics only, never raw infrastructure logs.
 
 ### BroadcastCompose (Mass Alert)
 - **Mass Alert** header button (and the per-incident **Broadcast** shortcut) open the same
   `ComposeBroadcastModal` used on the Emergency Broadcast screen — severity selector (Critical /
   Warning / Low) and a message auto-pre-filled for emergency incidents. **Submit for Authorization**
-  pushes the draft into the shared Pending Authorization store (`submittedBy: Capt. Reyes`) and
-  confirms with a **Submitted for Authorization** success modal; nothing distributes from the
-  Dashboard — only **Authorize &amp; Blast** inside Pending Authorization sends the broadcast.
+  pushes the draft into the shared Pending Authorization store (`submittedBy: Capt. Reyes`). When
+  composed from the **Incident Review** panel the dashboard passes `onDraftReady`, so the compose
+  modal closes and the shared **Authorize &amp; Blast** confirmation appears immediately —
+  **the Dashboard never distributes a broadcast directly**: only **Confirm &amp; Blast** on the
+  `AuthorizeBroadcastModal` sends it (writing a `BCAST-0xx` to the shared history store and removing
+  the `DRAFT-0xx`). From the **Mass Alert** button the draft instead lands in **Pending
+  Authorization** with a **Submitted for Authorization** success modal.
 
 ---
 
@@ -212,32 +244,57 @@ authorization** boundary — high-severity blasts go out only after executive co
   the Captain's queue instantly, not just drafts composed here.
 - Each draft shows title, severity badge, message, created time, target purok, delivery channel and
   the submitting officer, with two actions:
-  - **Authorize & Blast** → `AuthorizeEmergencyBroadcast` modal previewing the draft, target, channel
-    and a rose **Confirm Executive Authorization** warning that the action is irreversible; **Confirm &
-    Blast** distributes it (creating a `BCAST-0xx` in history) with a **Broadcast Authorized & Sent**
+  - **Authorize & Blast** → shared `AuthorizeBroadcastModal` (also used straight from the dashboard's
+    Incident Review flow) previewing the draft, target, channel and a rose **Confirm Executive
+    Authorization** warning that the action is irreversible; **Confirm & Blast** distributes it via the
+    shared history store (`addBroadcastRecord` → `BCAST-0xx`) with a **Broadcast Authorized & Sent**
     success modal.
   - **Dismiss** → confirm dialog; **Discard** permanently drops the draft.
 
 ### Broadcast History
-- All-time list (`BCAST-0xx`) with severity badge, delivery channel pill, SMS + push counts, and
-  **Safe / Need Help / ack %** where roll-call data exists. Actions:
-  - **Ack Roll-Call** → inline per-purok acknowledgement bars (safe vs need-help per zone).
+- All-time list (`BCAST-0xx`) with severity badge, delivery channel pill, SMS + push counts, and an
+  acknowledgment line for every broadcast: **Safe**, **No Response**, **ack %**, and **Need Help**
+  (shown when > 0). Backed by the shared in-memory history store (`utils/broadcastStore.ts`,
+  `getBroadcastHistory` / `addBroadcastRecord` + subscription), so blasts authorized from the
+  dashboard's Incident Review flow appear here instantly. Actions:
+  - **Ack Roll-Call** → inline per-purok acknowledgement bars (safe vs need-help per zone). Shown
+    only when per-purok roll-call data exists.
+  - **Follow-up** (rose, only when residents need help) → `BroadcastFollowUpModal`.
   - **Details** → `BroadcastDetailDrawer`: message, sent-by / target zone / delivery method / status,
-    delivery stats (SMS, push, need-help), and the **Citizen Acknowledgement Roll-Call** per purok.
+    delivery stats, and the **Community Acknowledgment** summary (Total reached, Safe, Need Help,
+    No Response, Ack rate).
 - **Severity** filter popover + **Reset**.
+
+### Community Acknowledgment (Ack Roll-Call / Details)
+- The Captain reviews resident acknowledgment after a blast: **Total reached**, **Safe**, **Need Help**,
+  **No Response** and the **Acknowledgment rate**. When per-purok roll-call data exists, the drawer
+  adds an **Acknowledgement by Purok** table (Purok | Safe | Need Help | No Response).
+- When residents need help, the drawer shows a prominent rose **Need Help** banner with a
+  **Send Follow-up to Desk Officer** button.
+
+### Follow-up to Desk Officer
+- `BroadcastFollowUpModal` captures the target purok (defaults to the broadcast's zone), the number
+  needing help, and an optional Captain note. Submitting calls `addCaptainInboxItem` with an
+  `other_request` (title `Follow-up — <BCAST-id>`, priority **High** when ≥ 10 residents need help),
+  fires a **Follow-up Request Sent** success modal, and the request appears under
+  **Operational Follow-ups** on the dashboard.
+- The Captain only flags the need — the Desk Officer remains responsible for operational response,
+  dispatch and follow-up; no dispatch/rescue planning exists on this side.
 
 ---
 
 ## 4. `live_patrol.tsx` — Patrol Coverage & Oversight
 
-Area-based patrol coverage derived from completed checkpoint logs, with checkpoint status and gap
-oversight. Per §6.3.11, continuous individual movement (live GPS positions, per-team markers,
-per-second jitter) is **not** shown to the Captain — that operational view belongs to the Desk
-Officer. The Captain sees coverage summaries, not movement.
+An **executive patrol oversight** screen. The Captain sees coverage and performance summaries, not a
+patrol-control view. Per §6.3.11, continuous individual movement (live GPS positions, per-team
+markers, per-second jitter, heading, speed, battery, telemetry trails) is **not** shown to the
+Captain — that operational view belongs to the Desk Officer. The Captain never creates routes, edits
+checkpoints, assigns Tanods, or directly reroutes teams.
 
 ### KPIs
-- **ACTIVE UNITS** (`x/y` on patrol) · **CHECKPOINTS CLEARED** (`x/y`, % route coverage) ·
-  **ZONES COVERED** (`x/6` puroks at ≥ 40% coverage) · **GAP ZONES** (high-risk unpatrolled areas).
+- **ACTIVE UNITS** (`x/y` on patrol) · **CHECKPOINTS CLEARED** (`x/y`) · **ROUTE COVERAGE** (`%` of
+  checkpoints cleared) · **ZONES COVERED** (`x/6` puroks at ≥ 40% coverage) · **LOW-COVERAGE ZONES**
+  (zones below 40% coverage).
 
 ### Time range & layer toggles
 - **Live / Today / 7d / 30d** range (drives which cleared checkpoint records count toward coverage);
@@ -246,10 +303,10 @@ Officer. The Captain sees coverage summaries, not movement.
 
 ### Patrol Coverage Map
 - SVG map of the six purok zones with:
-  - **Per-zone coverage shading** (emerald = high ≥ 60% / amber = partial ≥ 20% / rose = low),
-    computed from the % of the zone's checkpoints cleared within the selected range; each zone shows
-    its `% · cleared/total CPs` and a **last patrol activity** timestamp (or "no patrol"), hoverable
-    for a summary card.
+  - **Per-zone coverage level** — **High Coverage** (emerald, ≥ 60%) / **Partial Coverage** (amber,
+    ≥ 20%) / **Low Coverage** (rose, < 20%), computed from the % of the zone's checkpoints cleared
+    within the selected range; each zone shows its `% · cleared/total CPs` and a **last patrol
+    activity** timestamp (or "no patrol"), hoverable for a summary card.
   - **Checkpoints** (`CP-1 … CP-16`) as static geofence markers — green ✓ = cleared, dashed grey =
     pending (checkpoint data, not continuous movement).
   - **Incident** and **IoT sensor** overlays (toggleable), color-coded by severity/status.
@@ -258,21 +315,28 @@ Officer. The Captain sees coverage summaries, not movement.
 
 ### Patrol Teams rail
 - Each team (Alpha/Bravo/Charlie/Delta) with on-duty pill, assignment, **last check-in** time and a
-  checkpoint progress bar; **Details** opens the drawer and **Request Re-route** opens `RerouteModal`.
+  checkpoint progress bar; **Details** opens the drawer and **Recommend** opens `RecommendationModal`
+  prefilled for the team's zone. No movement telemetry (no heading, speed, battery, or GPS pings).
 
 ### TeamDetailDrawer
 - Summarized shift info — **On-Duty Status**, **Last Check-in**, **Assignment**, **Checkpoint
   Progress** % — team members (leader tagged), and a **Checkpoint Log** with cleared timestamps. No
-  live GPS strength/heading. Footer **Request Re-route** → `RerouteModal`.
+  live GPS strength/heading. Footer **Recommend Patrol Adjustment** → `RecommendationModal`.
 
-### RerouteModal
-- Write a request; it is queued as a **high-priority re-route request** for the Desk Officer, who
-  confirms and delivers it to the team's mobile app. Confirms with a **Re-route Request Sent** summary.
+### Recommend Patrol Adjustment (replaces Request Re-route)
+- Workflow: the Captain identifies a coverage problem → **RecommendationModal** → **Send to Desk
+  Officer**. Modal fields: **Purok/Zone** (select), **Current Coverage (%)**, **Reason**, and
+  **Recommendation** (required); prefilled from the Low-Coverage Zones row or a team's zone.
+- Submitting fires a **Recommendation Sent to Desk Officer** summary, calls `addCaptainInboxItem` as a
+  `patrol_recommendation` (priority **High** when coverage < 20%), and the request lands under
+  **Operational Follow-ups**.
+- It is a **recommendation only** — the **Desk Officer decides** whether to execute the adjustment and
+  remains responsible for patrol assignment, dispatch, and route changes.
 
-### Gap Analysis
-- High/medium-risk zones below coverage with last-patrol time and a suggested action; per gap:
-  **Notify Desk** or **Recommend to Desk** — both send the gap/recommendation to the Desk Officer
-  queue for action via a confirm modal, then marked sent inline.
+### Low Coverage Zones (replaces Gap Analysis)
+- Simple per-zone rows: **Purok**, **Coverage %**, **Last patrol activity**, **Risk level**
+  (High < 20% / Medium), each with a single **Recommend to Desk** action that opens the
+  `RecommendationModal` prefilled with that zone. No route builder, no suggestion engine.
 
 ### Activity Feed
 - Checkpoint clears, digital check-ins, and events with colored type dots and timestamps.
@@ -282,17 +346,20 @@ Officer. The Captain sees coverage summaries, not movement.
   resolved, and avg response time.
 
 ### Export Patrol Report
-- Summary of active units, cleared checkpoints, GPS pings, gap zones and time range → **Download PDF**
-  or **Print**.
+- Summary of active units, cleared checkpoints, route coverage %, low-coverage zones and time range →
+  **Download PDF** or **Print**.
 
 ---
 
 ## 5. `incident_archive.tsx` — Closed Incidents
 
-Read-only review of **closed** incidents (Resolved / Closed / Closed – False Alarm) per §9.3 and
-§10.3 — no PIR, debrief, phase pipeline, action-item workflow, or sign-off/archival ceremony (none
-exist in the data model). Each record carries its **IncidentUpdate history**, the **resolution
-timestamp**, the **closure reason**, and the **Resident Feedback** captured on the incident (§6.1.13).
+**Read-only executive outcome review** of **closed** incidents (Resolved / Closed / Closed – False
+Alarm) per §9.3 and §10.3 — no PIR, debrief, phase pipeline, action-item workflow, or sign-off/archival
+ceremony (none exist in the data model). The header carries a blue **READ-ONLY** badge and a banner
+stating the records are final: the Captain **cannot reopen, modify resolution, modify closure reason, or
+change status**. Each record carries its **IncidentUpdate history**, the **resolution timestamp**, the
+**closure reason**, the **impact summary**, and the **Resident Feedback** captured on the incident
+(§6.1.13).
 
 ### KPIs
 - **CLOSED INCIDENTS** (total) · **RESOLVED** (confirmed, closed cases) · **CLOSED – FALSE ALARM**
@@ -307,24 +374,29 @@ timestamp**, the **closure reason**, and the **Resident Feedback** captured on t
   closure timestamp and feedback count. **Reset** lives in the header. Clicking a record opens
   `ClosedIncidentDetail`.
 
-### ClosedIncidentDetail (three tabs)
+### ClosedIncidentDetail (four tabs)
+- **Incident Summary** — the incident summary (description), detection time / purok / severity meta,
+  and the closure-status banner with the **resolution/closure timestamp** and **closure reason**.
 - **Update History** (`n`) — the incident's IncidentUpdate stream (alert → dispatch → broadcast →
   response → milestone → closeout → advisory), each with a type-colored dot.
-- **Closure** — description, closure-status banner, the **resolution/closure timestamp**, the
-  **closure reason**, and an impact summary (fatalities / injured / displaced / houses damaged /
-  ₱ est. damage) plus assistance provided when applicable.
+- **Impact Summary** — fatalities / injured / displaced / houses damaged / ₱ est. damage plus
+  assistance provided when applicable; noted as final at closure and not modifiable by the Captain.
 - **Resident Feedback** (`x`) — citizen responses: an **AVG RESIDENT RATING** card (star rating +
   `/5` value + response count) followed by each feedback entry (resident avatar initials, purok,
   timestamp, star rating, comment). Count in the tab label; empty state when no resident has rated
-  the incident yet.
+  the incident yet. Noted as **executive evaluation of service quality**, not individual case
+  management.
+- The modal footer repeats the read-only guarantee ("cannot reopen or modify").
 
 ---
 
 ## 6. `cctv_evidence_viewer.tsx` — CCTV Evidence Viewer
 
-Read-only review of captured surveillance footage and how it ties to incidents. The captain observes,
-never manipulates — the module carries a **Read-Only** emerald badge in the header; clips are authored
-by the CCTV Operator.
+**Strictly read-only evidence review.** The captain observes and reviews evidence; the module carries a
+prominent blue **READ-ONLY** badge in the header plus a "Evidence cannot be modified" tag, and clips
+are authored by the CCTV Operator. The Captain cannot unblur footage, edit footage, create clips, tag
+CCTV events, modify privacy settings, delete evidence, or change camera configuration — those remain
+CCTV Operator / Admin responsibilities. There is no export (no authorization model permits it).
 
 ### KPIs
 - **TOTAL CLIPS** (in evidence archive) · **ATTACHED TO INCIDENTS** (clips linked to an `INC-xxxx`) ·
@@ -341,14 +413,13 @@ by the CCTV Operator.
 - Mock player with **play/pause**, a draggable **seek bar** (1s real-time tick), a pulsing **REC**
   overlay, camera tag, live timecode (`MM:SS / MM:SS`) and the clip's tag type.
 - Below it the **CLIP DETAIL GRID** (clip ID, linked incident, captured-by operator, camera & location,
-  purok, duration/size) and, for linked clips, the **LINKED INCIDENT RECORD** banner (incident title,
-  noted as read-only, linked from the Closed Incidents record).
-- **Request Unblur** — privacy-blurred clips (`privacyBlurred: true`) show an amber banner with a
-  **Request Unblur** action. The Captain never unblurs footage directly: it opens a modal requiring a
-  justification note (min 10 chars) and routes the request
-  (`utils/unblurRequestStore.ts` → `addUnblurRequest`, `UR-xxx`, status `pending_review`,
-  `requestedBy: Capt. Reyes`) to the **CCTV Operator / Barangay Admin queue** for manual review,
-  per §6.2.10. Submitting confirms with a success modal: **"Unblur request sent for review"**.
+  purok, duration/size).
+- **Privacy Blurred** — clips with `privacyBlurred: true` show an amber banner stating the clip is
+  redacted by the CCTV Operator (DPA) and that the Captain cannot unblur footage; only the CCTV
+  Operator / Barangay Admin may lift the blur. There is **no Request Unblur workflow** on this side.
+- **LINKED INCIDENT** — for linked clips, a read-only block showing **Incident ID**, **Title**,
+  **Category**, **Location**, and the clip's **Capture time**, sourced from the incident record and
+  never editable here.
 - An empty **No clip selected** state when the list is empty or the panel is cleared.
 
 ---
@@ -359,37 +430,38 @@ Scheduled community communications — distinct from **Emergency Broadcasts**, w
 high-severity blast channel. Bulletins are durable posts pushed to residents' in-app bulletin board.
 
 ### KPIs
-- **PUBLISHED** (active announcements) · **PUROK TARGETED** (zone-specific bulletins) ·
-  **BARANGAY-WIDE** (null purok-ID broadcasts) · **PUSH DELIVERED** (pushed to resident apps).
+- **PUBLISHED** (active announcements) · **BARANGAY-WIDE** (official barangay bulletins) ·
+  **PUSH DELIVERED** (pushed to resident apps).
 
 ### Compose form
 - **Type** cards: **Safety Alert**, **Event Notice**, **Weather Warning** (shared `BulletinType` with
   the Purok Leader's `community_bulletin_board.tsx`), each with its own accent color and description.
-- Headline and message inputs; when type is **Weather Warning** a **Weather API** panel exposes a
-  **Pull from API** button that fetches a fake PAGASA advisory (1.2s, spinner) and auto-populates
-  headline, message and severity, showing temp / wind / rain chips and a `Populated via Weather API`
-  source tag on the published bulletin.
-- **Audience Targeting**: fixed to **Entire Barangay** (all ~N registered residents, stored as `null
-  purok ID`) — the Captain cannot target a single purok; purok-level targeting stays with the Purok
-  Leader's bulletin board.
+- Headline and message inputs. **No weather API** — there is no fake PAGASA fetch, no auto-population;
+  a Weather Warning is composed by hand from the captain's own information.
+- **Audience**: fixed to **Entire Barangay** (all ~N registered residents) with a checkmark — the
+  Captain cannot target a single purok. The audience box notes that purok-specific messages are
+  coordinated through the **Desk Officer** or **Purok Leader** instead of a bulletin.
 - **Severity Level**: `info` / `warning` / `alert` cards with colored dots and descriptions.
-- **Publish & Send Push** validates headline + message, creates the bulletin (`BLT-2xxx`), lists it
-  immediately as **pushing**, then flips to **pushed** after a 1.4s simulated delivery; the footer
-  shows the target label and resident reach.
+- **Compose → Review → Publish**: **Review & Publish** validates headline + message, then opens a
+  **Publish Barangay Bulletin** confirmation modal showing **Headline**, **Message**, **Type**,
+  **Severity**, and **Audience** with **Cancel** / **Publish** buttons. Publishing creates the bulletin
+  (`BLT-2xxx`), lists it immediately as **pushing**, then flips to **pushed** after a 1.4s simulated
+  delivery; the footer shows the target label and resident reach.
 
 ### Published list
 - Filter tabs with counts (**All** / **Safety Alert** / **Event Notice** / **Weather Warning** /
-  **Archived**); each bulletin card shows ID, type + severity badges, target (purok or barangay-wide),
-  author, publish time, title, body, and a **push status** row (sending spinner → delivered count +
-  time). Actions: **Re-send** (re-pushes to residents), **Archive** / **Restore** (archived cards
-  render dimmed).
+  **Archived**); each bulletin card shows ID, type + severity badges, audience (**Entire Barangay**),
+  author, publish time, title, body, and a **delivery status** row (sending spinner → delivered count +
+  time). Actions: **View** (read-only detail modal with full message, badges and delivery status) and
+  **Archive** (archived cards render dimmed, shown under the **Archived** tab). There is **no
+  Restore or Re-send** — bulletin lifecycle stays minimal.
 
 ---
 
 ## 8. End-to-end scenario (the Captain's view of one incident)
 
-The seven screens are one oversight pipeline: **observe → analyze → alert → direct → preserve → inform
-→ preserve**. Here is a flash-flood event (`INC-2043`) as the Captain experiences it.
+The seven screens are one oversight pipeline: **observe → analyze → alert → direct → review → inform →
+report**. Here is a flash-flood event (`INC-2043`) as the Captain experiences it.
 
 ### 1. Observe — Executive Safety Dashboard
 The captain opens the Dashboard. The river-level sensor breach has flagged Purok 3 & 5 as a hazard on
@@ -413,29 +485,42 @@ Blast** — the **Confirm Executive Authorization** warning is accepted, the ale
 simultaneously, and the history now shows a new `BCAST-0xx` with the acknowledgement roll-call live.
 Residents who answer **Need Help** are tracked in the **NEEDING HELP** KPI and routed for rescue.
 
-### 4. Direct — Patrol Coverage Map
-The captain opens the **Patrol Coverage Map**. The zone shading shows Purok 3 & 5 at high coverage
-and Purok 1, 2 & 6 as low/no-patrol (rose) with their last-patrol timestamps; the cleared-checkpoint
-markers and the flood incident overlay sit over Purok 3 & 5. **Gap Analysis** flags Purok 1 & 2
-(<40% coverage) — the captain **Recommends to the Desk** the routing of Team Alpha through them after
-their sweep and **Notifies the Desk** about Purok 6. From the patrol rail the captain drills into Team
-Alpha (**Details**) and sends a **Request Re-route** that lands in the Desk Officer queue.
+### 4. Oversee — Patrol Coverage & Low-Coverage Zones
+The captain opens the **Patrol Coverage Map**. The zone shading shows Purok 3 & 5 at **High Coverage**
+and Purok 1, 2, 4 & 6 as **Low Coverage** (rose) with their last-patrol timestamps; the cleared-checkpoint
+markers and the flood incident overlay sit over Purok 3 & 5. **Low Coverage Zones** lists Purok 1 & 2
+(<40% coverage, high risk) — the captain hits **Recommend to Desk**, fills the **Recommend Patrol
+Adjustment** modal (zone, coverage, reason, recommendation) and sends it; the **Recommendation Sent to
+Desk Officer** confirmation appears and the request lands in the Desk Officer queue. From the patrol
+rail the captain drills into Team Alpha (**Details**) and sends a **Recommend Patrol Adjustment** for
+their zone.
 
 ### 5. Preserve — Closed Incidents
 Days later the captain opens **Closed Incidents**. `INC-2043` (Flash Flood Warning) sits in the
-resolved list with its closure timestamp and reason. The captain opens it and reviews the **Update
-History** (river sensor trigger → broadcast → evacuation → area secured), then the **Closure** tab
-(45 displaced, ₱1.8M damage, assistance provided) and the **Resident Feedback** tab — the evacuees'
-ratings (avg 4.0) and comments, noting the "hot meals were slow" complaint for the DSWD follow-up.
-Cross-referencing the **CCTV Evidence Viewer**, the captain pulls the flood footage clips
+resolved list with its closure timestamp and reason. The captain opens it and, under the blue
+**READ-ONLY** badge, reviews the **Incident Summary** (description, detection time, closure reason),
+the **Update History** (river sensor trigger → broadcast → evacuation → area secured), the **Impact
+Summary** (45 displaced, ₱1.8M damage, assistance provided) and the **Resident Feedback** tab — the
+evacuees' ratings (avg 4.0) and comments, noting the "hot meals were slow" complaint for the DSWD
+follow-up. Cross-referencing the **CCTV Evidence Viewer**, the captain pulls the flood footage clips
 (`CLIP-2026-*`, `CAM-RIVER-01/02`) linked to the incident and reviews them in the playback station to
 confirm the evacuation timeline.
 
 ### 6. Inform — News & Bulletins
-As the water recedes the captain posts a **Weather Warning** bulletin on **News & Bulletins**, pulling
-the PAGASA advisory from the **Weather API**, targeting the low-lying puroks (Purok 3 & 5) with a
-residents' push, so the community stays informed through the recovery period — a durable companion to
-the one-off emergency blast sent earlier.
+As the water recedes the captain posts a **Weather Warning** bulletin on **News & Bulletins**, composing
+headline, message and severity by hand (no external weather API), and pushing it to the **Entire
+Barangay** through **Compose → Review → Publish**, so the community stays informed through the recovery
+period — a durable companion to the one-off emergency blast sent earlier. Since the advisory concerns
+the whole barangay, no purok targeting is needed; if only the low-lying puroks (Purok 3 & 5) needed it,
+the captain would coordinate that through the **Desk Officer** instead of a bulletin.
+
+### 7. Report — Operational Reports
+On the dashboard's **Operational Reports** tab the captain picks **This Month** and reviews the
+executive summary: **TOTAL / CRITICAL / RESOLVED incidents**, **avg response & resolution time**,
+**SLA breaches**, **IoT device health**, **CCTV availability**, **broadcast delivery rate** and
+**resident satisfaction** (4.2 / 5). Satisfied with the numbers, the captain clicks **Export Report**,
+picks **PDF Executive Summary**, and saves the print-ready summary for the Sangguniang Barangay meeting —
+the workflow closes the loop: **Monitor → Respond/Authorize → Follow Up → Review Outcome → Report**.
 
 > Every artifact the captain touches — incident, broadcast, dispatch, directive, action item, archive
 > — carries the responsible officer and a consistent ID, so the executive trail reads back from the
@@ -470,14 +555,14 @@ the one-off emergency blast sent earlier.
 - **Captain boundary** — the Captain is the sole approver of **high-severity community broadcasts**
   (`AuthorizeEmergencyBroadcast`); the Desk Officer can only compose/queue them. Medium/low severity
   pushes go out without executive approval. All Captain dispatch-type actions are requests, not direct
-  orders: re-route requests, escalations, and gap recommendations route through the **Desk Officer
-  queue**, which confirms and executes them. Patrol **route creation** stays
-  with the Desk Officer / Admin per spec §2.3 — the Captain's patrol screen is view / re-route only and,
-  per §6.3.11, shows **area-based coverage summaries**, never continuous individual movement tracking
-  (no live GPS markers, jitter or telemetry pings). CCTV evidence is **read-only**
-  for the captain (view / export / **request unblur** only — no edits): unblur requests route to the
-  CCTV Operator / Barangay Admin queue for manual review, and bulletins are a shared channel
-  with the Purok Leader.
+  orders: patrol adjustment recommendations, escalations, and broadcast follow-ups route through the
+  **Desk Officer queue**, which confirms and executes them. Patrol **route creation** stays
+  with the Desk Officer / Admin per spec §2.3 — the Captain's patrol screen is view / recommend only
+  and, per §6.3.11, shows **area-based coverage summaries**, never continuous individual movement
+  tracking (no live GPS markers, jitter or telemetry pings). CCTV evidence is **strictly read-only**
+  for the captain (search / filter / play / seek / view metadata — **no edits, no unblur, no export, no
+  camera control**): privacy-blurred clips stay blurred and unblurring remains the CCTV Operator /
+  Barangay Admin responsibility, and bulletins are a shared channel with the Purok Leader.
 - **Broadcast store** — the **Pending Authorization** queue is a shared, live in-memory store
   (`utils/broadcastStore.ts`: `getPendingBroadcasts` / `addPendingBroadcast` / `removePendingBroadcast`
   + `subscribePendingBroadcasts`). A draft submitted by the Desk Officer's dashboard
@@ -493,4 +578,5 @@ the one-off emergency blast sent earlier.
   broadcast authorized here shows in history, a re-route request reaches the Desk Officer queue, and a
   clip links back to its incident.
 - **Data** — frontend mock state with simulated live streams (4s sensor jitter, 3s GPS jitter on live
-  patrol, 1.4s push simulation, 1.2s weather fetch); no live backend calls in these screens.
+  patrol, 1.4s push simulation); no live backend calls in these screens. Bulletins are composed by hand —
+  there is no weather API integration.

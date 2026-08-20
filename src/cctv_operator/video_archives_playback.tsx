@@ -31,7 +31,6 @@ import {
   MonitorPlay,
   CloudUpload,
   User,
-  HardDriveDownload,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { useAlertSound } from "../hooks/useAlertSound";
@@ -542,13 +541,6 @@ export default function VideoArchivesPlayback({ operatorName = "CO-01" }: { oper
     flash(`${attachTarget.id} linked by ${operatorName} to ${incidentId} — ${RETENTION_YEARS}-year retention started`);
   }
 
-  function purgeExpired() {
-    const freed = 180;
-    setArchiveUsedGB((g) => Math.max(1200, g - freed));
-    beep("info");
-    flash(`Archive reclaimed — ${freed} GB purged (footage beyond 1-year retention)`);
-  }
-
   function clearFilters() {
     setDateFilter("");
     setTimeFilter("");
@@ -610,13 +602,6 @@ export default function VideoArchivesPlayback({ operatorName = "CO-01" }: { oper
               <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${archiveCritical ? "bg-rose-100 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
                 {archiveCritical ? "NEAR CAPACITY" : "HEALTHY"}
               </span>
-              <button
-                onClick={purgeExpired}
-                className="flex h-8 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 text-[11px] font-medium text-stone-600 transition hover:bg-stone-50"
-              >
-                <HardDriveDownload size={12} />
-                Purge &gt; Retention
-              </button>
             </div>
           </div>
           <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-stone-200">

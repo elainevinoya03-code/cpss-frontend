@@ -7,6 +7,8 @@ import {
   Heart,
   Star,
   ClipboardCheck,
+  ClipboardList,
+  Lock,
   ChevronRight,
   X,
   RefreshCw,
@@ -275,12 +277,13 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 function ClosedIncidentDetail({ incident, onClose }: { incident: MockIncident; onClose: () => void }) {
-  const [activeTab, setActiveTab] = useState("updates");
+  const [activeTab, setActiveTab] = useState("summary");
   const status = STATUS_META[incident.status];
 
   const tabs = [
+    { key: "summary", label: "Incident Summary", icon: ClipboardCheck },
     { key: "updates", label: `Update History (${incident.updates.length})`, icon: Clock },
-    { key: "closure", label: "Closure", icon: ClipboardCheck },
+    { key: "impact", label: "Impact Summary", icon: ClipboardList },
     { key: "feedback", label: `Resident Feedback (${incident.residentFeedback?.length ?? 0})`, icon: Heart },
   ];
 
@@ -300,12 +303,21 @@ function ClosedIncidentDetail({ incident, onClose }: { incident: MockIncident; o
           <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${status.badge}`}>
             {status.label}
           </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-2 py-0.5 text-[10px] font-semibold text-[#0038A8]">
+            <Lock size={10} />
+            READ-ONLY
+          </span>
         </div>
       }
       footer={
-        <div className="flex items-center gap-2 text-[11px] text-stone-400">
-          <CheckCircle2 size={12} className="text-emerald-500" />
-          Closed {formatTime(incident.resolvedAt)}
+        <div className="flex items-center justify-between gap-2 text-[11px]">
+          <span className="text-stone-400">
+            Closed {formatTime(incident.resolvedAt)} · Read-only review — cannot reopen or modify
+          </span>
+          <span className="flex items-center gap-1.5 text-stone-400">
+            <CheckCircle2 size={12} className="text-emerald-500" />
+            {status.label}
+          </span>
         </div>
       }
     >
@@ -327,6 +339,43 @@ function ClosedIncidentDetail({ incident, onClose }: { incident: MockIncident; o
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-hide px-6 py-5">
+        {activeTab === "summary" && (
+          <div className="space-y-5">
+            <div>
+              <p className="mb-1.5 text-[10px] font-medium tracking-wider text-stone-400">INCIDENT SUMMARY</p>
+              <p className="rounded-lg border border-stone-100 bg-stone-50 px-3 py-2.5 text-[12px] leading-relaxed text-stone-700">
+                {incident.description}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-1 text-[10px] text-stone-600">
+                <Clock size={10} /> Detected {formatTime(incident.detectedAt)}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-1 text-[10px] text-stone-600">
+                {incident.purok}
+              </span>
+              <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${SEVERITY_BADGE[incident.severity]}`}>
+                {incident.severity} severity
+              </span>
+            </div>
+
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={14} className="text-emerald-600" />
+                <span className="text-[12px] font-semibold text-emerald-800">{status.label}</span>
+              </div>
+              <p className="mt-1.5 text-[11px] text-stone-600">
+                Resolution / closure at <span className="font-medium text-stone-800">{formatTime(incident.resolvedAt)}</span>
+              </p>
+              <div className="mt-3 rounded-lg border border-emerald-100 bg-white px-3 py-2.5">
+                <p className="text-[10px] font-medium tracking-wider text-stone-400">CLOSURE REASON</p>
+                <p className="mt-1 text-[12px] leading-relaxed text-stone-700">{incident.closureReason}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === "updates" && (
           <div className="space-y-0">
             {incident.updates.map((entry, i) => (
@@ -349,24 +398,8 @@ function ClosedIncidentDetail({ incident, onClose }: { incident: MockIncident; o
           </div>
         )}
 
-        {activeTab === "closure" && (
+        {activeTab === "impact" && (
           <div className="space-y-5">
-            <p className="text-[12px] leading-relaxed text-stone-700">{incident.description}</p>
-
-            <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 size={14} className="text-emerald-600" />
-                <span className="text-[12px] font-semibold text-emerald-800">{status.label}</span>
-              </div>
-              <p className="mt-1.5 text-[11px] text-stone-600">
-                Resolution / closure at <span className="font-medium text-stone-800">{formatTime(incident.resolvedAt)}</span>
-              </p>
-              <div className="mt-3 rounded-lg border border-emerald-100 bg-white px-3 py-2.5">
-                <p className="text-[10px] font-medium tracking-wider text-stone-400">CLOSURE REASON</p>
-                <p className="mt-1 text-[12px] leading-relaxed text-stone-700">{incident.closureReason}</p>
-              </div>
-            </div>
-
             <div>
               <p className="mb-2 text-[10px] font-medium tracking-wider text-stone-400">IMPACT SUMMARY</p>
               <div className="flex flex-wrap gap-1.5">
@@ -385,6 +418,9 @@ function ClosedIncidentDetail({ incident, onClose }: { incident: MockIncident; o
                 </div>
               )}
             </div>
+            <p className="text-[11px] leading-relaxed text-stone-400">
+              Impact figures are final as recorded at closure and cannot be modified by the Captain.
+            </p>
           </div>
         )}
 
@@ -435,6 +471,9 @@ function ClosedIncidentDetail({ incident, onClose }: { incident: MockIncident; o
                 <p className="mt-1 text-[10px] text-stone-300">Feedback appears once residents rate this incident</p>
               </div>
             )}
+            <p className="text-[11px] leading-relaxed text-stone-400">
+              Feedback is used for executive evaluation of service quality, not individual case management.
+            </p>
           </div>
         )}
       </div>
@@ -478,16 +517,31 @@ export default function IncidentArchive() {
             <div>
               <h1 className="text-2xl font-bold text-stone-900">Closed Incidents</h1>
               <p className="mt-1 text-sm text-stone-500">
-                Review of resolved and closed – false alarm incidents: update history, closure reason and resident feedback
+                Read-only review of resolved and closed incidents: incident summary, closure reason, update history, impact and resident feedback
               </p>
             </div>
-            <button
-              onClick={() => { setFilterStatus("all"); setFilterSeverity("all"); setSearchQuery(""); }}
-              className="flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-[11px] font-medium text-stone-500 hover:bg-stone-50"
-            >
-              <RefreshCw size={12} />
-              Reset
-            </button>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-2 text-[12px] font-bold tracking-widest text-white">
+                <Lock size={13} />
+                READ-ONLY
+              </span>
+              <button
+                onClick={() => { setFilterStatus("all"); setFilterSeverity("all"); setSearchQuery(""); }}
+                className="flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-[11px] font-medium text-stone-500 hover:bg-stone-50"
+              >
+                <RefreshCw size={12} />
+                Reset
+              </button>
+            </div>
+          </div>
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#0038A8]/15 bg-[#0038A8]/5 px-3.5 py-2.5">
+            <Lock size={14} className="mt-0.5 shrink-0 text-[#0038A8]" />
+            <p className="text-[11px] leading-relaxed text-stone-600">
+              Executive outcome review only. Closed incident records — summary, resolution/closure
+              timestamp, closure reason, update history, impact and resident feedback — are final and
+              <span className="font-semibold text-stone-800"> cannot be reopened, modified, or re-stated</span>.
+              Feedback is used for executive evaluation of service quality, not individual case management.
+            </p>
           </div>
         </header>
 

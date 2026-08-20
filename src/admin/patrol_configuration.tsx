@@ -18,6 +18,8 @@ import {
   Info,
   ShieldAlert,
   DoorOpen,
+  ChevronUp,
+  ChevronDown,
   type LucideIcon,
 } from "lucide-react";
 import { ConfirmModal, Modal } from "../components/ui";
@@ -56,6 +58,7 @@ type RouteStatus = "Active" | "Draft";
 type PatrolRoute = {
   id: string;
   name: string;
+  description: string;
   type: string;
   zone: string;
   status: RouteStatus;
@@ -207,6 +210,7 @@ const seedRoutes = (): PatrolRoute[] => {
     make({
       id: "r1",
       name: "Purok 1 Perimeter Patrol",
+      description: "Night patrol around the Riverside sector covering the watch post, bridge, and flood-line marker.",
       type: "Foot Patrol",
       zone: "Purok 1 — Riverside",
       status: "Active",
@@ -225,6 +229,7 @@ const seedRoutes = (): PatrolRoute[] => {
     make({
       id: "r2",
       name: "Market Row Sweep",
+      description: "Day sweep of the market stalls, dry-goods row, and fish market end.",
       type: "Foot Patrol",
       zone: "Purok 3 — Market Zone",
       status: "Active",
@@ -243,6 +248,7 @@ const seedRoutes = (): PatrolRoute[] => {
     make({
       id: "r3",
       name: "Riverside Flood Line",
+      description: "Mobile check of the flood gates and evacuation ramp during rainy season.",
       type: "Mobile Patrol",
       zone: "Purok 1 — Riverside",
       status: "Draft",
@@ -400,6 +406,109 @@ function CheckpointConfigModal({
   );
 }
 
+function RouteInfoModal({
+  route,
+  onSave,
+  onClose,
+}: {
+  route: PatrolRoute;
+  onSave: (patch: { name: string; description: string; type: string; zone: string }) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(route.name);
+  const [description, setDescription] = useState(route.description ?? "");
+  const [type, setType] = useState(route.type);
+  const [zone, setZone] = useState(route.zone);
+  const [error, setError] = useState<string | null>(null);
+
+  const save = () => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setError("Route name is required.");
+      return;
+    }
+    onSave({ name: trimmed, description: description.trim(), type, zone });
+  };
+
+  return (
+    <Modal onClose={onClose} title="Edit Route Info" subtitle={route.name} icon={<Pencil className="h-5 w-5" />} size="lg">
+      <label className="mb-1 block text-[12px] font-medium text-stone-500">Route Name</label>
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => {
+          setName(e.target.value);
+          setError(null);
+        }}
+        placeholder='e.g. "Purok 5 Coastal Patrol"'
+        className="mb-1 w-full rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 placeholder-stone-300 outline-none focus:border-[#0038A8] focus:ring-2 focus:ring-[#0038A8]/20"
+      />
+      {error && (
+        <p className="mb-3 flex items-center gap-1.5 text-[11.5px] font-medium text-rose-600">
+          <AlertTriangle size={12} /> {error}
+        </p>
+      )}
+      {!error && <p className="mb-3 text-[11px] text-stone-400">Route names must be unique.</p>}
+
+      <label className="mb-1 block text-[12px] font-medium text-stone-500">Description</label>
+      <textarea
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        rows={2}
+        placeholder="e.g. Night patrol around the Riverside sector covering the watch post and bridge."
+        className="mb-4 w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 placeholder-stone-300 outline-none focus:border-[#0038A8] focus:ring-2 focus:ring-[#0038A8]/20"
+      />
+
+      <label className="mb-1 block text-[12px] font-medium text-stone-500">Patrol Type</label>
+      <div className="mb-4 flex gap-2">
+        {PATROL_TYPES.map((t) => {
+          const Icon = TYPE_ICONS[t as keyof typeof TYPE_ICONS];
+          return (
+            <button
+              key={t}
+              onClick={() => setType(t)}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-2.5 text-[13px] font-medium transition ${
+                type === t
+                  ? "border-rose-400 bg-rose-50 text-rose-700"
+                  : "border-stone-200 text-stone-500 hover:border-stone-300 hover:bg-stone-50"
+              }`}
+            >
+              <Icon size={14} />
+              {t.replace(" Patrol", "")}
+            </button>
+          );
+        })}
+      </div>
+
+      <label className="mb-1 block text-[12px] font-medium text-stone-500">Purok / Zone / Boundary</label>
+      <select
+        value={zone}
+        onChange={(e) => setZone(e.target.value)}
+        className="mb-6 w-full rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 outline-none focus:border-[#0038A8] focus:ring-2 focus:ring-[#0038A8]/20"
+      >
+        {ZONE_OPTIONS.map((z) => (
+          <option key={z} value={z}>{z}</option>
+        ))}
+      </select>
+
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={onClose}
+          className="rounded-lg border border-stone-200 px-4 py-2 text-[12px] font-medium text-stone-600 hover:bg-stone-50"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={save}
+          className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-2 text-[12px] font-medium text-white shadow-sm hover:bg-[#002A8C]"
+        >
+          <Save className="h-3.5 w-3.5" /> Save Route Info
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 export default function PatrolConfiguration({
   navGuardRef,
   onDiscardNavigate,
@@ -416,9 +525,11 @@ export default function PatrolConfiguration({
   const [blockedDeleteRoute, setBlockedDeleteRoute] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newRouteName, setNewRouteName] = useState("");
+  const [newRouteDesc, setNewRouteDesc] = useState("");
   const [newRouteType, setNewRouteType] = useState(PATROL_TYPES[0]);
   const [newRouteZone, setNewRouteZone] = useState(ZONE_OPTIONS[0]);
   const [addError, setAddError] = useState<string | null>(null);
+  const [editInfoId, setEditInfoId] = useState<string | null>(null);
   const [configIndex, setConfigIndex] = useState<number | null>(null);
   const [history, setHistory] = useState<{ states: Checkpoint[][]; pos: number }>({ states: [], pos: -1 });
   const [showUnsaved, setShowUnsaved] = useState<PendingAction | null>(null);
@@ -625,6 +736,52 @@ export default function PatrolConfiguration({
     setConfigIndex(null);
   };
 
+  const moveCheckpoint = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= selected.checkpoints.length) return;
+    const next = selected.checkpoints.slice();
+    [next[i], next[j]] = [next[j], next[i]];
+    commitCheckpoints(next);
+  };
+
+  const saveRouteInfo = (patch: { name: string; description: string; type: string; zone: string }) => {
+    const dupName = routes.some(
+      (r) => r.id !== selectedId && r.name.trim().toLowerCase() === patch.name.trim().toLowerCase()
+    );
+    if (dupName) {
+      setModalMessage({ title: "Duplicate Route Name", message: `Another route is already named "${patch.name}".` });
+      return;
+    }
+    const now = new Date();
+    const changed: string[] = [];
+    if (patch.name !== selected.name) changed.push(`renamed to "${patch.name}"`);
+    if (patch.type !== selected.type) changed.push(`patrol type ${selected.type} → ${patch.type}`);
+    if (patch.zone !== selected.zone) changed.push(`zone ${selected.zone} → ${patch.zone}`);
+    if (patch.description !== (selected.description ?? "")) changed.push("description updated");
+    setRoutes((rs) =>
+      rs.map((r) =>
+        r.id === selectedId
+          ? {
+              ...r,
+              name: patch.name,
+              description: patch.description,
+              type: patch.type,
+              zone: patch.zone,
+              edited: todayStr(),
+              editedAt: formatDateTime(now),
+              editedBy: "System Admin",
+            }
+          : r
+      )
+    );
+    pushAuditLog(
+      "Patrol Routes",
+      `Updated patrol route "${patch.name}" — ${changed.length ? changed.join("; ") : "route info saved"} (changed by System Admin)`
+    );
+    setEditInfoId(null);
+    setModalMessage({ title: "Route Info Saved", message: `Updated route info for "${patch.name}"` });
+  };
+
   const performSave = (after?: () => void) => {
     if (!canSave) return;
     const r = selected;
@@ -798,6 +955,7 @@ export default function PatrolConfiguration({
     const newRoute: PatrolRoute = {
       id,
       name,
+      description: newRouteDesc.trim(),
       type: newRouteType,
       zone: newRouteZone,
       status: "Draft",
@@ -933,6 +1091,7 @@ export default function PatrolConfiguration({
               <button
                 onClick={() => {
                   setNewRouteName(`Route ${routes.length + 1}`);
+                  setNewRouteDesc("");
                   setNewRouteType(PATROL_TYPES[0]);
                   setAddError(null);
                   setShowAddModal(true);
@@ -1220,8 +1379,9 @@ export default function PatrolConfiguration({
                             setConfigIndex(i);
                           }}
                           style={{ cursor: "pointer" }}
-                          title="Configure checkpoint"
+                          aria-label="Configure checkpoint"
                         >
+                          <title>Configure checkpoint</title>
                           <circle r="7" fill="#0369a1" />
                           <g transform="translate(-6,-6) scale(0.5)">
                             <path
@@ -1288,18 +1448,27 @@ export default function PatrolConfiguration({
                 <h4 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-stone-400">
                   <Info size={13} /> Route Details
                 </h4>
-                {isDirty && (
-                  <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[10.5px] font-medium text-amber-700">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Unsaved changes — Save Route to keep
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setEditInfoId(selected.id)}
+                    className="flex items-center gap-1.5 rounded-md border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-stone-600 transition hover:bg-stone-50"
+                  >
+                    <Pencil className="h-3 w-3" /> Edit Route Info
+                  </button>
+                  {isDirty && (
+                    <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[10.5px] font-medium text-amber-700">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Unsaved changes — Save Route to keep
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-5">
                 <DetailItem label="Route Name">
                   <span className="font-bold text-stone-900">{selected.name}</span>
                 </DetailItem>
                 <DetailItem label="Patrol Type">{selected.type}</DetailItem>
-                <DetailItem label="Assigned Zone">{selected.zone}</DetailItem>
+                <DetailItem label="Purok / Zone / Boundary">{selected.zone}</DetailItem>
+                <DetailItem label="Description">{selected.description?.trim() || "—"}</DetailItem>
                 <DetailItem label="Status">
                   <span
                     className={`inline-flex rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${STATUS_STYLES[selected.status]}`}
@@ -1327,12 +1496,32 @@ export default function PatrolConfiguration({
                     const isStart = i === 0 && selected.checkpoints.length > 1;
                     const isEnd = i === selected.checkpoints.length - 1 && selected.checkpoints.length > 1;
                     return (
-                      <button
-                        key={i}
-                        onClick={() => setConfigIndex(i)}
-                        className="group flex shrink-0 items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-[11px] text-stone-700 transition hover:border-[#0038A8]/40 hover:bg-blue-50"
-                        title="Configure checkpoint"
-                      >
+                      <div key={i} className="flex shrink-0 items-center gap-0.5">
+                        <div className="flex flex-col">
+                          <button
+                            onClick={() => moveCheckpoint(i, -1)}
+                            disabled={i === 0}
+                            title="Move earlier in sequence"
+                            aria-label={`Move checkpoint ${i + 1} earlier in sequence`}
+                            className="flex h-3.5 w-5 items-center justify-center rounded-sm text-stone-400 transition hover:bg-stone-100 hover:text-stone-600 disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <ChevronUp className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => moveCheckpoint(i, 1)}
+                            disabled={i === selected.checkpoints.length - 1}
+                            title="Move later in sequence"
+                            aria-label={`Move checkpoint ${i + 1} later in sequence`}
+                            className="flex h-3.5 w-5 items-center justify-center rounded-sm text-stone-400 transition hover:bg-stone-100 hover:text-stone-600 disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <ChevronDown className="h-3 w-3" />
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => setConfigIndex(i)}
+                          className="group flex shrink-0 items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-[11px] text-stone-700 transition hover:border-[#0038A8]/40 hover:bg-blue-50"
+                          title="Configure checkpoint"
+                        >
                         <span
                           className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9.5px] font-bold text-white ${
                             isStart ? "bg-emerald-600" : isEnd ? "bg-rose-600" : "bg-[#0038A8]"
@@ -1357,6 +1546,7 @@ export default function PatrolConfiguration({
                           </span>
                         )}
                       </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -1407,7 +1597,16 @@ export default function PatrolConfiguration({
             })}
           </div>
 
-          <label className="mb-1 block text-[12px] font-medium text-stone-500">Assigned Zone</label>
+          <label className="mb-1 block text-[12px] font-medium text-stone-500">Description</label>
+          <textarea
+            value={newRouteDesc}
+            onChange={(e) => setNewRouteDesc(e.target.value)}
+            rows={2}
+            placeholder="e.g. Night patrol around the Riverside sector covering the watch post and bridge."
+            className="mb-4 w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 placeholder-stone-300 outline-none focus:border-[#0038A8] focus:ring-2 focus:ring-[#0038A8]/20"
+          />
+
+          <label className="mb-1 block text-[12px] font-medium text-stone-500">Purok / Zone / Boundary</label>
           <select
             value={newRouteZone}
             onChange={(e) => setNewRouteZone(e.target.value)}
@@ -1436,6 +1635,15 @@ export default function PatrolConfiguration({
           onSave={(patch) => saveCheckpointConfig(configIndex, patch)}
           onDelete={() => removeCheckpointByIndex(configIndex)}
           onClose={() => setConfigIndex(null)}
+        />
+      )}
+
+      {editInfoId && routes.find((r) => r.id === editInfoId) && (
+        <RouteInfoModal
+          key={editInfoId}
+          route={routes.find((r) => r.id === editInfoId)!}
+          onSave={saveRouteInfo}
+          onClose={() => setEditInfoId(null)}
         />
       )}
 

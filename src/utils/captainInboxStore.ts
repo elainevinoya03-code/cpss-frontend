@@ -1,4 +1,6 @@
-export type CaptainInboxType = "escalation" | "sla_breach";
+export type CaptainInboxType = "escalation" | "sla_breach" | "patrol_recommendation" | "other_request";
+
+export type CaptainInboxStatus = "pending" | "acknowledged" | "in_progress" | "completed";
 
 export type CaptainInboxItem = {
   id: string;
@@ -11,6 +13,11 @@ export type CaptainInboxItem = {
   submittedBy: string;
   createdAt: string;
   read: boolean;
+  status: CaptainInboxStatus;
+};
+
+export type CaptainInboxInput = Omit<CaptainInboxItem, "id" | "read" | "createdAt" | "status"> & {
+  status?: CaptainInboxStatus;
 };
 
 let items: CaptainInboxItem[] = [];
@@ -44,7 +51,7 @@ export function subscribeCaptainInbox(fn: () => void): () => void {
   };
 }
 
-export function addCaptainInboxItem(input: Omit<CaptainInboxItem, "id" | "read" | "createdAt">): CaptainInboxItem {
+export function addCaptainInboxItem(input: CaptainInboxInput): CaptainInboxItem {
   const unreadDup = items.some((p) => p.type === input.type && p.incidentId === input.incidentId && !p.read);
   if (unreadDup) return items.find((p) => p.type === input.type && p.incidentId === input.incidentId && !p.read) as CaptainInboxItem;
   const item: CaptainInboxItem = {
@@ -52,6 +59,7 @@ export function addCaptainInboxItem(input: Omit<CaptainInboxItem, "id" | "read" 
     id: `CAP-${String(nextId++).padStart(3, "0")}`,
     createdAt: new Date().toISOString(),
     read: false,
+    status: input.status ?? "pending",
   };
   items = [item, ...items];
   emit();

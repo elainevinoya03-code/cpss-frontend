@@ -166,6 +166,10 @@ export default function UserManagement() {
   const deactivatedCount = users.length - activeCount;
 
   const [modalMessage, setModalMessage] = useState<{ title: string; message: string } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    kind: "disable" | "enable" | "reset";
+    user: any;
+  } | null>(null);
 
   const filtered = useMemo(() => {
     let list = users;
@@ -255,21 +259,25 @@ export default function UserManagement() {
             : { title: "User Created", message: `User created successfully` }
       );
     } else if (modal.type === "edit") {
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === modal.user.id
-            ? {
-                ...u,
-                name: form.name.trim(),
-                email: form.email.trim(),
-                phone: form.phone.trim(),
-                role: form.role,
-                purok: ["Tanod", "Purok Leader"].includes(form.role) ? form.purok : "",
-              }
-            : u
-        )
-      );
       const oldUser = modal.user;
+      setUsers((prev) =>
+        prev.map((u) => {
+          if (u.id !== oldUser.id) return u;
+          const next = {
+            ...u,
+            name: form.name.trim(),
+            email: form.email.trim(),
+            phone: form.phone.trim(),
+            role: form.role,
+            purok: ["Tanod", "Purok Leader"].includes(form.role) ? form.purok : "",
+          };
+          const wasPrivileged = isPrivilegedRole(u.role);
+          const nowPrivileged = isPrivilegedRole(form.role);
+          if (nowPrivileged && !wasPrivileged) next.twoFactor = "pending";
+          else if (!nowPrivileged && wasPrivileged) next.twoFactor = "none";
+          return next;
+        })
+      );
       const changed: string[] = [];
       if (oldUser.role !== form.role) changed.push(`role to ${form.role}`);
       if (oldUser.purok !== form.purok && needsPurok) changed.push(`purok to ${form.purok}`);
@@ -278,24 +286,54 @@ export default function UserManagement() {
       if (oldUser.phone !== form.phone.trim()) changed.push("contact number");
       const detail = changed.length ? ` (${changed.join(", ")})` : "";
       pushAuditLog("User Updated", `Updated ${form.role} "${form.name.trim()}"${detail}`);
+      if (isPrivilegedRole(form.role) && !isPrivilegedRole(oldUser.role)) {
+        pushAuditLog(
+          "Configuration Change",
+          `2FA policy: ${form.role} account ${form.name.trim()} now requires mandatory two-factor enrollment (pending)`
+        );
+      }
       setModalMessage({ title: "User Updated", message: `Updated "${form.name.trim()}"` });
     }
     closeModal();
   }
 
-  function toggleActive(id) {
-    const user = users.find((u) => u.id === id);
-    if (!user) return;
-    const action = user.active ? "Deactivated" : "Activated";
-    setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, active: !u.active } : u))
-    );
-    pushAuditLog("User Deactivation", `${action} account for ${user.name} (${user.role})`);
+  function requestToggle(user: any) {
+    setConfirmAction({ kind: user.active ? "disable" : "enable", user });
   }
 
-  function resetPassword(user) {
-    pushAuditLog("Password Reset", `Password reset link sent to ${user.email} for ${user.name}`);
-    setModalMessage({ title: "Password Reset", message: `Password reset link sent to ${user.email}` });
+  function requestReset(user: any) {
+    setConfirmAction({ kind: "reset", user });
+  }
+
+  function confirmSensitiveAction() {
+    if (!confirmAction) return;
+    const { kind, user } = confirmAction;
+    if (kind === "disable") {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, active: false } : u))
+      );
+      pushAuditLog("User Disabled", `Disabled account for ${user.name} (${user.role})`);
+      setModalMessage({
+        title: "User Disabled",
+        message: `${user.name}'s account has been disabled and can no longer sign in.`,
+      });
+    } else if (kind === "enable") {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, active: true } : u))
+      );
+      pushAuditLog("User Enabled", `Enabled account for ${user.name} (${user.role})`);
+      setModalMessage({
+        title: "User Enabled",
+        message: `${user.name}'s account has been re-enabled.`,
+      });
+    } else if (kind === "reset") {
+      pushAuditLog("Password Reset", `Password reset link sent to ${user.email} for ${user.name}`);
+      setModalMessage({
+        title: "Password Reset",
+        message: `Password reset link sent to ${user.email}.`,
+      });
+    }
+    setConfirmAction(null);
   }
 
   function resendTwoFactor(user) {
@@ -504,7 +542,7 @@ export default function UserManagement() {
                         Edit
                       </button>
                       <button
-                        onClick={() => resetPassword(u)}
+                        onClick={() => requestReset(u)}
                         title="Send password reset"
                         className="flex items-center gap-1 rounded-md border border-stone-200 px-2.5 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50"
                       >
@@ -522,7 +560,7 @@ export default function UserManagement() {
                         </button>
                       )}
                       <button
-                        onClick={() => toggleActive(u.id)}
+                        onClick={() => requestToggle(u)}
                         title={u.active ? "Deactivate" : "Activate"}
                         className={`flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium transition ${
                           u.active
@@ -722,6 +760,32 @@ export default function UserManagement() {
       )}
 
       
+      {confirmAction && (
+        <ConfirmModal
+          type="confirm"
+          tone={confirmAction.kind === "disable" ? "danger" : "primary"}
+          title={
+            confirmAction.kind === "disable"
+              ? "Disable User"
+              : confirmAction.kind === "enable"
+                ? "Enable User"
+                : "Reset Password"
+          }
+          message={
+            confirmAction.kind === "disable"
+              ? `Disable ${confirmAction.user.name}'s account? They will lose access to the platform.`
+              : confirmAction.kind === "enable"
+                ? `Enable ${confirmAction.user.name}'s account? They will regain access to the platform.`
+                : `Send a password reset link to ${confirmAction.user.email} for ${confirmAction.user.name}?`
+          }
+          confirmLabel={
+            confirmAction.kind === "disable" ? "Disable" : confirmAction.kind === "enable" ? "Enable" : "Send Reset"
+          }
+          onConfirm={confirmSensitiveAction}
+          onClose={() => setConfirmAction(null)}
+        />
+      )}
+
       {modalMessage && (
         <ConfirmModal
           title={modalMessage.title}

@@ -103,28 +103,7 @@ function statusDot(s: Contact["status"]) {
   return "bg-stone-300";
 }
 
-function autoReply(group: ContactGroup, sent: string): string {
-  const t = sent.toLowerCase();
-  if (t.includes("status")) {
-    return group === "tanod"
-      ? "Status: on-site, situation under control. Full log synced to the dispatch tracker."
-      : "Status check: purok conditions normal, no anomalies observed on my end.";
-  }
-  if (t.includes("eta") || t.includes("arrival")) return "Confirmed ETA: ~3 minutes, traffic is light on the route.";
-  if (t.includes("photo") || t.includes("evidence")) return "Photo evidence uploaded to the dispatch evidence stream now.";
-  if (t.includes("verify") || t.includes("context")) return "Confirmed. I verified the local context and noted the details against the report.";
-  if (t.includes("reading") || t.includes("sensor")) return "Readings confirmed stable. I'll flag the moment anything shifts.";
-  if (group === "leader") return "Noted, Desk Officer. I'll follow up on the ground and update you shortly.";
-  return "Copy that, Desk Officer. Standing by — will report back shortly.";
-}
-
-const INCOMING_POOL: { from: string; text: string }[] = [
-  { from: "t1", text: "Site cleared. Standing down, returning to base." },
-  { from: "t3", text: "Checkpoint 3 cleared — no anomalies on R1." },
-  { from: "l1", text: "Verified: INC-2066 context confirmed, no escalation needed." },
-  { from: "l2", text: "Stray dogs rounded up by residents; situation calm now." },
-  { from: "t2", text: "Decibel reading normalizing, residents notified." },
-];
+// §16.1 — Quick actions pre-fill messages. No auto-reply or simulation.
 
 export default function OperationsChatCenter() {
   const { flash, ToastPortal } = useToast();
@@ -136,7 +115,6 @@ export default function OperationsChatCenter() {
   const [search, setSearch] = useState("");
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const activeRef = useRef(activeId);
-  const replyTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   activeRef.current = activeId;
 
@@ -145,31 +123,7 @@ export default function OperationsChatCenter() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, activeId]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const pick = INCOMING_POOL[Math.floor(Math.random() * INCOMING_POOL.length)];
-      setMessages((prev) => {
-        const thread = prev[pick.from] ?? [];
-        const last = thread[thread.length - 1];
-        if (last && Date.now() - new Date(last.time).getTime() < 9000) return prev;
-        const now = new Date().toISOString();
-        const next = {
-          ...prev,
-          [pick.from]: [...thread, { id: `i${Date.now()}`, from: "them" as const, text: pick.text, time: now }],
-        };
-        const isActive = activeRef.current === pick.from;
-        if (!isActive) {
-          setContacts((cs) => cs.map((c) => (c.id === pick.from ? { ...c, unread: c.unread + 1 } : c)));
-        }
-        return next;
-      });
-    }, 14000);
-
-    return () => {
-      clearInterval(interval);
-      replyTimers.current.forEach(clearTimeout);
-    };
-  }, []);
+  // §16.2 — No auto-reply simulation. Only manual send.
 
   function selectContact(id: string) {
     setActiveId(id);
@@ -186,15 +140,6 @@ export default function OperationsChatCenter() {
       [id]: [...(prev[id] ?? []), { id: `m${Date.now()}`, from: "me", text: body, time: now }],
     }));
     flash("Message sent");
-    const contact = contacts.find((c) => c.id === id);
-    const reply = autoReply(contact?.group ?? "tanod", body);
-    const timer = setTimeout(() => {
-      setMessages((prev) => ({
-        ...prev,
-        [id]: [...(prev[id] ?? []), { id: `m${Date.now()}r`, from: "them", text: reply, time: new Date().toISOString() }],
-      }));
-    }, 1800 + Math.random() * 900);
-    replyTimers.current.push(timer);
   }
 
   function sendTo(id: string, text: string) {
@@ -214,19 +159,19 @@ export default function OperationsChatCenter() {
   const filteredTanods = tanods.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
   const filteredLeaders = leaders.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
 
+  // §16.3 — Quick actions pre-fill messages for common operational needs
   const quickPrompts = active.group === "tanod"
     ? [
-        { label: "Status update", text: "Please provide a quick status update on the operation." },
-        { label: "Confirm ETA", text: "Confirm your estimated time of arrival." },
-        { label: "Send evidence", text: "Upload current photo evidence from the scene." },
-        { label: "Check readings", text: "Confirm the current sensor readings at the location." },
-        { label: "Acknowledge", text: "Acknowledge this message with a confirm." },
+        { label: "Ask for Status", text: "Please provide a quick status update on your current operation." },
+        { label: "Confirm ETA", text: "Confirm your estimated time of arrival at the assigned location." },
+        { label: "Request Evidence", text: "Upload any photo or video evidence from the scene." },
+        { label: "Request Verification", text: "Please verify and confirm the details of the reported incident." },
       ]
     : [
-        { label: "Verify context", text: "Can you verify local context on the resident report in your purok?" },
-        { label: "Status update", text: "Provide a quick status update on conditions in your purok." },
-        { label: "Check coverage", text: "Confirm patrol coverage tonight in your purok." },
-        { label: "Acknowledge", text: "Acknowledge this message with a confirm." },
+        { label: "Ask for Status", text: "Please provide a status update on conditions in your purok." },
+        { label: "Confirm ETA", text: "Confirm when you can reach the reported location." },
+        { label: "Request Evidence", text: "Please gather and submit any available evidence or witness accounts." },
+        { label: "Request Verification", text: "Can you verify local context on the report in your purok?" },
       ];
 
   function renderContactRow(c: Contact) {
