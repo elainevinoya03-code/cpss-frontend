@@ -34,11 +34,10 @@ import {
   VideoArchivesPlayback,
 } from "./cctv_operator";
 import {
-  PurokIncidentsQueue,
-  CommunityBulletinBoard,
-  EscalateToDeskOfficer,
-  PurokDirectory,
-  PurokIotAlerts,
+  LocalReports,
+  EscalatedCases,
+  PurokAnnouncements,
+  PurokContacts,
 } from "./purok_leader";
 import { PurokIncidentsProvider } from "./purok_leader/incidentStore";
 
@@ -46,11 +45,11 @@ const ADMIN_NAV = ["dashboard", "users", "iot", "cctv", "boundaries", "patrol", 
 const CAPTAIN_NAV = ["dashboard", "analytics", "broadcasts", "patrol", "evidence", "bulletins", "cases"];
 const DESK_OFFICER_NAV = ["dashboard", "iot_alerts", "dispatches", "patrol", "blotter", "chat"];
 const CCTV_OPERATOR_NAV = ["surveillance", "events", "archives"];
-const PUROK_LEADER_NAV = ["incidents", "bulletins", "escalate", "directory", "iot_alerts"];
+const PUROK_LEADER_NAV = ["reports", "escalated", "announcements", "contacts"];
 
 function defaultNav(role) {
   if (role === "cctv_operator") return "surveillance";
-  if (role === "purok_leader") return "incidents";
+  if (role === "purok_leader") return "reports";
   return "dashboard";
 }
 
@@ -69,7 +68,11 @@ function loadSession() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const data = JSON.parse(raw);
-      if (data.page && data.role) return data;
+      if (data.page && data.role) {
+        // Guard against stale purok-leader nav keys from before the streamlined prototype.
+        if (data.role === "purok_leader" && !PUROK_LEADER_NAV.includes(data.activeNav)) return null;
+        return data;
+      }
     }
   } catch {}
   return null;
@@ -211,11 +214,10 @@ export default function App() {
             </>
           ) : role === "purok_leader" ? (
             <>
-              {activeNav === "incidents" && <PurokIncidentsQueue />}
-              {activeNav === "bulletins" && <CommunityBulletinBoard />}
-              {activeNav === "escalate" && <EscalateToDeskOfficer />}
-              {activeNav === "directory" && <PurokDirectory />}
-              {activeNav === "iot_alerts" && <PurokIotAlerts />}
+              {activeNav === "reports" && <LocalReports />}
+              {activeNav === "escalated" && <EscalatedCases />}
+              {activeNav === "announcements" && <PurokAnnouncements />}
+              {activeNav === "contacts" && <PurokContacts />}
             </>
           ) : (
             <>

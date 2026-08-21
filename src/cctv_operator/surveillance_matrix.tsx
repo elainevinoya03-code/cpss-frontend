@@ -29,6 +29,7 @@ import {
   Link2,
   Plus,
   FileText,
+  ShieldCheck,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { useAlertSound } from "../hooks/useAlertSound";
@@ -76,7 +77,7 @@ interface CctvEvent {
   operator: string;
   incidentAction: IncidentAction;
   incidentId: string;
-  incidentStatus: "Created — pending triage" | "Linked to existing";
+  incidentStatus: "Pending Desk Officer Triage" | "Linked to existing";
 }
 
 interface ExistingIncident {
@@ -534,7 +535,7 @@ function TagModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              placeholder="Add context — number of individuals, direction of travel, vehicle description..."
+              placeholder="Record your observation — number of individuals, direction of travel, vehicle description..."
               className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
             />
           </div>
@@ -561,7 +562,7 @@ function TagModal({
                     Create New Incident
                   </span>
                   <span className="mt-0.5 block text-[9px] leading-snug text-stone-400">
-                    A new CCTV-Reported incident is created with priority Medium and routed to the Desk Officer triage queue.
+                    A CCTV-Reported incident is created with Initial Priority: Medium and routed to the Desk Officer triage queue.
                   </span>
                 </span>
               </button>
@@ -638,9 +639,9 @@ function TagModal({
               <div className="flex items-start gap-2">
                 <Info size={12} className="mt-0.5 shrink-0 text-[#0038A8]" />
                 <div>
-                  <p className="text-[10px] font-semibold text-stone-700">Default Priority: Medium</p>
+                  <p className="text-[10px] font-semibold text-stone-700">Initial Priority: Medium</p>
                   <p className="mt-0.5 text-[9px] leading-relaxed text-stone-500">
-                    The incident will be created with priority <strong>Medium</strong>. The Desk Officer determines the final priority during triage — this cannot be overridden at the CCTV Operator level.
+                    Final priority will be determined by the Desk Officer during triage. The CCTV Operator cannot change, promote, or downgrade incident priority.
                   </p>
                 </div>
               </div>
@@ -678,9 +679,15 @@ function TagModal({
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-stone-500">Incident Action</span>
                 <span className="text-[11px] font-semibold text-stone-900">
-                  {incidentAction === "create_new" ? "Create New Incident (Priority: Medium)" : `Link to ${linkedIncidentId}`}
+                  {incidentAction === "create_new" ? "Create New Incident" : `Link to ${linkedIncidentId}`}
                 </span>
               </div>
+              {incidentAction === "create_new" && (
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-stone-500">Initial Priority</span>
+                  <span className="text-[11px] font-semibold text-stone-900">Medium</span>
+                </div>
+              )}
               {incidentAction === "link_existing" && linkedIncident && (
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-stone-500">Linked Incident</span>
@@ -700,10 +707,17 @@ function TagModal({
             <Info size={12} className="mt-0.5 shrink-0 text-amber-600" />
             <p className="text-[10px] leading-relaxed text-amber-700">
               {incidentAction === "create_new" ? (
-                <>A CCTV-Reported incident will be created with priority <strong>Medium</strong> and pushed into the Desk Officer triage queue. The Desk Officer may re-prioritize during triage.</>
+                <>Initial Priority: <strong>Medium</strong>. Final priority will be determined by the Desk Officer during triage.</>
               ) : (
                 <>This CCTV event and any available footage will be attached to incident <strong>{linkedIncidentId}</strong> as supplementary evidence. No duplicate incident will be created.</>
               )}
+            </p>
+          </div>
+
+          <div className="mt-2 flex items-start gap-2 rounded-lg border border-[#0038A8]/25 bg-[#0038A8]/5 px-3 py-2.5">
+            <ShieldCheck size={12} className="mt-0.5 shrink-0 text-[#0038A8]" />
+            <p className="text-[10px] font-semibold leading-relaxed text-stone-800">
+              CCTV Operator records the observation. The Desk Officer determines the final priority during triage.
             </p>
           </div>
         </>
@@ -1140,7 +1154,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
       operator,
       incidentAction: action,
       incidentId,
-      incidentStatus: action === "create_new" ? "Created — pending triage" : "Linked to existing",
+      incidentStatus: action === "create_new" ? "Pending Desk Officer Triage" : "Linked to existing",
     };
 
     setTagCam(null);
@@ -1150,7 +1164,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
 
     beep("critical");
     if (action === "create_new") {
-      flash(`Event ${eventId} tagged on ${cam.name} — incident ${incidentId} created (Medium) and routed to Desk Officer triage`);
+      flash(`Event ${eventId} tagged on ${cam.name} — CCTV-Reported incident ${incidentId} recorded with Initial Priority: Medium, pending Desk Officer triage`);
     } else {
       flash(`Event ${eventId} tagged on ${cam.name} — attached to existing incident ${incidentId}`);
     }
@@ -1223,7 +1237,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
             <div>
               <h1 className="text-2xl font-bold text-stone-900">Surveillance Matrix</h1>
               <p className="mt-1 text-sm text-stone-500">
-                Watch · Identify · Tag · Report Camera Problems
+                Watch · Observe · Tag Event · Report Camera Problems
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -1418,7 +1432,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
                 <FileText size={16} className="text-[#0038A8]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Recent CCTV Events</h3>
-                  <p className="text-[11px] text-[#94A3B8]">Read-only log of events tagged this session</p>
+                  <p className="text-[11px] text-[#94A3B8]">Read-only log of Manual CCTV Events tagged this session</p>
                 </div>
               </div>
               <span className="rounded-full bg-stone-100 px-2.5 py-1 text-[10px] font-semibold text-stone-500">{recentEvents.length} events</span>

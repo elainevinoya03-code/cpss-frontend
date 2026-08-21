@@ -39,6 +39,7 @@ import {
   ShieldCheck,
   Navigation,
   Tag,
+  MessageCircleQuestion,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { formatTime } from "../utils/format";
@@ -241,10 +242,10 @@ const DISPATCH_META: Record<string, { label: string; action: string | null; next
 };
 
 const ESCALATION_META: Record<EscalationStatus, { label: string; badge: string; dot: string }> = {
-  in_triage: { label: "In Triage", badge: "bg-amber-100 text-amber-700", dot: "bg-amber-400" },
-  priority_adjusted: { label: "Priority Adjusted", badge: "bg-violet-100 text-violet-700", dot: "bg-violet-400" },
-  dispatched: { label: "Dispatched", badge: "bg-sky-100 text-sky-700", dot: "bg-sky-400" },
-  blotter: { label: "Blotter", badge: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-400" },
+  sent: { label: "Sent", badge: "bg-amber-100 text-amber-700", dot: "bg-amber-400" },
+  under_review: { label: "Under Review", badge: "bg-violet-100 text-violet-700", dot: "bg-violet-400" },
+  action_assigned: { label: "Action Assigned", badge: "bg-sky-100 text-sky-700", dot: "bg-sky-400" },
+  closed: { label: "Closed", badge: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-400" },
 };
 
 // §10.3.5 — canonical IncidentValidation.label enum applied by Purok Leaders.
@@ -263,6 +264,7 @@ const VALIDATION_LABEL_META: Record<ValidationLabel, { label: string; badge: str
 function displayValidationLabel(label: string): { label: string; badge: string } {
   const legacyToCanonical: Record<string, ValidationLabel> = {
     Confirmed: "locally_confirmed",
+    "Marked Invalid": "unable_to_verify",
     "False Information": "unable_to_verify",
     "Event-Related": "event_related",
   };
@@ -2232,18 +2234,18 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
     if (!next) return;
     const patch: Partial<EscalatedCase> = { status: next };
 
-    if (next === "priority_adjusted") {
+    if (next === "under_review") {
       patch.adjustedPriority = c.adjustedPriority ?? c.suggestedPriority;
-      patch.statusNote = "Priority reviewed by the Desk Officer during triage.";
-    } else if (next === "dispatched") {
+      patch.statusNote = "Under review — priority checked by the Desk Officer during triage.";
+    } else if (next === "action_assigned") {
       const team = TANOD_TEAMS.find((t) => t.status !== "standby")?.name ?? "Team Alpha";
       patch.tanodUnit = team;
-      patch.statusNote = `Dispatched to ${team} for field response.`;
+      patch.statusNote = `Action assigned — ${team} tasked with field response.`;
       setDispatches((prev) => [
         { id: `DP-${1183 + Math.floor(Math.random() * 20)}`, incident: c.id, team, status: "responding", purok: c.purok, eta: "ETA 5 min", photos: 0 },
         ...prev,
       ]);
-    } else if (next === "blotter") {
+    } else if (next === "closed") {
       const existing = blotters.some((b) => b.incident === c.id);
       if (!existing) {
         const nextId = nextBlotterId(blotters);
@@ -2253,20 +2255,31 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
         ]);
         patch.blottedId = nextId;
       }
-      patch.statusNote = "Archived into the digital barangay blotter.";
+      patch.statusNote = "Closed after Desk Officer action and archived into the digital barangay blotter.";
     }
 
     updateCase(c.id, patch);
-    flash(`${c.id} advanced to ${next.replace("_", " ")}`);
+    flash(`${c.id} advanced to ${ESCALATION_META[next].label}`);
   }
 
   function adjustEscalationPriority(c: EscalatedCase, priority: EscalatedCase["suggestedPriority"]) {
     updateCase(c.id, {
       adjustedPriority: priority,
-      status: "priority_adjusted",
-      statusNote: `Priority adjusted to ${priority} by the Desk Officer.`,
+      status: "under_review",
+      statusNote: `Under review — priority adjusted to ${priority} by the Desk Officer.`,
     });
     flash(`${c.id} priority adjusted to ${priority}`);
+  }
+
+  function requestInfoFromLeader(c: EscalatedCase) {
+    updateCase(c.id, {
+      infoRequest: {
+        message: "Please provide additional location details or context so response teams can verify this report faster.",
+        at: new Date().toISOString(),
+      },
+      statusNote: "Waiting for the Purok Leader's reply to the information request.",
+    });
+    flash(`${c.id} — further information requested from the Purok Leader`);
   }
 
   const activeIncidents = incidents
@@ -2585,7 +2598,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
               </div>
             </div>
             <span className="rounded-full bg-teal-50 px-2.5 py-1 text-[10px] font-semibold text-teal-700">
-              {escalatedCases.filter((c) => c.status !== "blotter").length} in transfer
+              {escalatedCases.filter((c) => c.status !== "closed").length} in progress
             </span>
           </div>
 
@@ -2624,12 +2637,12 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                       {c.category} · reported by {c.reporter} · {c.purok}
                     </p>
                     <div className="mt-2 rounded-md border border-stone-200 bg-stone-50 px-3 py-2">
-                      <p className="text-[10px] font-semibold text-stone-500">Leader Notes</p>
-                      <p className="mt-0.5 text-[11px] italic leading-snug text-stone-600">"{c.notes}"</p>
+                      <p className="text-[10px] font-semibold text-stone-500">Leader Handoff Note</p>
+                      <p className="mt-0.5 text-[11px] italic leading-snug text-stone-600">"{c.handoffNote}"</p>
                     </div>
 
                     <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-stone-100 pt-2.5">
-                      {(c.status === "in_triage" || c.status === "priority_adjusted") && (
+                      {(c.status === "sent" || c.status === "under_review") && (
                         <div className="flex items-center gap-1">
                           {(["critical", "warning", "low"] as const).map((p) => (
                             <button
@@ -2645,6 +2658,15 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                             </button>
                           ))}
                         </div>
+                      )}
+                      {(c.status === "sent" || c.status === "under_review") && !c.infoRequest && (
+                        <button
+                          onClick={() => requestInfoFromLeader(c)}
+                          className="flex h-7 items-center gap-1 rounded-md border border-orange-300 px-2.5 text-[11px] font-semibold text-orange-700 transition hover:bg-orange-50"
+                        >
+                          <MessageCircleQuestion size={11} />
+                          Request Info from Leader
+                        </button>
                       )}
                       {next && (
                         <button

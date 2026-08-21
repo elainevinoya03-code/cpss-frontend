@@ -62,11 +62,10 @@ const CCTV_OPERATOR_NAV_ITEMS = [
 ];
 
 const PUROK_LEADER_NAV_ITEMS = [
-  { key: "incidents", label: "Purok Incidents Queue", icon: ClipboardList },
-  { key: "bulletins", label: "Community Bulletin Board", icon: Megaphone },
-  { key: "escalate", label: "Escalate to Desk Officer", icon: ArrowUpRight },
-  { key: "directory", label: "Purok Directory", icon: Users },
-  { key: "iot_alerts", label: "IoT Alert Inbox", icon: AlertTriangle },
+  { key: "reports", label: "Local Reports", icon: ClipboardList },
+  { key: "escalated", label: "Escalated Cases", icon: ArrowUpRight },
+  { key: "announcements", label: "Purok Announcements", icon: Megaphone },
+  { key: "contacts", label: "Contacts", icon: Users },
 ];
 
 interface SidebarProps {

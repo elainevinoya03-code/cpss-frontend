@@ -22,7 +22,6 @@ import {
   CalendarClock,
   Archive,
   Lock,
-  Timer,
   ChevronRight,
   Square,
   Video,
@@ -31,11 +30,15 @@ import {
   MonitorPlay,
   CloudUpload,
   User,
+  ShieldCheck,
+  Download,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { useAlertSound } from "../hooks/useAlertSound";
 import { formatTime } from "../utils/format";
 import { ConfirmModal, Modal, SoundToggle } from "../components/ui";
+import { addEvidenceActivity } from "./evidence_activity";
+import { ExportEvidenceModal } from "./export_evidence_modal";
 
 interface Camera {
   id: string;
@@ -229,7 +232,7 @@ function FrameScene() {
   );
 }
 
-function RedactionModal({ clip, onClose, onApply }: { clip: Clip; onClose: () => void; onApply: (masks: Mask[]) => void }) {
+export function RedactionModal({ clip, onClose, onApply }: { clip: { id: string; masks?: Mask[] }; onClose: () => void; onApply: (masks: Mask[]) => void }) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const drawStartRef = useRef<{ x: number; y: number } | null>(null);
   const [masks, setMasks] = useState<Mask[]>(clip.masks ?? []);
@@ -416,7 +419,14 @@ function AttachModal({ clip, onClose, onAttach }: { clip: Clip; onClose: () => v
           ))}
         </div>
 
-        <div className="mt-3 flex items-start gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
+        <div className="mt-3 flex items-start gap-2 rounded-lg border border-[#0038A8]/15 bg-[#0038A8]/5 px-3 py-2.5">
+          <Link2 size={12} className="mt-0.5 shrink-0 text-[#0038A8]" />
+          <p className="text-[10px] font-semibold leading-relaxed text-stone-700">
+            Evidence will be linked to the selected incident.
+          </p>
+        </div>
+
+        <div className="mt-2 flex items-start gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
           <CalendarClock size={12} className="mt-0.5 shrink-0 text-[#0038A8]" />
           <p className="text-[10px] leading-relaxed text-stone-500">
             Linking starts the official <span className="font-semibold">{RETENTION_YEARS}-year retention</span> clock.
@@ -445,9 +455,11 @@ export default function VideoArchivesPlayback({ operatorName = "CO-01" }: { oper
   const [playing, setPlaying] = useState(false);
   const [clipStart, setClipStart] = useState<number | null>(null);
   const [clipEnd, setClipEnd] = useState<number | null>(null);
+  const [previewingSegment, setPreviewingSegment] = useState(false);
 
   const [redactTarget, setRedactTarget] = useState<Clip | null>(null);
   const [attachTarget, setAttachTarget] = useState<Clip | null>(null);
+  const [exportTarget, setExportTarget] = useState<Clip | null>(null);
   const [clipGenerated, setClipGenerated] = useState<Clip | null>(null);
   const [attachedSuccess, setAttachedSuccess] = useState<Clip | null>(null);
   const [redactedSuccess, setRedactedSuccess] = useState<Clip | null>(null);
@@ -475,15 +487,21 @@ export default function VideoArchivesPlayback({ operatorName = "CO-01" }: { oper
 
   useEffect(() => {
     if (!playing || !selected) return;
+    const limit = previewingSegment && clipEnd != null ? Math.min(clipEnd, selected.duration) : selected.duration;
     const interval = setInterval(() => {
-      setCurrentSec((s) => (s >= selected.duration ? s : s + 1));
+      setCurrentSec((s) => (s >= limit ? s : s + 1));
     }, 1000);
     return () => clearInterval(interval);
-  }, [playing, selected]);
+  }, [playing, selected, previewingSegment, clipEnd]);
 
   useEffect(() => {
-    if (selected && playing && currentSec >= selected.duration) setPlaying(false);
-  }, [currentSec, playing, selected]);
+    if (!selected || !playing) return;
+    const limit = previewingSegment && clipEnd != null ? clipEnd : selected.duration;
+    if (currentSec >= limit) {
+      setPlaying(false);
+      setPreviewingSegment(false);
+    }
+  }, [currentSec, playing, selected, previewingSegment, clipEnd]);
 
   function loadRecording(rec: Recording) {
     setSelected(rec);
@@ -491,6 +509,7 @@ export default function VideoArchivesPlayback({ operatorName = "CO-01" }: { oper
     setPlaying(false);
     setClipStart(null);
     setClipEnd(null);
+    setPreviewingSegment(false);
   }
 
   function generateClip() {
@@ -514,6 +533,7 @@ export default function VideoArchivesPlayback({ operatorName = "CO-01" }: { oper
     };
     setClips((prev) => [clip, ...prev]);
     setArchiveUsedGB((g) => g + CLIP_GB);
+    addEvidenceActivity({ action: "Generated", clipId: id, operator: operatorName });
     setClipStart(null);
     setClipEnd(null);
     setClipGenerated(clip);
@@ -524,6 +544,7 @@ export default function VideoArchivesPlayback({ operatorName = "CO-01" }: { oper
   function applyRedaction(masks: Mask[]) {
     if (!redactTarget) return;
     setClips((prev) => prev.map((c) => (c.id === redactTarget.id ? { ...c, privacyBlurred: true, masks } : c)));
+    addEvidenceActivity({ action: "Redacted", clipId: redactTarget.id, incidentId: redactTarget.incidentId, operator: operatorName });
     setRedactedSuccess(redactTarget);
     setRedactTarget(null);
     beep("info");
@@ -535,6 +556,7 @@ export default function VideoArchivesPlayback({ operatorName = "CO-01" }: { oper
     const attachedAt = new Date().toISOString();
     const updated: Clip = { ...attachTarget, incidentId, attachedAt, retainedUntil: retentionExpiry(attachedAt) };
     setClips((prev) => prev.map((c) => (c.id === attachTarget.id ? updated : c)));
+    addEvidenceActivity({ action: "Attached", clipId: attachTarget.id, incidentId, operator: operatorName });
     setAttachedSuccess(updated);
     setAttachTarget(null);
     beep("info");
@@ -845,7 +867,15 @@ export default function VideoArchivesPlayback({ operatorName = "CO-01" }: { oper
                     />
 
                     <div className="mt-3 mb-2 flex items-center justify-between">
-                      <span className="text-[10px] font-semibold tracking-wider text-stone-400">CLIP RANGE</span>
+                      <span className="flex items-center gap-2">
+                        <span className="text-[10px] font-semibold tracking-wider text-stone-400">CLIP RANGE</span>
+                        {previewingSegment && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-1.5 py-0.5 text-[9px] font-semibold text-rose-600">
+                            <span className="h-1 w-1 animate-pulse rounded-full bg-rose-500" />
+                            PREVIEWING SEGMENT
+                          </span>
+                        )}
+                      </span>
                       <span className="text-[10px] text-stone-400">
                         {clipStart != null ? fmtClock(clipStart) : "—"} → {clipEnd != null ? fmtClock(clipEnd) : "—"}
                         {clipRangeValid && <span className="ml-1 font-semibold text-[#0038A8]">({fmtClock((clipEnd ?? 0) - (clipStart ?? 0))})</span>}
@@ -862,6 +892,9 @@ export default function VideoArchivesPlayback({ operatorName = "CO-01" }: { oper
                         />
                       )}
                     </div>
+                    <p className="mt-1.5 text-[9px] leading-relaxed text-stone-400">
+                      Select available footage surrounding the event — clips are cut only from recorded footage, with no automatic pre-roll or post-roll added.
+                    </p>
 
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <button
@@ -872,18 +905,37 @@ export default function VideoArchivesPlayback({ operatorName = "CO-01" }: { oper
                         {playing ? "Pause" : "Play"}
                       </button>
                       <button
-                        onClick={() => setClipStart(currentSec)}
+                        onClick={() => {
+                          setClipStart(currentSec);
+                          setPreviewingSegment(false);
+                        }}
                         className="flex h-9 items-center gap-1.5 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-3 text-[11px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white"
                       >
                         <Scissors size={12} />
                         Set Clip Start
                       </button>
                       <button
-                        onClick={() => setClipEnd(currentSec)}
+                        onClick={() => {
+                          setClipEnd(currentSec);
+                          setPreviewingSegment(false);
+                        }}
                         className="flex h-9 items-center gap-1.5 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-3 text-[11px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white"
                       >
                         <Scissors size={12} />
                         Set Clip End
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (clipStart == null || clipEnd == null) return;
+                          setCurrentSec(clipStart);
+                          setPlaying(true);
+                          setPreviewingSegment(true);
+                        }}
+                        disabled={!clipRangeValid}
+                        className="flex h-9 items-center gap-1.5 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-3 text-[11px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <Eye size={12} />
+                        Preview Segment
                       </button>
                       <button
                         onClick={generateClip}
@@ -923,7 +975,7 @@ export default function VideoArchivesPlayback({ operatorName = "CO-01" }: { oper
               </div>
               <div className="grid grid-cols-1 gap-3 px-5 pb-5 sm:grid-cols-3">
                 {[
-                  { step: "1", title: "Mark Timeline", desc: "Set clip start and end while scrubbing the recording.", icon: Scissors },
+                  { step: "1", title: "Select Footage", desc: "Scrub the recording and mark the start and end of the available footage surrounding the event.", icon: Scissors },
                   { step: "2", title: "Generate & Store", desc: "Saves an mp4 to Supabase Storage and writes a CCTVClip record.", icon: Database },
                   { step: "3", title: "Redact & Link", desc: "Manually mask PII, then attach the clip to an incident for review.", icon: Shield },
                 ].map((s) => (
@@ -987,30 +1039,33 @@ export default function VideoArchivesPlayback({ operatorName = "CO-01" }: { oper
                             </span>
                           )}
                         </div>
-                        <p className="mt-1 flex items-center gap-1 text-[11px] text-stone-600">
-                          <Camera size={10} className="text-[#0038A8]" />
-                          {clip.cameraId} · {clip.cameraName}
-                        </p>
-                        <p className="mt-0.5 flex items-center gap-1 text-[10px] text-stone-400">
-                          <Clock size={9} />
-                          {formatTime(clip.startISO)} → {formatTime(clip.endISO)}
-                          <span className="mx-0.5">·</span>
-                          <Timer size={9} />
-                          {fmtClock(clip.durationSec)}
-                          <span className="mx-0.5">·</span>
-                          <User size={9} />
-                          by {clip.operator}
-                        </p>
-                        <p className="mt-0.5 flex items-center gap-1 truncate font-mono text-[9px] text-stone-400">
+                        <div className="mt-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
+                          <p className="text-[9px] font-semibold tracking-wider text-stone-400">EVIDENCE DETAILS</p>
+                          <div className="mt-1.5 grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
+                            <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">Camera:</span> {clip.cameraId} · {clip.cameraName}</p>
+                            <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">Recorded:</span> {formatTime(clip.startISO)} → {formatTime(clip.endISO)}</p>
+                            <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">Clip Duration:</span> {fmtClock(clip.durationSec)}</p>
+                            <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">Created by:</span> {clip.operator}</p>
+                            <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">Related Incident:</span> {clip.incidentId ?? "Not attached"}</p>
+                            <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">Privacy Processing:</span> {clip.privacyBlurred ? "Applied (manual masks)" : "Pending manual redaction"}</p>
+                            <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">Status:</span> {clip.incidentId ? "Attached" : "Unattached"}</p>
+                            <p className="flex items-center gap-1 text-[10px] font-semibold text-emerald-700 sm:col-span-2">
+                              <ShieldCheck size={10} />
+                              Integrity: Verified
+                              <span className="rounded bg-stone-200 px-1 py-px text-[8px] font-bold tracking-wider text-stone-500">MOCK</span>
+                            </p>
+                          </div>
+                          {clip.masks && clip.masks.length > 0 && (
+                            <p className="mt-1 flex items-center gap-1 text-[9px] text-stone-400">
+                              <Box size={9} />
+                              {clip.masks.length} mask(s) applied {clip.masks.map((m) => m.label).join(", ")}
+                            </p>
+                          )}
+                        </div>
+                        <p className="mt-1 flex items-center gap-1 truncate font-mono text-[9px] text-stone-400">
                           <HardDrive size={9} />
                           {clip.storageUrl}
                         </p>
-                        {clip.masks && clip.masks.length > 0 && (
-                          <p className="mt-1 flex items-center gap-1 text-[9px] text-stone-400">
-                            <Box size={9} />
-                            {clip.masks.length} mask(s) applied {clip.masks.map((m) => m.label).join(", ")}
-                          </p>
-                        )}
                       </div>
 
                       <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
@@ -1020,6 +1075,13 @@ export default function VideoArchivesPlayback({ operatorName = "CO-01" }: { oper
                         >
                           <EyeOff size={11} />
                           {clip.privacyBlurred ? "Manage Blur" : "Redact"}
+                        </button>
+                        <button
+                          onClick={() => setExportTarget(clip)}
+                          className="flex h-7 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                        >
+                          <Download size={11} />
+                          Export
                         </button>
                         <button
                           onClick={() => setAttachTarget(clip)}
@@ -1138,6 +1200,16 @@ export default function VideoArchivesPlayback({ operatorName = "CO-01" }: { oper
           clip={attachTarget}
           onClose={() => setAttachTarget(null)}
           onAttach={attachClip}
+        />
+      )}
+
+      {exportTarget && (
+        <ExportEvidenceModal
+          clipId={exportTarget.id}
+          incidentId={exportTarget.incidentId}
+          operator={operatorName}
+          subtitle={`${exportTarget.cameraName} · ${exportTarget.cameraId}`}
+          onClose={() => setExportTarget(null)}
         />
       )}
 
