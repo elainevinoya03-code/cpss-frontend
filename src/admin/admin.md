@@ -142,9 +142,9 @@ Manage personnel accounts and access roles for the whole platform.
 
 ### Create / Edit modal
 - Fields: **Full Name**, **Email Address**, **Contact Number**, **System Role** (Captain, Desk
-  Officer, CCTV Operator, Tanod, Purok Leader — no Resident accounts are created here).
-- **Assigned Purok / Zone** appears only for **Tanod** (patrol zone) and **Purok Leader** (report
-  feed zone), sourced from `PUROK_OPTIONS`.
+  Officer, CCTV Operator, Tanod, Purok Leader, Resident).
+- **Assigned Purok / Zone** appears for **Tanod** (patrol zone), **Purok Leader** (report
+  feed zone), and **Resident** (home purok), sourced from `PUROK_OPTIONS`.
 - **2FA policy notice** — picking **Captain** or **Desk Officer** shows an amber notice that two-factor
   authentication is **mandatory per policy** for that role; on create the account is minted in a
   **Pending 2FA** state (writes a `Configuration Change` entry) and cannot become **Active** until

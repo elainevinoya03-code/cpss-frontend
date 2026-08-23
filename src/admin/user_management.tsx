@@ -4,7 +4,7 @@ import { PUROK_OPTIONS } from "../constants/purok";
 import { ConfirmModal, Modal as ModalShell } from "../components/ui";
 import { pushAuditLog } from "../utils/auditLog";
 
-const ROLES = ["Captain", "Desk Officer", "CCTV Operator", "Tanod", "Purok Leader"];
+const ROLES = ["Captain", "Desk Officer", "CCTV Operator", "Tanod", "Purok Leader", "Resident"];
 
 const PRIVILEGED_ROLES = ["Admin", "Captain", "Desk Officer"];
 
@@ -18,6 +18,7 @@ const ROLE_STYLES = {
   "CCTV Operator": "bg-blue-100 text-blue-700",
   Tanod: "bg-emerald-100 text-emerald-700",
   "Purok Leader": "bg-violet-100 text-violet-700",
+  Resident: "bg-sky-100 text-sky-700",
 };
 
 const ALL_FILTERS = ["All", ...ROLES, "Active", "Deactivated"];
@@ -238,7 +239,7 @@ export default function UserManagement() {
         email: form.email.trim(),
         phone: form.phone.trim(),
         role: form.role,
-        purok: ["Tanod", "Purok Leader"].includes(form.role) ? form.purok : "",
+        purok: ["Tanod", "Purok Leader", "Resident"].includes(form.role) ? form.purok : "",
         active: true,
         twoFactor: privileged ? "pending" : "none",
         lastLogin: "—",
@@ -269,7 +270,7 @@ export default function UserManagement() {
             email: form.email.trim(),
             phone: form.phone.trim(),
             role: form.role,
-            purok: ["Tanod", "Purok Leader"].includes(form.role) ? form.purok : "",
+            purok: ["Tanod", "Purok Leader", "Resident"].includes(form.role) ? form.purok : "",
           };
           const wasPrivileged = isPrivilegedRole(u.role);
           const nowPrivileged = isPrivilegedRole(form.role);
@@ -344,7 +345,7 @@ export default function UserManagement() {
     });
   }
 
-  const needsPurok = ["Tanod", "Purok Leader"].includes(form.role);
+  const needsPurok = ["Tanod", "Purok Leader", "Resident"].includes(form.role);
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
@@ -703,7 +704,9 @@ export default function UserManagement() {
                 hint={
                   form.role === "Purok Leader"
                     ? "Determines which Purok reports this user receives"
-                    : "Determines this Tanod's patrol zone"
+                    : form.role === "Resident"
+                      ? "Resident's home purok"
+                      : "Determines this Tanod's patrol zone"
                 }
               >
                 <select
