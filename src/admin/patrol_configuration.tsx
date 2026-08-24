@@ -20,6 +20,9 @@ import {
   DoorOpen,
   ChevronUp,
   ChevronDown,
+  ZoomIn,
+  ZoomOut,
+  Move,
   type LucideIcon,
 } from "lucide-react";
 import { ConfirmModal, Modal } from "../components/ui";
@@ -128,6 +131,8 @@ const SPEED_KMH: Record<string, number> = {
 
 const MIN_CHECKPOINT_DISTANCE = 26;
 const OVERLAP_DISTANCE = 4;
+
+const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
 // Number of active patrol schedules currently referencing each route. Read-only
 // reference maintained by the Desk Officer / scheduler — never managed here.
@@ -264,6 +269,31 @@ const seedRoutes = (): PatrolRoute[] => {
     }),
   ];
 };
+
+function MapControlButton({
+  icon: Icon,
+  label,
+  onClick,
+  active,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
+        active ? "bg-[#0038A8] text-white" : "text-stone-600 hover:bg-stone-100"
+      }`}
+    >
+      <Icon className="h-4 w-4" />
+    </button>
+  );
+}
 
 function DetailItem({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -532,9 +562,14 @@ export default function PatrolConfiguration({
   const [editInfoId, setEditInfoId] = useState<string | null>(null);
   const [configIndex, setConfigIndex] = useState<number | null>(null);
   const [history, setHistory] = useState<{ states: Checkpoint[][]; pos: number }>({ states: [], pos: -1 });
+  const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
+  const [panActive, setPanActive] = useState(false);
+  const [panState, setPanState] = useState<{ startX: number; startY: number; viewX: number; viewY: number } | null>(null);
   const [showUnsaved, setShowUnsaved] = useState<PendingAction | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const latestMove = useRef<Checkpoint[]>([]);
+  const dragDownRef = useRef<{ x: number; y: number } | null>(null);
+  const dragMovedRef = useRef(false);
 
   const scrollbarCss = `
     .pr-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -661,16 +696,34 @@ export default function PatrolConfiguration({
     const rect = svg.getBoundingClientRect();
     const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
     const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
-    const x = ((clientX - rect.left) / rect.width) * 1000;
-    const y = ((clientY - rect.top) / rect.height) * 800;
+    const x = view.x + ((clientX - rect.left) / rect.width) * (1000 / view.zoom);
+    const y = view.y + ((clientY - rect.top) / rect.height) * (800 / view.zoom);
     return {
       x: Math.max(20, Math.min(980, x)),
       y: Math.max(20, Math.min(780, y)),
     };
   };
 
+  const zoomBy = (factor: number) =>
+    setView((v) => {
+      const zoom = clamp(v.zoom * factor, 1, 6);
+      const vbW = 1000 / zoom;
+      const vbH = 800 / zoom;
+      const cx = v.x + 1000 / v.zoom / 2;
+      const cy = v.y + 800 / v.zoom / 2;
+      const x = clamp(cx - vbW / 2, 0, Math.max(0, 1000 - vbW));
+      const y = clamp(cy - vbH / 2, 0, Math.max(0, 800 - vbH));
+      return { x, y, zoom };
+    });
+
+  const resetView = () => setView({ x: 0, y: 0, zoom: 1 });
+
   const handleMapClick = (evt) => {
     if (mode !== "draw") return;
+    if (dragMovedRef.current) {
+      dragMovedRef.current = false;
+      return;
+    }
     const p = svgPoint(evt);
     const cp: Checkpoint = { x: p.x, y: p.y, name: "", type: "Regular", stopDuration: 0, notes: "" };
     commitCheckpoints([...selected.checkpoints, cp]);
@@ -680,6 +733,8 @@ export default function PatrolConfiguration({
   const handleNodeMouseDown = (idx: number) => (evt) => {
     if (mode !== "editNodes") return;
     evt.stopPropagation();
+    dragDownRef.current = { x: evt.clientX, y: evt.clientY };
+    dragMovedRef.current = false;
     latestMove.current = selected.checkpoints;
     commitCheckpoints(selected.checkpoints);
     setDragIndex(idx);
@@ -688,17 +743,64 @@ export default function PatrolConfiguration({
   const handleNodeTouchStart = (idx: number) => (evt) => {
     if (mode !== "editNodes") return;
     evt.stopPropagation();
+    const t = evt.touches?.[0];
+    dragDownRef.current = t ? { x: t.clientX, y: t.clientY } : null;
+    dragMovedRef.current = false;
     latestMove.current = selected.checkpoints;
     commitCheckpoints(selected.checkpoints);
     setDragIndex(idx);
   };
 
-  const handleMapMouseMove = (evt) => {
-    if (dragIndex === null || mode !== "editNodes") return;
-    const p = svgPoint(evt);
-    const next = selected.checkpoints.map((c, i) => (i === dragIndex ? p : c));
-    latestMove.current = next;
-    applyCheckpoints(next);
+  const applyPointerMove = (evt) => {
+    if (dragIndex !== null && mode === "editNodes") {
+      const cx = evt.touches ? evt.touches[0].clientX : evt.clientX;
+      const cy = evt.touches ? evt.touches[0].clientY : evt.clientY;
+      if (dragDownRef.current && Math.hypot(cx - dragDownRef.current.x, cy - dragDownRef.current.y) > 6) {
+        dragMovedRef.current = true;
+      }
+      const p = svgPoint(evt);
+      const next = selected.checkpoints.map((c, i) => (i === dragIndex ? p : c));
+      latestMove.current = next;
+      applyCheckpoints(next);
+      return;
+    }
+    if (panState) {
+      const svg = svgRef.current;
+      if (!svg) return;
+      const cx = evt.touches ? evt.touches[0].clientX : evt.clientX;
+      const cy = evt.touches ? evt.touches[0].clientY : evt.clientY;
+      if (dragDownRef.current && Math.hypot(cx - dragDownRef.current.x, cy - dragDownRef.current.y) > 6) {
+        dragMovedRef.current = true;
+      }
+      const rect = svg.getBoundingClientRect();
+      const vbW = 1000 / view.zoom;
+      const vbH = 800 / view.zoom;
+      const dx = ((cx - panState.startX) / rect.width) * vbW;
+      const dy = ((cy - panState.startY) / rect.height) * vbH;
+      setView((v) => {
+        const maxX = Math.max(0, 1000 - 1000 / v.zoom);
+        const maxY = Math.max(0, 800 - 800 / v.zoom);
+        return { ...v, x: clamp(panState.viewX - dx, 0, maxX), y: clamp(panState.viewY - dy, 0, maxY) };
+      });
+    }
+  };
+
+  const handleMapMouseMove = applyPointerMove;
+  const handleTouchMove = applyPointerMove;
+
+  const startPan = (evt) => {
+    dragDownRef.current = { x: evt.clientX, y: evt.clientY };
+    dragMovedRef.current = false;
+    if (mode === "draw" && !panActive) return;
+    setPanState({ startX: evt.clientX, startY: evt.clientY, viewX: view.x, viewY: view.y });
+  };
+
+  const startPanTouch = (evt) => {
+    const t = evt.touches?.[0];
+    dragDownRef.current = t ? { x: t.clientX, y: t.clientY } : null;
+    dragMovedRef.current = false;
+    if ((mode === "draw" && !panActive) || !t) return;
+    setPanState({ startX: t.clientX, startY: t.clientY, viewX: view.x, viewY: view.y });
   };
 
   const stopDrag = () => {
@@ -707,19 +809,16 @@ export default function PatrolConfiguration({
       latestMove.current = [];
     }
     setDragIndex(null);
-  };
-
-  const handleTouchMove = (evt) => {
-    if (dragIndex === null || mode !== "editNodes") return;
-    const p = svgPoint(evt);
-    const next = selected.checkpoints.map((c, i) => (i === dragIndex ? p : c));
-    latestMove.current = next;
-    applyCheckpoints(next);
+    setPanState(null);
   };
 
   const removeCheckpoint = (idx: number) => (evt) => {
     evt.stopPropagation();
     if (mode !== "editNodes") return;
+    if (dragMovedRef.current) {
+      dragMovedRef.current = false;
+      return;
+    }
     if (selected.checkpoints.length <= 2) return;
     commitCheckpoints(selected.checkpoints.filter((_, i) => i !== idx));
   };
@@ -745,8 +844,11 @@ export default function PatrolConfiguration({
   };
 
   const saveRouteInfo = (patch: { name: string; description: string; type: string; zone: string }) => {
+    const targetId = editInfoId ?? selectedId;
+    const target = routes.find((r) => r.id === targetId);
+    if (!target) return;
     const dupName = routes.some(
-      (r) => r.id !== selectedId && r.name.trim().toLowerCase() === patch.name.trim().toLowerCase()
+      (r) => r.id !== targetId && r.name.trim().toLowerCase() === patch.name.trim().toLowerCase()
     );
     if (dupName) {
       setModalMessage({ title: "Duplicate Route Name", message: `Another route is already named "${patch.name}".` });
@@ -754,13 +856,13 @@ export default function PatrolConfiguration({
     }
     const now = new Date();
     const changed: string[] = [];
-    if (patch.name !== selected.name) changed.push(`renamed to "${patch.name}"`);
-    if (patch.type !== selected.type) changed.push(`patrol type ${selected.type} → ${patch.type}`);
-    if (patch.zone !== selected.zone) changed.push(`zone ${selected.zone} → ${patch.zone}`);
-    if (patch.description !== (selected.description ?? "")) changed.push("description updated");
+    if (patch.name !== target.name) changed.push(`renamed to "${patch.name}"`);
+    if (patch.type !== target.type) changed.push(`patrol type ${target.type} → ${patch.type}`);
+    if (patch.zone !== target.zone) changed.push(`zone ${target.zone} → ${patch.zone}`);
+    if (patch.description !== (target.description ?? "")) changed.push("description updated");
     setRoutes((rs) =>
       rs.map((r) =>
-        r.id === selectedId
+        r.id === targetId
           ? {
               ...r,
               name: patch.name,
@@ -1022,9 +1124,9 @@ export default function PatrolConfiguration({
           </p>
         </header>
 
-        <div className="flex flex-1 overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+        <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm lg:flex-row">
           {/* Sidebar */}
-          <aside className="flex max-h-[46vh] w-full shrink-0 flex-col border-b border-stone-200 md:max-h-none md:w-[21rem] md:border-b-0 md:border-r">
+          <aside className="flex max-h-[46vh] w-full shrink-0 flex-col border-b border-stone-200 lg:max-h-none lg:w-[21rem] lg:border-b-0 lg:border-r">
             <div className="px-5 pt-5 pb-3">
               <h2 className="text-base font-bold text-stone-900">Patrol Routes</h2>
               <p className="mt-0.5 text-xs text-stone-400">{routes.length} routes configured</p>
@@ -1066,11 +1168,11 @@ export default function PatrolConfiguration({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          requestSelectRoute(r.id, "editNodes");
+                          setEditInfoId(r.id);
                         }}
                         className="flex items-center gap-1.5 rounded-full border border-stone-200 px-3 py-1 text-[12px] font-medium text-stone-600 hover:bg-stone-50"
                       >
-                        <Pencil className="h-3 w-3" /> Edit
+                        <Pencil className="h-3 w-3" /> Edit Info
                       </button>
                       <button
                         onClick={(e) => {
@@ -1104,7 +1206,7 @@ export default function PatrolConfiguration({
           </aside>
 
           {/* Map panel */}
-          <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <section className="flex min-h-[26rem] min-w-0 flex-1 flex-col overflow-hidden lg:min-h-0">
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-stone-200 bg-white px-6 py-3.5">
               <div className="min-w-0">
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900">
@@ -1178,19 +1280,13 @@ export default function PatrolConfiguration({
                   <MousePointer2 className="h-3.5 w-3.5" />
                   {mode === "editNodes" ? "Done Editing" : "Edit Checkpoints"}
                 </button>
-                {validationErrors.length > 0 && (
-                  <span className="flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-800">
-                    <AlertTriangle size={12} />
-                    {validationErrors.length} issue{validationErrors.length === 1 ? "" : "s"}
-                  </span>
-                )}
                 <button
                   onClick={saveRoute}
                   disabled={!canSave}
-                  className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium shadow-sm transition ${
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium shadow-sm transition ${
                     canSave
-                      ? "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
-                      : "cursor-not-allowed border-stone-200 bg-stone-100 text-stone-400"
+                      ? "bg-[#0038A8] text-white hover:bg-[#002A8C]"
+                      : "cursor-not-allowed bg-stone-100 text-stone-400"
                   }`}
                 >
                   <Save className="h-3.5 w-3.5" /> Save Route
@@ -1227,10 +1323,12 @@ export default function PatrolConfiguration({
 
               <svg
                 ref={svgRef}
-                viewBox="0 0 1000 800"
+                viewBox={`${view.x} ${view.y} ${1000 / view.zoom} ${800 / view.zoom}`}
                 className="h-full w-full"
-                style={{ cursor: mode === "draw" ? "crosshair" : "default" }}
+                style={{ cursor: mode === "draw" && !panActive ? "crosshair" : panActive ? "grab" : "default" }}
                 onClick={handleMapClick}
+                onMouseDown={startPan}
+                onTouchStart={startPanTouch}
                 onMouseMove={handleMapMouseMove}
                 onMouseUp={stopDrag}
                 onMouseLeave={stopDrag}
@@ -1332,6 +1430,10 @@ export default function PatrolConfiguration({
                       onTouchStart={handleNodeTouchStart(i)}
                       onClick={(e) => {
                         e.stopPropagation();
+                        if (dragMovedRef.current) {
+                          dragMovedRef.current = false;
+                          return;
+                        }
                         setConfigIndex(i);
                       }}
                       style={{ cursor: mode === "editNodes" ? "grab" : "pointer" }}
@@ -1376,6 +1478,10 @@ export default function PatrolConfiguration({
                           transform="translate(16,-16)"
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (dragMovedRef.current) {
+                              dragMovedRef.current = false;
+                              return;
+                            }
                             setConfigIndex(i);
                           }}
                           style={{ cursor: "pointer" }}
@@ -1407,6 +1513,14 @@ export default function PatrolConfiguration({
                   );
                 })}
               </svg>
+
+              {/* Map controls */}
+              <div className="absolute right-3 top-3 z-10 flex flex-col gap-1 rounded-xl border border-stone-200 bg-white/95 p-1.5 shadow-sm backdrop-blur">
+                <MapControlButton icon={ZoomIn} label="Zoom in" onClick={() => zoomBy(1.25)} />
+                <MapControlButton icon={ZoomOut} label="Zoom out" onClick={() => zoomBy(0.8)} />
+                <MapControlButton icon={ResetIcon} label="Reset view" onClick={resetView} />
+                <MapControlButton icon={Move} label="Pan" active={panActive} onClick={() => setPanActive((p) => !p)} />
+              </div>
 
               {/* Legend */}
               <div className="absolute bottom-4 right-4 rounded-lg border border-stone-200 bg-white/95 px-3.5 py-3 text-[11px] shadow-sm backdrop-blur">
@@ -1552,7 +1666,7 @@ export default function PatrolConfiguration({
                 </div>
               </div>
             </div>
-          </main>
+          </section>
         </div>
       </main>
 

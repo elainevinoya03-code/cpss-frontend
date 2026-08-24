@@ -514,6 +514,8 @@ export default function DigitalBoundaries() {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const pendingActionRef = useRef<(() => void) | null>(null);
+  const panDownRef = useRef<{ x: number; y: number } | null>(null);
+  const panMovedRef = useRef(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mapAreaRef = useRef<HTMLDivElement>(null);
@@ -635,6 +637,10 @@ export default function DigitalBoundaries() {
 
   const handleMapClick = (evt) => {
     if (mode !== "draw") return;
+    if (panMovedRef.current) {
+      panMovedRef.current = false;
+      return;
+    }
     const p = svgPoint(evt);
     updateSelectedNodes((nodes) => [...nodes, p]);
   };
@@ -660,11 +666,16 @@ export default function DigitalBoundaries() {
     if (panState) {
       const svg = svgRef.current;
       if (!svg) return;
+      const cx = evt.touches ? evt.touches[0].clientX : evt.clientX;
+      const cy = evt.touches ? evt.touches[0].clientY : evt.clientY;
+      if (panDownRef.current && Math.hypot(cx - panDownRef.current.x, cy - panDownRef.current.y) > 6) {
+        panMovedRef.current = true;
+      }
       const rect = svg.getBoundingClientRect();
       const vbW = 1000 / view.zoom;
       const vbH = 800 / view.zoom;
-      const dx = ((evt.touches ? evt.touches[0].clientX : evt.clientX) - panState.startX) / rect.width * vbW;
-      const dy = ((evt.touches ? evt.touches[0].clientY : evt.clientY) - panState.startY) / rect.height * vbH;
+      const dx = ((cx - panState.startX) / rect.width) * vbW;
+      const dy = ((cy - panState.startY) / rect.height) * vbH;
       setView((v) => {
         const maxX = Math.max(0, 1000 - 1000 / v.zoom);
         const maxY = Math.max(0, 800 - 800 / v.zoom);
@@ -679,6 +690,8 @@ export default function DigitalBoundaries() {
   const startPan = (evt) => {
     // Pan-by-drag is always available outside draw mode; the Pan tool additionally
     // lets the user reposition the view while drawing without adding a node.
+    panDownRef.current = { x: evt.clientX, y: evt.clientY };
+    panMovedRef.current = false;
     if (mode === "draw" && !panActive) return;
     setPanState({
       startX: evt.clientX,
@@ -689,8 +702,10 @@ export default function DigitalBoundaries() {
   };
 
   const startPanTouch = (evt) => {
-    if ((mode === "draw" && !panActive) || !evt.touches?.length) return;
-    const t = evt.touches[0];
+    const t = evt.touches?.[0];
+    panDownRef.current = t ? { x: t.clientX, y: t.clientY } : null;
+    panMovedRef.current = false;
+    if ((mode === "draw" && !panActive) || !t) return;
     setPanState({ startX: t.clientX, startY: t.clientY, viewX: view.x, viewY: view.y });
   };
 
@@ -1029,7 +1044,7 @@ export default function DigitalBoundaries() {
 
         <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm lg:flex-row">
           {/* Sidebar */}
-          <aside className="flex max-h-[46vh] w-full shrink-0 flex-col border-b border-stone-200 md:max-h-none lg:w-[21rem] lg:border-b-0 lg:border-r">
+          <aside className="flex max-h-[46vh] w-full shrink-0 flex-col border-b border-stone-200 lg:max-h-none lg:w-[21rem] lg:border-b-0 lg:border-r">
             <div className="px-5 pt-5 pb-3">
               <h2 className="text-base font-bold text-stone-900">Defined Regions</h2>
               <p className="mt-0.5 text-xs text-stone-400">
@@ -1078,7 +1093,10 @@ export default function DigitalBoundaries() {
                         : "border-stone-200 bg-white hover:border-stone-300"
                     } ${!r.visible ? "opacity-60" : ""}`}
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="min-w-0 flex-1 break-words text-[14px] font-semibold leading-snug text-stone-900">
+                        {r.name}
+                      </span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1086,32 +1104,29 @@ export default function DigitalBoundaries() {
                         }}
                         title={r.visible ? "Hide boundary" : "Show boundary"}
                         aria-label={r.visible ? "Hide boundary" : "Show boundary"}
-                        className="mt-0.5 shrink-0 rounded-full border border-stone-200 p-1 text-stone-500 hover:bg-stone-100"
+                        className="shrink-0 rounded-md p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-600"
                       >
-                        {r.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                        {r.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                       </button>
-                      <span className="min-w-0 flex-1 break-words text-[14px] font-semibold leading-snug text-stone-900">
-                        {r.name}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <span
+                        className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10.5px] font-medium ${STATUS_STYLES[r.status]}`}
+                      >
+                        {r.status}
                       </span>
-                      <div className="flex shrink-0 flex-wrap justify-end gap-1.5" style={{ maxWidth: "150px" }}>
+                      <span
+                        className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10.5px] font-medium ${BADGE_STYLES[r.badge]}`}
+                      >
+                        {r.badge}
+                      </span>
+                      {r.classification && (
                         <span
-                          className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10.5px] font-medium ${STATUS_STYLES[r.status]}`}
+                          className={`max-w-full truncate rounded-full px-2.5 py-0.5 text-[10.5px] font-medium ${CLASSIFICATION_BADGES[r.classification] || "bg-stone-100 text-stone-600"}`}
                         >
-                          {r.status}
+                          {r.classification}
                         </span>
-                        <span
-                          className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10.5px] font-medium ${BADGE_STYLES[r.badge]}`}
-                        >
-                          {r.badge}
-                        </span>
-                        {r.classification && (
-                          <span
-                            className={`truncate max-w-[130px] rounded-full px-2.5 py-0.5 text-[10.5px] font-medium ${CLASSIFICATION_BADGES[r.classification] || "bg-stone-100 text-stone-600"}`}
-                          >
-                            {r.classification}
-                          </span>
-                        )}
-                      </div>
+                      )}
                     </div>
                     <p className="mt-1.5 text-[12px] text-stone-400">
                       {r.nodes.length} nodes &nbsp;&nbsp; {polygonArea(r.nodes).toFixed(1)} ha
@@ -1213,106 +1228,93 @@ export default function DigitalBoundaries() {
           </aside>
 
           {/* Map panel */}
-          <main className="flex min-h-[26rem] flex-1 flex-col overflow-hidden lg:min-h-0">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 bg-white px-6 py-3.5">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="truncate text-sm font-semibold text-stone-900">{selected.name}</h3>
-                  {hasUnsaved && (
-                    <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10.5px] font-medium text-amber-700">
-                      ● Unsaved changes
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-stone-400">
-                  {selected.nodes.length} polygon nodes &nbsp;·&nbsp; {area} ha &nbsp;·&nbsp; Last
-                  edited {fmtDate(selected.edited)}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={startDraw}
-                  className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-                    mode === "draw"
-                      ? "border-rose-300 bg-rose-50 text-rose-700"
-                      : "border-stone-200 text-stone-600 hover:bg-stone-50"
-                  }`}
-                >
-                  <Pentagon className="h-3.5 w-3.5" />
-                  {mode === "draw" ? "Stop Drawing" : "Draw Polygon"}
-                </button>
-                {mode === "draw" && (
-                  <button
-                    onClick={undoLastNode}
-                    className="flex items-center gap-1.5 rounded-md border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50"
-                  >
-                    <UndoIcon className="h-3.5 w-3.5" /> Undo
-                  </button>
-                )}
-                <button
-                  onClick={startEditNodes}
-                  className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-                    mode === "editNodes"
-                      ? "border-sky-300 bg-sky-50 text-sky-700"
-                      : "border-stone-200 text-stone-600 hover:bg-stone-50"
-                  }`}
-                >
-                  <MousePointer2 className="h-3.5 w-3.5" />
-                  {mode === "editNodes" ? "Done Editing" : "Edit Nodes"}
-                </button>
-                {!canSave && (
-                  <div className="flex max-w-[15rem] flex-col gap-0.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] text-amber-800">
-                    {!hasMinNodes && (
-                      <span className="flex items-center gap-1">
-                        <AlertTriangle size={12} /> Add at least 3 nodes
-                      </span>
-                    )}
-                    {selfIntersection && (
-                      <span className="flex items-center gap-1">
-                        <AlertTriangle size={12} /> Polygon self-intersects — drag nodes to fix
-                      </span>
-                    )}
-                    {containmentWarning && (
-                      <span className="flex items-center gap-1">
-                        <AlertTriangle size={12} /> Nodes outside parent boundary
-                      </span>
-                    )}
-                    {overlapNames.length > 0 && (
-                      <span className="flex items-center gap-1">
-                        <AlertTriangle size={12} /> Boundary overlaps with {overlapNames.join(", ")}
+          <section className="flex min-h-[26rem] flex-1 flex-col overflow-hidden lg:min-h-0">
+            <div className="border-b border-stone-200 bg-white">
+              <div className="flex flex-wrap items-center justify-between gap-2 px-6 py-3.5">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="truncate text-sm font-semibold text-stone-900">{selected.name}</h3>
+                    {hasUnsaved && (
+                      <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10.5px] font-medium text-amber-700">
+                        ● Unsaved changes
                       </span>
                     )}
                   </div>
-                )}
-                <button
-                  onClick={saveBoundary}
-                  disabled={!canSave || !hasUnsaved}
-                  className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium shadow-sm transition ${
-                    canSave && hasUnsaved
-                      ? "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
-                      : "cursor-not-allowed border-stone-200 bg-stone-100 text-stone-400"
-                  }`}
-                >
-                  <Save className="h-3.5 w-3.5" /> Save Boundary
-                </button>
-                {hasUnsaved && (
+                  <p className="text-xs text-stone-400">
+                    {selected.nodes.length} polygon nodes &nbsp;·&nbsp; {area} ha &nbsp;·&nbsp; Last
+                    edited {fmtDate(selected.edited)}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
                   <button
-                    onClick={resetChanges}
-                    title="Restore the polygon and properties to the last saved state"
-                    className="flex items-center gap-1.5 rounded-md border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50"
+                    onClick={startDraw}
+                    className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                      mode === "draw"
+                        ? "border-rose-300 bg-rose-50 text-rose-700"
+                        : "border-stone-200 text-stone-600 hover:bg-stone-50"
+                    }`}
                   >
-                    <RotateCcw className="h-3.5 w-3.5" /> Reset Changes
+                    <Pentagon className="h-3.5 w-3.5" />
+                    {mode === "draw" ? "Stop Drawing" : "Draw Polygon"}
                   </button>
-                )}
-                {hasUnsaved && (
+                  {mode === "draw" && (
+                    <button
+                      onClick={undoLastNode}
+                      className="flex items-center gap-1.5 rounded-md border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50"
+                    >
+                      <UndoIcon className="h-3.5 w-3.5" /> Undo
+                    </button>
+                  )}
                   <button
-                    onClick={discardChanges}
-                    className="flex items-center gap-1.5 rounded-md border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50"
+                    onClick={startEditNodes}
+                    className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                      mode === "editNodes"
+                        ? "border-sky-300 bg-sky-50 text-sky-700"
+                        : "border-stone-200 text-stone-600 hover:bg-stone-50"
+                    }`}
                   >
-                    <DiscardIcon className="h-3.5 w-3.5" /> Discard Changes
+                    <MousePointer2 className="h-3.5 w-3.5" />
+                    {mode === "editNodes" ? "Done Editing" : "Edit Nodes"}
                   </button>
-                )}
+                  <button
+                    onClick={saveBoundary}
+                    disabled={!canSave || !hasUnsaved}
+                    className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium shadow-sm transition ${
+                      canSave && hasUnsaved
+                        ? "bg-[#0038A8] text-white hover:bg-[#002A8C]"
+                        : "cursor-not-allowed bg-stone-100 text-stone-400"
+                    }`}
+                  >
+                    <Save className="h-3.5 w-3.5" /> Save Boundary
+                  </button>
+                  {hasUnsaved && (
+                    <button
+                      onClick={resetChanges}
+                      title="Restore the polygon and properties to the last saved state"
+                      className="flex items-center gap-1.5 rounded-md border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-50"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" /> Reset Changes
+                    </button>
+                  )}
+                  {hasUnsaved && (
+                    <button
+                      onClick={discardChanges}
+                      className="flex items-center gap-1.5 rounded-md border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50"
+                    >
+                      <DiscardIcon className="h-3.5 w-3.5" /> Discard Changes
+                    </button>
+                  )}
+                </div>
               </div>
+              {!canSave && (
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 border-t border-amber-100 bg-amber-50 px-6 py-2 text-[11px] font-medium text-amber-800">
+                  <AlertTriangle size={12} className="shrink-0 text-amber-600" />
+                  {!hasMinNodes && <span>Add at least 3 nodes</span>}
+                  {selfIntersection && <span>· Polygon self-intersects — drag nodes to fix</span>}
+                  {containmentWarning && <span>· Nodes outside parent boundary</span>}
+                  {overlapNames.length > 0 && <span>· Overlaps with: {overlapNames.join(", ")}</span>}
+                </div>
+              )}
             </div>
 
             <div ref={mapAreaRef} className="relative flex-1 overflow-hidden bg-[#dfe8e2]">
@@ -1437,10 +1439,10 @@ export default function DigitalBoundaries() {
                 </div>
               </div>
             </div>
-          </main>
+          </section>
 
           {/* Right / secondary panel */}
-          <aside className="flex max-h-[50vh] w-full shrink-0 flex-col border-t border-stone-200 bg-white md:max-h-none lg:w-[22rem] lg:border-l lg:border-t-0">
+          <aside className="flex max-h-[50vh] w-full shrink-0 flex-col border-t border-stone-200 bg-white lg:max-h-none lg:w-[22rem] lg:border-l lg:border-t-0">
             <div className="flex items-center justify-between border-b border-stone-200 px-5 py-4">
               <div>
                 <h2 className="text-base font-bold text-stone-900">Boundary Details</h2>

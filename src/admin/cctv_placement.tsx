@@ -796,7 +796,7 @@ function FormSection({
       <p className="mb-3 border-b border-stone-100 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#0038A8]">
         {title}
       </p>
-      <div className="space-y-4">{children}</div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{children}</div>
     </div>
   );
 }
@@ -1586,35 +1586,31 @@ export default function CctvPlacement() {
                   options={RESOLUTIONS}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <SelectField
-                    label="MOUNTING TYPE"
-                    value={mountingType}
-                    onChange={(e) => setMountingType(e.target.value)}
-                    options={MOUNTING_TYPES}
-                  />
-                  <LabeledInput
-                    label="CAMERA HEIGHT"
-                    placeholder="e.g. 4.5 m"
-                    value={height}
-                    onChange={(e) => setHeight(e.target.value)}
-                  />
-                </div>
+                <SelectField
+                  label="MOUNTING TYPE"
+                  value={mountingType}
+                  onChange={(e) => setMountingType(e.target.value)}
+                  options={MOUNTING_TYPES}
+                />
+                <LabeledInput
+                  label="CAMERA HEIGHT"
+                  placeholder="e.g. 4.5 m"
+                  value={height}
+                  onChange={(e) => setHeight(e.target.value)}
+                />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <SelectField
-                    label="ORIENTATION / DIRECTION"
-                    value={orientation}
-                    onChange={(e) => setOrientation(e.target.value)}
-                    options={ORIENTATIONS}
-                  />
-                  <SelectField
-                    label="FIELD OF VIEW (FOV)"
-                    value={fov}
-                    onChange={(e) => setFov(e.target.value)}
-                    options={FOV_OPTIONS}
-                  />
-                </div>
+                <SelectField
+                  label="ORIENTATION / DIRECTION"
+                  value={orientation}
+                  onChange={(e) => setOrientation(e.target.value)}
+                  options={ORIENTATIONS}
+                />
+                <SelectField
+                  label="FIELD OF VIEW (FOV)"
+                  value={fov}
+                  onChange={(e) => setFov(e.target.value)}
+                  options={FOV_OPTIONS}
+                />
               </FormSection>
 
               <FormSection title="Network">
@@ -1625,20 +1621,18 @@ export default function CctvPlacement() {
                   onChange={(e) => setIp(e.target.value)}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
-                  <SelectField
-                    label="CONNECTION TYPE"
-                    value={connectionType}
-                    onChange={(e) => setConnectionType(e.target.value)}
-                    options={CONNECTION_TYPES}
-                  />
-                  <SelectField
-                    label="STREAM PROTOCOL"
-                    value={streamProtocol}
-                    onChange={(e) => setStreamProtocol(e.target.value)}
-                    options={STREAM_PROTOCOLS}
-                  />
-                </div>
+                <SelectField
+                  label="CONNECTION TYPE"
+                  value={connectionType}
+                  onChange={(e) => setConnectionType(e.target.value)}
+                  options={CONNECTION_TYPES}
+                />
+                <SelectField
+                  label="STREAM PROTOCOL"
+                  value={streamProtocol}
+                  onChange={(e) => setStreamProtocol(e.target.value)}
+                  options={STREAM_PROTOCOLS}
+                />
               </FormSection>
 
               <div>
@@ -1702,7 +1696,7 @@ export default function CctvPlacement() {
                     </p>
                   </div>
                 </div>
-                <div className="mt-3 space-y-3">
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <LabeledInput
                     label="USERNAME"
                     placeholder="e.g. svc_cam_purok5_01"
@@ -2036,48 +2030,42 @@ export default function CctvPlacement() {
             </FormSection>
 
             <FormSection title="Placement">
-              <div className="grid grid-cols-2 gap-4">
-                <LabeledInput
-                  label="LATITUDE"
-                  placeholder="14.5995"
-                  value={editForm.lat}
-                  onChange={(e) => setEditForm({ ...editForm, lat: e.target.value })}
-                />
-                <LabeledInput
-                  label="LONGITUDE"
-                  placeholder="120.9842"
-                  value={editForm.lng}
-                  onChange={(e) => setEditForm({ ...editForm, lng: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <SelectField
-                  label="MOUNTING TYPE"
-                  value={editForm.mountingType}
-                  onChange={(e) => setEditForm({ ...editForm, mountingType: e.target.value })}
-                  options={MOUNTING_TYPES}
-                />
-                <LabeledInput
-                  label="CAMERA HEIGHT"
-                  placeholder="e.g. 4.5 m"
-                  value={editForm.height}
-                  onChange={(e) => setEditForm({ ...editForm, height: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <SelectField
-                  label="ORIENTATION / DIRECTION"
-                  value={editForm.orientation}
-                  onChange={(e) => setEditForm({ ...editForm, orientation: e.target.value })}
-                  options={ORIENTATIONS}
-                />
-                <SelectField
-                  label="FIELD OF VIEW (FOV)"
-                  value={editForm.fov}
-                  onChange={(e) => setEditForm({ ...editForm, fov: e.target.value })}
-                  options={FOV_OPTIONS}
-                />
-              </div>
+              <LabeledInput
+                label="LATITUDE"
+                placeholder="14.5995"
+                value={editForm.lat}
+                onChange={(e) => setEditForm({ ...editForm, lat: e.target.value })}
+              />
+              <LabeledInput
+                label="LONGITUDE"
+                placeholder="120.9842"
+                value={editForm.lng}
+                onChange={(e) => setEditForm({ ...editForm, lng: e.target.value })}
+              />
+              <SelectField
+                label="MOUNTING TYPE"
+                value={editForm.mountingType}
+                onChange={(e) => setEditForm({ ...editForm, mountingType: e.target.value })}
+                options={MOUNTING_TYPES}
+              />
+              <LabeledInput
+                label="CAMERA HEIGHT"
+                placeholder="e.g. 4.5 m"
+                value={editForm.height}
+                onChange={(e) => setEditForm({ ...editForm, height: e.target.value })}
+              />
+              <SelectField
+                label="ORIENTATION / DIRECTION"
+                value={editForm.orientation}
+                onChange={(e) => setEditForm({ ...editForm, orientation: e.target.value })}
+                options={ORIENTATIONS}
+              />
+              <SelectField
+                label="FIELD OF VIEW (FOV)"
+                value={editForm.fov}
+                onChange={(e) => setEditForm({ ...editForm, fov: e.target.value })}
+                options={FOV_OPTIONS}
+              />
             </FormSection>
 
             <FormSection title="Network">
@@ -2087,20 +2075,18 @@ export default function CctvPlacement() {
                 value={editForm.ip}
                 onChange={(e) => setEditForm({ ...editForm, ip: e.target.value })}
               />
-              <div className="grid grid-cols-2 gap-4">
-                <SelectField
-                  label="CONNECTION TYPE"
-                  value={editForm.connectionType}
-                  onChange={(e) => setEditForm({ ...editForm, connectionType: e.target.value })}
-                  options={CONNECTION_TYPES}
-                />
-                <SelectField
-                  label="STREAM PROTOCOL"
-                  value={editForm.streamProtocol}
-                  onChange={(e) => setEditForm({ ...editForm, streamProtocol: e.target.value })}
-                  options={STREAM_PROTOCOLS}
-                />
-              </div>
+              <SelectField
+                label="CONNECTION TYPE"
+                value={editForm.connectionType}
+                onChange={(e) => setEditForm({ ...editForm, connectionType: e.target.value })}
+                options={CONNECTION_TYPES}
+              />
+              <SelectField
+                label="STREAM PROTOCOL"
+                value={editForm.streamProtocol}
+                onChange={(e) => setEditForm({ ...editForm, streamProtocol: e.target.value })}
+                options={STREAM_PROTOCOLS}
+              />
             </FormSection>
 
             <FormSection title="Assignment">
