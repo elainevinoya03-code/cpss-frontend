@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Search, Plus, Pencil, Power, Key, ChevronLeft, ChevronRight, Mail, ShieldCheck, Clock } from "lucide-react";
 import { PUROK_OPTIONS } from "../constants/purok";
 import { ConfirmModal, Modal as ModalShell } from "../components/ui";
@@ -10,6 +10,32 @@ const PRIVILEGED_ROLES = ["Admin", "Captain", "Desk Officer"];
 
 function isPrivilegedRole(role: string) {
   return PRIVILEGED_ROLES.includes(role);
+}
+
+function needsPurokFor(role: string) {
+  return ["Tanod", "Purok Leader", "Resident"].includes(role);
+}
+
+const ROLE_ID_PREFIXES: Record<string, string> = {
+  "Super Admin": "SA",
+  Captain: "CA",
+  "Desk Officer": "DO",
+  "CCTV Operator": "CO",
+  Tanod: "TA",
+  "Purok Leader": "PL",
+  Resident: "RE",
+};
+
+function generateUserId(role: string, existingUsers: any[]) {
+  const prefix = ROLE_ID_PREFIXES[role] || "US";
+  const taken = new Set(existingUsers.map((u) => u.userId));
+  let userId: string;
+  do {
+    let digits = "";
+    for (let i = 0; i < 8; i++) digits += Math.floor(Math.random() * 10);
+    userId = prefix + digits;
+  } while (taken.has(userId));
+  return userId;
 }
 
 const ROLE_STYLES = {
@@ -26,6 +52,7 @@ const ALL_FILTERS = ["All", ...ROLES, "Active", "Deactivated"];
 const INITIAL_USERS = [
   {
     id: 1,
+    userId: "CA48291736",
     name: "Hello World",
     email: "hello.world@brgy.gov.ph",
     phone: "+63 917 123 4567",
@@ -38,6 +65,7 @@ const INITIAL_USERS = [
   },
   {
     id: 2,
+    userId: "DO39174625",
     name: "Hello World",
     email: "hello.world@brgy.gov.ph",
     phone: "+63 918 234 5678",
@@ -50,6 +78,7 @@ const INITIAL_USERS = [
   },
   {
     id: 3,
+    userId: "CO82651409",
     name: "Hello World",
     email: "hello.world@brgy.gov.ph",
     phone: "+63 919 345 6789",
@@ -62,6 +91,7 @@ const INITIAL_USERS = [
   },
   {
     id: 4,
+    userId: "TA17483952",
     name: "Hello World",
     email: "hello.world@brgy.gov.ph",
     phone: "+63 920 456 7890",
@@ -74,6 +104,7 @@ const INITIAL_USERS = [
   },
   {
     id: 5,
+    userId: "PL60392741",
     name: "Hello World",
     email: "hello.world@brgy.gov.ph",
     phone: "+63 921 567 8901",
@@ -86,6 +117,7 @@ const INITIAL_USERS = [
   },
   {
     id: 6,
+    userId: "TA95821467",
     name: "Hello World",
     email: "hello.world@brgy.gov.ph",
     phone: "+63 922 678 9012",
@@ -98,6 +130,7 @@ const INITIAL_USERS = [
   },
   {
     id: 7,
+    userId: "PL71520384",
     name: "Hello World",
     email: "hello.world@brgy.gov.ph",
     phone: "+63 923 789 0123",
@@ -108,9 +141,22 @@ const INITIAL_USERS = [
     lastLogin: "2026-07-18 11:05",
     sendInvite: false,
   },
+  {
+    id: 8,
+    userId: "RE95821467",
+    name: "Hello World",
+    email: "hello.world@brgy.gov.ph",
+    phone: "+63 924 890 1234",
+    role: "Resident",
+    purok: "Purok 2 — Chapel Area",
+    active: true,
+    twoFactor: "none",
+    lastLogin: "2026-07-19 19:32",
+    sendInvite: false,
+  },
 ];
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 10;
 
 function initials(name: string) {
   return name
@@ -121,7 +167,12 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-function Modal({ title, subtitle, onClose, children }) {
+function Modal({ title, subtitle, onClose, children }: {
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <ModalShell title={title} subtitle={subtitle} onClose={onClose}>
       {children}
@@ -188,6 +239,7 @@ export default function UserManagement() {
           u.name.toLowerCase().includes(q) ||
           u.email.toLowerCase().includes(q) ||
           u.role.toLowerCase().includes(q) ||
+          (u.userId && u.userId.toLowerCase().includes(q)) ||
           (u.phone && u.phone.includes(q)) ||
           (u.purok && u.purok.toLowerCase().includes(q))
       );
@@ -234,12 +286,13 @@ export default function UserManagement() {
     if (modal.type === "create") {
       const privileged = isPrivilegedRole(form.role);
       const newUser = {
-        id: Date.now(),
+        id: Math.max(0, ...users.map((u) => u.id)) + 1,
+        userId: generateUserId(form.role, users),
         name: form.name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
         role: form.role,
-        purok: ["Tanod", "Purok Leader", "Resident"].includes(form.role) ? form.purok : "",
+        purok: needsPurokFor(form.role) ? form.purok : "",
         active: true,
         twoFactor: privileged ? "pending" : "none",
         lastLogin: "—",
@@ -247,8 +300,8 @@ export default function UserManagement() {
       };
       setUsers((prev) => [...prev, newUser]);
       const roleLabel = form.role;
-      const purokLabel = form.purok && form.purok !== "N/A" ? `, ${form.purok}` : "";
-      pushAuditLog("User Created", `New account created for ${form.name.trim()} (${roleLabel}${purokLabel})`);
+      const purokLabel = newUser.purok ? `, ${newUser.purok}` : "";
+      pushAuditLog("User Created", `New account created for ${form.name.trim()} (${roleLabel}${purokLabel}) — User ID: ${newUser.userId}`);
       if (privileged) {
         pushAuditLog("Configuration Change", `2FA policy: ${roleLabel} account ${form.name.trim()} created with mandatory two-factor enrollment pending`);
       }
@@ -261,6 +314,7 @@ export default function UserManagement() {
       );
     } else if (modal.type === "edit") {
       const oldUser = modal.user;
+      const nextPurok = needsPurokFor(form.role) ? form.purok : "";
       setUsers((prev) =>
         prev.map((u) => {
           if (u.id !== oldUser.id) return u;
@@ -270,7 +324,7 @@ export default function UserManagement() {
             email: form.email.trim(),
             phone: form.phone.trim(),
             role: form.role,
-            purok: ["Tanod", "Purok Leader", "Resident"].includes(form.role) ? form.purok : "",
+            purok: nextPurok,
           };
           const wasPrivileged = isPrivilegedRole(u.role);
           const nowPrivileged = isPrivilegedRole(form.role);
@@ -281,7 +335,9 @@ export default function UserManagement() {
       );
       const changed: string[] = [];
       if (oldUser.role !== form.role) changed.push(`role to ${form.role}`);
-      if (oldUser.purok !== form.purok && needsPurok) changed.push(`purok to ${form.purok}`);
+      if ((oldUser.purok || "") !== nextPurok) {
+        changed.push(nextPurok ? `purok to ${nextPurok}` : "purok cleared");
+      }
       if (oldUser.name !== form.name.trim()) changed.push("name");
       if (oldUser.email !== form.email.trim()) changed.push("email");
       if (oldUser.phone !== form.phone.trim()) changed.push("contact number");
@@ -337,7 +393,7 @@ export default function UserManagement() {
     setConfirmAction(null);
   }
 
-  function resendTwoFactor(user) {
+  function resendTwoFactor(user: any) {
     pushAuditLog("Configuration Change", `2FA policy: resent two-factor enrollment invitation to ${user.name} (${user.role})`);
     setModalMessage({
       title: "2FA Enrollment Re-sent",
@@ -345,7 +401,7 @@ export default function UserManagement() {
     });
   }
 
-  const needsPurok = ["Tanod", "Purok Leader", "Resident"].includes(form.role);
+  const needsPurok = needsPurokFor(form.role);
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
@@ -437,6 +493,7 @@ export default function UserManagement() {
             <thead>
               <tr className="text-xs uppercase tracking-wide text-stone-400">
                 <th className="px-6 py-3 font-medium whitespace-nowrap">User</th>
+                <th className="px-6 py-3 font-medium whitespace-nowrap">User ID</th>
                 <th className="px-6 py-3 font-medium whitespace-nowrap">Role</th>
                 <th className="px-6 py-3 font-medium whitespace-nowrap">Purok / Zone</th>
                 <th className="px-6 py-3 font-medium whitespace-nowrap">Contact</th>
@@ -471,6 +528,11 @@ export default function UserManagement() {
                         <div className="text-xs text-stone-400">{u.email}</div>
                       </div>
                     </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="rounded-md bg-stone-100 px-2 py-1 font-mono text-xs font-medium tracking-wide text-stone-600">
+                      {u.userId}
+                    </span>
                   </td>
                   <td className="px-6 py-4">
                     <span
@@ -578,7 +640,7 @@ export default function UserManagement() {
               ))}
               {paginated.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-6 py-10 text-center text-sm text-stone-400">
+                  <td colSpan={9} className="px-6 py-10 text-center text-sm text-stone-400">
                     No users match your search or filter.
                   </td>
                 </tr>
@@ -588,13 +650,14 @@ export default function UserManagement() {
           </div>
 
           
-          {filtered.length > ITEMS_PER_PAGE && (
+          {filtered.length > 0 && (
             <div className="flex items-center justify-between border-t border-stone-100 px-6 py-3">
               <p className="text-xs text-stone-400">
                 Showing {(safePage - 1) * ITEMS_PER_PAGE + 1}–
                 {Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} of {filtered.length}
               </p>
-              <div className="flex items-center gap-1.5">
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={safePage <= 1}
@@ -622,7 +685,8 @@ export default function UserManagement() {
                 >
                   <ChevronRight size={14} />
                 </button>
-              </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -640,6 +704,17 @@ export default function UserManagement() {
           onClose={closeModal}
         >
           <form onSubmit={handleSubmit}>
+            {modal.type === "edit" && (
+              <Field label="USER ID" hint="System-generated identifier — cannot be edited">
+                <input
+                  className={`${inputClass} cursor-not-allowed bg-stone-50 font-mono text-stone-500`}
+                  value={modal.user.userId}
+                  readOnly
+                  disabled
+                />
+              </Field>
+            )}
+
             <Field label="FULL NAME">
               <input
                 className={inputClass}
@@ -721,6 +796,16 @@ export default function UserManagement() {
                   ))}
                 </select>
               </Field>
+            )}
+
+            {modal.type === "create" && (
+              <div className="mb-4 flex items-start gap-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-2.5 text-[11px] text-blue-800">
+                <Key size={14} className="mt-0.5 shrink-0" />
+                <span>
+                  A unique <strong>User ID</strong> will be generated automatically from the assigned
+                  role upon creation. It cannot be set or changed manually.
+                </span>
+              </div>
             )}
 
             {modal.type === "create" && (
