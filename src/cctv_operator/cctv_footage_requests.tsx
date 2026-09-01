@@ -1,0 +1,1969 @@
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import {
+  Search,
+  Calendar,
+  Clock,
+  Camera,
+  Play,
+  Pause,
+  Scissors,
+  Link2,
+  Shield,
+  Eye,
+  EyeOff,
+  HardDrive,
+  Database,
+  FileText,
+  RotateCcw,
+  Info,
+  CalendarClock,
+  Lock,
+  Volume2,
+  VolumeX,
+  BookmarkPlus,
+  BookmarkMinus,
+  X,
+  Video,
+  AlertTriangle,
+  Filter,
+  MonitorPlay,
+  CloudUpload,
+  User,
+  Download,
+  History,
+  Flag,
+  MapPin,
+  CheckCircle2,
+  Inbox,
+  ChevronRight,
+  ClipboardList,
+  CheckCircle,
+  Zap,
+  Ban,
+} from "lucide-react";
+import { useToast } from "../hooks/useToast";
+import { useAlertSound } from "../hooks/useAlertSound";
+import { formatTime } from "../utils/format";
+import { Modal, ConfirmModal, SoundToggle } from "../components/ui";
+import { addEvidenceActivity, useEvidenceActivities, type EvidenceAction } from "./evidence_activity";
+import { ExportEvidenceModal } from "./export_evidence_modal";
+import { RedactionModal } from "./video_archives_playback";
+
+interface Camera {
+  id: string;
+  name: string;
+  location: string;
+  purok: string;
+  status: "online" | "degraded" | "offline";
+  hasArchive: boolean;
+  controlled: boolean;
+}
+
+interface Recording {
+  id: string;
+  cameraId: string;
+  cameraName: string;
+  location: string;
+  purok: string;
+  startISO: string;
+  duration: number;
+  sizeMB: number;
+  events: string[];
+  eventTag?: string;
+  incidentId?: string;
+}
+
+interface Mask {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  label: "Face" | "License Plate";
+}
+
+interface Clip {
+  id: string;
+  cameraId: string;
+  cameraName: string;
+  incidentId?: string;
+  requestId?: string;
+  startTime: string;
+  endTime: string;
+  startSec: number;
+  endSec: number;
+  durationSec: number;
+  storageReference?: string;
+  fileType: string;
+  fileSize: number;
+  uploadedBy: string;
+  createdAt: string;
+  contentHash?: string;
+  retentionStatus: "active" | "scheduled_deletion" | "legal_hold";
+  privacyStatus: "original" | "privacy_processed";
+  masks?: Mask[];
+  attachedAt?: string;
+  retainedUntil?: string;
+  recorderSource: "system" | "external";
+}
+
+interface PrivacyProcessedClip {
+  id: string;
+  sourceClipId: string;
+  processedBy: string;
+  processedAt: string;
+  privacyStatus: "privacy_processed";
+  maskCount: number;
+  masks: Mask[];
+  storageReference?: string;
+}
+
+interface OpenIncident {
+  id: string;
+  category: string;
+  purok: string;
+  title: string;
+  severity: string;
+}
+
+type RequestStatus = "pending" | "in_progress" | "fulfilled" | "cannot_fulfill";
+
+interface FootageRequest {
+  id: string;
+  incidentId?: string;
+  cameraId?: string;
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  eventTag?: string;
+  purpose: string;
+  priority: "standard" | "urgent";
+  requestedBy: string;
+  requestedByRole: string;
+  requestedAt: string;
+  status: RequestStatus;
+  note?: string;
+}
+
+const CAMERAS: Camera[] = [
+  { id: "CAM-GATE-01", name: "Main Gate", location: "Entrance Gate", purok: "Purok 1", status: "online", hasArchive: true, controlled: true },
+  { id: "CAM-PLAZA-02", name: "Plaza & Court", location: "Barangay Plaza", purok: "Purok 2", status: "online", hasArchive: true, controlled: true },
+  { id: "CAM-MARKET-03", name: "Public Market", location: "Market Strip", purok: "Purok 6", status: "online", hasArchive: true, controlled: true },
+  { id: "CAM-CHAPEL-04", name: "Chapel Area", location: "Chapel Approach", purok: "Purok 5", status: "online", hasArchive: true, controlled: true },
+  { id: "CAM-ROAD-05", name: "Crossing Road", location: "Purok Crossing", purok: "Purok 3", status: "online", hasArchive: true, controlled: true },
+  { id: "CAM-TERMNL-06", name: "Terminal Stop", location: "Jeepney Terminal", purok: "Purok 1", status: "degraded", hasArchive: true, controlled: false },
+  { id: "CAM-SWERS-07", name: "Sewers Access", location: "Utility Trench", purok: "Purok 4", status: "offline", hasArchive: false, controlled: false },
+  { id: "CAM-PARK-08", name: "Park View", location: "Greenbelt Park", purok: "Purok 2", status: "online", hasArchive: false, controlled: false },
+  { id: "CAM-TERMNL-09", name: "Secondary Gate", location: "Back Entrance", purok: "Purok 3", status: "degraded", hasArchive: false, controlled: false },
+];
+
+const RECORDINGS: Recording[] = [
+  { id: "R-2600", cameraId: "CAM-GATE-01", cameraName: "Main Gate", location: "Entrance Gate", purok: "Purok 1", startISO: "2026-07-20T09:00:00", duration: 900, sizeMB: 118, events: ["Vehicle entry — plate captured"], eventTag: "Suspicious Activity", incidentId: "INC-2068" },
+  { id: "R-2599", cameraId: "CAM-GATE-01", cameraName: "Main Gate", location: "Entrance Gate", purok: "Purok 1", startISO: "2026-07-20T08:00:00", duration: 900, sizeMB: 121, events: ["Morning shift crowd at gate"], eventTag: "Unusual Gathering" },
+  { id: "R-2598", cameraId: "CAM-PLAZA-02", cameraName: "Plaza & Court", location: "Barangay Plaza", purok: "Purok 2", startISO: "2026-07-20T10:00:00", duration: 720, sizeMB: 94, events: ["Group loitering near court"], eventTag: "Suspicious Activity", incidentId: "INC-2070" },
+  { id: "R-2597", cameraId: "CAM-MARKET-03", cameraName: "Public Market", location: "Market Strip", purok: "Purok 6", startISO: "2026-07-19T21:30:00", duration: 840, sizeMB: 112, events: ["Noise escalation — DB-MARKET-01"], eventTag: "Public Disturbance", incidentId: "INC-2069" },
+  { id: "R-2596", cameraId: "CAM-CHAPEL-04", cameraName: "Chapel Area", location: "Chapel Approach", purok: "Purok 5", startISO: "2026-07-19T18:45:00", duration: 780, sizeMB: 101, events: ["Suspicious loitering report"], eventTag: "Suspicious Activity", incidentId: "INC-2069" },
+  { id: "R-2595", cameraId: "CAM-ROAD-05", cameraName: "Crossing Road", location: "Purok Crossing", purok: "Purok 3", startISO: "2026-07-19T17:00:00", duration: 900, sizeMB: 130, events: ["Traffic build-up after rain"], eventTag: "Road Obstruction", incidentId: "INC-2071" },
+  { id: "R-2594", cameraId: "CAM-PLAZA-02", cameraName: "Plaza & Court", location: "Barangay Plaza", purok: "Purok 2", startISO: "2026-07-19T16:00:00", duration: 720, sizeMB: 96, events: ["Street altercation — clip generated"], eventTag: "Public Disturbance", incidentId: "INC-2067" },
+  { id: "R-2593", cameraId: "CAM-MARKET-03", cameraName: "Public Market", location: "Market Strip", purok: "Purok 6", startISO: "2026-07-19T12:40:00", duration: 840, sizeMB: 108, events: ["Sensor false trigger — gate area"], eventTag: "Hazard" },
+  { id: "R-2592", cameraId: "CAM-GATE-01", cameraName: "Main Gate", location: "Entrance Gate", purok: "Purok 1", startISO: "2026-07-19T11:30:00", duration: 900, sizeMB: 119, events: ["Delivery vehicle inspected"] },
+  { id: "R-2591", cameraId: "CAM-CHAPEL-04", cameraName: "Chapel Area", location: "Chapel Approach", purok: "Purok 5", startISO: "2026-07-18T19:00:00", duration: 780, sizeMB: 99, events: ["Night service crowd"], eventTag: "Other" },
+];
+
+const INITIAL_REQUESTS: FootageRequest[] = [
+  {
+    id: "FR-1001", incidentId: "INC-2069", cameraId: "CAM-MARKET-03", date: "2026-07-19",
+    startTime: "21:30", endTime: "21:35", eventTag: "Public Disturbance",
+    purpose: "Assess the sustained noise escalation reported at the market strip and document dulo ng Public Market for the incident file.",
+    priority: "urgent", requestedBy: "Maria Santos", requestedByRole: "Barangay Desk Officer",
+    requestedAt: "2026-07-19T21:36:00", status: "pending",
+    note: "Need the window around the first noise complaint for the DB dispatch report.",
+  },
+  {
+    id: "FR-1002", incidentId: "INC-2070", cameraId: "CAM-PLAZA-02", date: "2026-07-20",
+    startTime: "10:00", endTime: "10:15", eventTag: "Suspicious Activity",
+    purpose: "Review group loitering near the basketball court flagged by the operator.",
+    priority: "standard", requestedBy: "Maria Santos", requestedByRole: "Barangay Desk Officer",
+    requestedAt: "2026-07-20T10:20:00", status: "pending",
+  },
+  {
+    id: "FR-1003", incidentId: "INC-2068", cameraId: "CAM-GATE-01", date: "2026-07-20",
+    startTime: "09:00", endTime: "09:15",
+    purpose: "Confirm which vehicle entered the gate when the smoke density sensor tripped.",
+    priority: "urgent", requestedBy: "Ramon Cruz", requestedByRole: "Barangay Desk Officer",
+    requestedAt: "2026-07-20T09:20:00", status: "in_progress",
+  },
+  {
+    id: "FR-1004", incidentId: "INC-2071", cameraId: "CAM-ROAD-05", date: "2026-07-19",
+    startTime: "17:00", endTime: "17:10", eventTag: "Road Obstruction",
+    purpose: "Document the post-rain traffic build-up for a road-safety reporting.",
+    priority: "standard", requestedBy: "Ramon Cruz", requestedByRole: "Barangay Desk Officer",
+    requestedAt: "2026-07-19T17:15:00", status: "fulfilled",
+    note: "Footage provided — see CLIP-2026-0003.",
+  },
+  {
+    id: "FR-1005", incidentId: "INC-2067", cameraId: "CAM-PLAZA-02", date: "2026-07-19",
+    startTime: "16:00", endTime: "16:10", eventTag: "Public Disturbance",
+    purpose: "Review the street altercation to support the late-night noise complaint file.",
+    priority: "standard", requestedBy: "Maria Santos", requestedByRole: "Barangay Desk Officer",
+    requestedAt: "2026-07-19T16:15:00", status: "cannot_fulfill",
+    note: "Recording for the exact window is unavailable in the archive.",
+  },
+];
+
+const INITIAL_CLIPS: Clip[] = [
+  {
+    id: "CLIP-2026-0002", cameraId: "CAM-MARKET-03", cameraName: "Public Market",
+    startTime: "2026-07-19T21:30:12", endTime: "2026-07-19T21:32:05",
+    startSec: 12, endSec: 125, durationSec: 113,
+    storageReference: "https://brgyculiat.supabase.co/storage/v1/object/public/cctv-clips/CLIP-2026-0002.mp4",
+    fileType: "video/mp4", fileSize: 8_480_000,
+    uploadedBy: "CO-01", createdAt: "2026-07-19T21:32:30",
+    contentHash: "sha256:a3f2c8…d71e", retentionStatus: "active", privacyStatus: "privacy_processed",
+    masks: [
+      { x: 40, y: 30, w: 60, h: 60, label: "Face" },
+      { x: 55, y: 70, w: 90, h: 30, label: "License Plate" },
+    ],
+    incidentId: "INC-2069", attachedAt: "2026-07-19T22:00:00",
+    retainedUntil: "2027-07-19T22:00:00", recorderSource: "system",
+  },
+  {
+    id: "CLIP-2026-0001", cameraId: "CAM-PLAZA-02", cameraName: "Plaza & Court",
+    startTime: "2026-07-19T16:00:03", endTime: "2026-07-19T16:00:45",
+    startSec: 3, endSec: 45, durationSec: 42,
+    storageReference: "https://brgyculiat.supabase.co/storage/v1/object/public/cctv-clips/CLIP-2026-0001.mp4",
+    fileType: "video/mp4", fileSize: 6_720_000,
+    uploadedBy: "CO-01", createdAt: "2026-07-19T16:01:00",
+    retentionStatus: "active", privacyStatus: "original", recorderSource: "system",
+  },
+  {
+    id: "CLIP-2026-0003", cameraId: "CAM-ROAD-05", cameraName: "Crossing Road",
+    startTime: "2026-07-19T17:01:10", endTime: "2026-07-19T17:01:45",
+    startSec: 10, endSec: 45, durationSec: 35,
+    storageReference: "https://brgyculiat.supabase.co/storage/v1/object/public/cctv-clips/CLIP-2026-0003.mp4",
+    fileType: "video/mp4", fileSize: 7_140_000,
+    uploadedBy: "CO-01", createdAt: "2026-07-19T17:02:00",
+    contentHash: "sha256:9b1e0d…4f2a", retentionStatus: "legal_hold", privacyStatus: "original",
+    incidentId: "INC-2071", attachedAt: "2026-07-19T17:05:00",
+    retainedUntil: "2027-07-19T17:05:00", recorderSource: "external", requestId: "FR-1004",
+  },
+];
+
+const OPEN_INCIDENTS: OpenIncident[] = [
+  { id: "INC-2071", category: "Fire/Smoke", purok: "Purok 3", title: "Heavy smoke column near market residential row", severity: "critical" },
+  { id: "INC-2070", category: "Public Disturbance", purok: "Purok 6", title: "SOS signal at commercial strip", severity: "critical" },
+  { id: "INC-2069", category: "Noise Disturbance", purok: "Purok 4", title: "Sustained loud disturbance at hall", severity: "warning" },
+  { id: "INC-2068", category: "Fire/Smoke", purok: "Purok 1", title: "Smoke density breach at gate sensor", severity: "warning" },
+  { id: "INC-2067", category: "Noise Disturbance", purok: "Purok 2", title: "Late-night noise complaint", severity: "low" },
+];
+
+const EVENT_TAGS = [
+  "Suspicious Activity",
+  "Unusual Gathering",
+  "Road Obstruction",
+  "Public Disturbance",
+  "Hazard",
+  "Other",
+];
+
+const RETENTION_YEARS = 1;
+const STORAGE_BUCKET = "cctv-clips";
+const ARCHIVE_TOTAL_GB = 2000;
+const ARCHIVE_START_GB = 1752;
+const CLIP_GB = 0.03;
+
+function fmtClock(sec: number) {
+  const s = Math.max(0, Math.floor(sec));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
+}
+
+function timeToMinutes(t: string) {
+  const [h, m] = t.split(":").map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+}
+
+function daysUntil(iso: string) {
+  return Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000));
+}
+
+function retentionExpiry(attachedAt: string) {
+  const d = new Date(attachedAt);
+  d.setFullYear(d.getFullYear() + RETENTION_YEARS);
+  return d.toISOString();
+}
+
+function fmtTimestamp(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function fmtRecordingDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+}
+
+function fmtRecordingRange(startISO: string, durationSec: number) {
+  const start = new Date(startISO);
+  const end = new Date(start.getTime() + durationSec * 1000);
+  return { start: fmtTimestamp(startISO), end: fmtTimestamp(end.toISOString()) };
+}
+
+function fmtStamp(iso: string) {
+  const d = new Date(iso);
+  return (
+    d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
+    " " +
+    d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
+  );
+}
+
+const ACTION_STYLE: Record<EvidenceAction, { badge: string }> = {
+  Viewed: { badge: "bg-sky-100 text-sky-700" },
+  Generated: { badge: "bg-violet-100 text-violet-700" },
+  Redacted: { badge: "bg-amber-100 text-amber-700" },
+  Attached: { badge: "bg-[#0038A8]/10 text-[#0038A8]" },
+  Exported: { badge: "bg-emerald-100 text-emerald-700" },
+};
+
+const REQUEST_STATUS_META: Record<RequestStatus, { label: string; badge: string; dot: string }> = {
+  pending: { label: "Pending", badge: "bg-amber-100 text-amber-700", dot: "bg-amber-400" },
+  in_progress: { label: "In Progress", badge: "bg-sky-100 text-sky-700", dot: "bg-sky-500" },
+  fulfilled: { label: "Fulfilled", badge: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
+  cannot_fulfill: { label: "Cannot Fulfill", badge: "bg-rose-100 text-rose-700", dot: "bg-rose-500" },
+};
+
+const UNAVAILABLE_REASONS = [
+  { value: "no_recording", label: "No recording available for the requested window" },
+  { value: "camera_offline", label: "Camera was offline during the requested time" },
+  { value: "recorder_unavailable", label: "Recorder / archive unavailable" },
+  { value: "not_accessible", label: "Requested footage is not accessible" },
+  { value: "live_only", label: "Camera only provides live footage (no archive)" },
+];
+
+function EvidenceActivityPanel() {
+  const activities = useEvidenceActivities();
+
+  return (
+    <div className="mb-6 rounded-xl border border-black/5 bg-white shadow-sm">
+      <div className="flex items-center justify-between px-5 py-4">
+        <div className="flex items-center gap-2">
+          <History size={16} className="text-[#0038A8]" />
+          <div>
+            <h3 className="text-[14px] font-semibold text-[#334155]">Evidence Activity — Audit Log</h3>
+            <p className="text-[11px] text-[#94A3B8]">Every view, download, export and privacy-processing is recorded</p>
+          </div>
+        </div>
+        <span className="rounded-full bg-stone-100 px-2.5 py-1 text-[10px] font-semibold text-stone-500">{activities.length} entries</span>
+      </div>
+      <div className="max-h-64 space-y-1.5 overflow-y-auto px-5 pb-4">
+        {activities.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-stone-200 py-8">
+            <Inbox size={18} className="mb-1.5 text-stone-300" />
+            <p className="text-[11px] font-medium text-stone-500">No footage activity recorded yet</p>
+          </div>
+        ) : (
+          activities.map((a) => (
+            <div key={a.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-stone-200 bg-white px-3.5 py-2">
+              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider ${ACTION_STYLE[a.action].badge}`}>
+                {a.action.toUpperCase()}
+              </span>
+              <span className="font-mono text-[11px] font-semibold text-stone-900">{a.clipId}</span>
+              {a.incidentId && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#0038A8]">
+                  <Link2 size={8} />
+                  {a.incidentId}
+                </span>
+              )}
+              <span className="flex items-center gap-1 text-[10px] text-stone-500">
+                <User size={9} />
+                {a.operator}
+              </span>
+              <span className="ml-auto flex items-center gap-1 text-[10px] text-stone-400">
+                <Clock size={9} />
+                {fmtStamp(a.at)}
+              </span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FrameScene() {
+  return (
+    <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900">
+      <div className="absolute right-6 top-4 h-8 w-8 rounded-full bg-stone-600/80" />
+      <div className="absolute right-10 top-5 h-6 w-6 rounded-full bg-stone-600/50" />
+      <div className="absolute left-[8%] bottom-0 h-24 w-16 rounded-t bg-stone-700/90" />
+      <div className="absolute left-[16%] bottom-0 h-16 w-10 rounded-t bg-stone-700/70" />
+      <div className="absolute right-[10%] bottom-0 h-20 w-24 rounded-t bg-stone-700/80" />
+      <div className="absolute inset-x-0 bottom-0 h-11 bg-stone-700" />
+      <div className="absolute bottom-2 left-[36%] h-9 w-20 rounded bg-stone-500 shadow-lg">
+        <div className="absolute -bottom-0.5 left-1/2 flex h-2.5 w-10 -translate-x-1/2 items-center justify-center rounded-sm bg-stone-200">
+          <span className="text-[6px] font-bold tracking-wider text-stone-700">ABC-123</span>
+        </div>
+      </div>
+      <div className="absolute inset-x-0 bottom-0 h-11 bg-stone-700" />
+    </div>
+  );
+}
+
+function AttachModal({ clip, onClose, onAttach }: { clip: Clip; onClose: () => void; onAttach: (incidentId: string) => void }) {
+  const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [step, setStep] = useState<"select" | "confirm">("select");
+
+  const pendingIncidents = OPEN_INCIDENTS.filter((i) => i.id !== clip.incidentId);
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? pendingIncidents.filter((i) =>
+        [i.id, i.title, i.category, i.purok, i.severity].some((v) => v.toLowerCase().includes(q))
+      )
+    : pendingIncidents;
+  const selectedIncident = pendingIncidents.find((i) => i.id === selectedId) ?? null;
+
+  function handleConfirm() {
+    if (selectedId) onAttach(selectedId);
+  }
+
+  return (
+    <Modal
+      onClose={onClose}
+      title={step === "select" ? "Attach Clip to Incident" : "Attach Evidence"}
+      subtitle={step === "select" ? `${clip.id} · ${clip.cameraName}` : undefined}
+      icon={<Link2 size={18} />}
+      iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+      size="md"
+      footer={
+        step === "select" ? (
+          <div className="flex gap-3">
+            <button onClick={onClose} className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-600 hover:bg-stone-50">
+              Cancel
+            </button>
+            <button
+              onClick={() => selectedId && setStep("confirm")}
+              disabled={!selectedId}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-40"
+            >
+              <Link2 size={13} />
+              Continue
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-3">
+            <button onClick={() => setStep("select")} className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-600 hover:bg-stone-50">
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirm}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+            >
+              <Link2 size={13} />
+              Attach Evidence
+            </button>
+          </div>
+        )
+      }
+    >
+      {step === "select" ? (
+        <>
+          <div className="mb-3">
+            <div className="relative">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by incident ID, title, category, or purok…"
+                className="w-full rounded-lg border border-stone-200 bg-stone-50 py-2 pl-8 pr-3 text-[11px] text-stone-700 placeholder:text-stone-400 focus:border-[#0038A8] focus:bg-white focus:outline-none"
+              />
+            </div>
+            <p className="mt-1 text-[9px] text-stone-400">
+              {filtered.length} incident{filtered.length !== 1 ? "s" : ""} available · Search by ID, title, category or purok
+            </p>
+          </div>
+
+          <div className="max-h-52 space-y-1.5 overflow-y-auto pr-1">
+            {filtered.length === 0 && (
+              <div className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-stone-200 py-6 text-[11px] text-stone-400">
+                <Search size={12} /> No incidents match "{query}"
+              </div>
+            )}
+            {filtered.map((inc) => (
+              <button
+                key={inc.id}
+                onClick={() => setSelectedId(inc.id)}
+                className={`flex w-full items-start gap-3 rounded-lg border px-3.5 py-3 text-left transition ${
+                  selectedId === inc.id ? "border-[#0038A8] bg-[#0038A8]/5" : "border-stone-200 bg-white hover:bg-stone-50"
+                }`}
+              >
+                <span className={`mt-0.5 flex h-2 w-2 shrink-0 rounded-full ${inc.severity === "critical" ? "bg-rose-500" : inc.severity === "warning" ? "bg-amber-400" : "bg-sky-400"}`} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <span className="text-[12px] font-bold text-stone-900">{inc.id}</span>
+                    <span className="text-[10px] text-stone-400">{inc.purok}</span>
+                  </span>
+                  <span className="block text-[11px] text-stone-600">{inc.title}</span>
+                </span>
+                <span className="shrink-0 text-[10px] font-medium capitalize text-stone-400">{inc.category}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5">
+            <AlertTriangle size={12} className="mt-0.5 shrink-0 text-amber-600" />
+            <p className="text-[10px] leading-relaxed text-amber-700">
+              <span className="font-semibold">Do not create a duplicate incident.</span> Attach this clip only if the selected
+              incident already represents the event being investigated.
+            </p>
+          </div>
+        </>
+      ) : (
+        <div className="space-y-3">
+          <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+            <p className="text-[9px] font-semibold tracking-wider text-stone-400">CAMERA</p>
+            <p className="mt-1 text-[12px] font-bold text-stone-900">{clip.cameraId} — {clip.cameraName}</p>
+          </div>
+          <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+            <p className="text-[9px] font-semibold tracking-wider text-stone-400">CLIP</p>
+            <p className="mt-1 font-mono text-[12px] font-bold text-stone-900">
+              {fmtTimestamp(clip.startTime)} – {fmtTimestamp(clip.endTime)}
+            </p>
+            <p className="mt-0.5 text-[10px] text-stone-500">{clip.id} · {fmtClock(clip.durationSec)} · {clip.fileType}</p>
+          </div>
+          {selectedIncident && (
+            <div className="rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-4 py-3">
+              <p className="text-[9px] font-semibold tracking-wider text-[#0038A8]">ATTACH TO</p>
+              <p className="mt-1 text-[12px] font-bold text-stone-900">{selectedIncident.id} — {selectedIncident.title}</p>
+              <p className="mt-0.5 text-[10px] text-stone-500">{selectedIncident.category} · {selectedIncident.purok}</p>
+            </div>
+          )}
+          <div className="flex items-start gap-2 rounded-lg border border-[#0038A8]/15 bg-[#0038A8]/5 px-3 py-2.5">
+            <Link2 size={12} className="mt-0.5 shrink-0 text-[#0038A8]" />
+            <p className="text-[10px] font-semibold leading-relaxed text-stone-700">
+              This clip will be added as supplementary CCTV evidence.
+            </p>
+          </div>
+          <div className="flex items-start gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
+            <CalendarClock size={12} className="mt-0.5 shrink-0 text-[#0038A8]" />
+            <p className="text-[10px] leading-relaxed text-stone-500">
+              Linking starts the official <span className="font-semibold">{RETENTION_YEARS}-year retention</span> clock.
+              The clip becomes reviewable by the Barangay Desk Officer and Barangay Captain.
+            </p>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+export default function CctvFootageRequests({ operatorName = "CO-01" }: { operatorName?: string }) {
+  const { flash, ToastPortal } = useToast();
+  const { muted, setMuted, beep } = useAlertSound();
+  const activities = useEvidenceActivities();
+
+  const [requests, setRequests] = useState<FootageRequest[]>(INITIAL_REQUESTS);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+
+  const [clips, setClips] = useState<Clip[]>(INITIAL_CLIPS);
+  const clipSeqRef = useRef(INITIAL_CLIPS.length + 1);
+  const processedSeqRef = useRef(0);
+  const [processedClips, setProcessedClips] = useState<PrivacyProcessedClip[]>([]);
+  const [archiveUsedGB, setArchiveUsedGB] = useState(ARCHIVE_START_GB);
+
+  const [dateFilter, setDateFilter] = useState("");
+  const [startTimeFilter, setStartTimeFilter] = useState("");
+  const [endTimeFilter, setEndTimeFilter] = useState("");
+  const [cameraFilter, setCameraFilter] = useState("all");
+  const [incidentFilter, setIncidentFilter] = useState("all");
+  const [eventTagFilter, setEventTagFilter] = useState("all");
+
+  const [selected, setSelected] = useState<Recording | null>(null);
+  const [currentSec, setCurrentSec] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [clipStart, setClipStart] = useState<number | null>(null);
+  const [clipEnd, setClipEnd] = useState<number | null>(null);
+  const [previewingSegment, setPreviewingSegment] = useState(false);
+  const [volume, setVolume] = useState(80);
+
+  const [redactTarget, setRedactTarget] = useState<Clip | null>(null);
+  const [attachTarget, setAttachTarget] = useState<Clip | null>(null);
+  const [exportTarget, setExportTarget] = useState<Clip | null>(null);
+  const [clipGenerated, setClipGenerated] = useState<Clip | null>(null);
+  const [attachedSuccess, setAttachedSuccess] = useState<Clip | null>(null);
+  const [redactedSuccess, setRedactedSuccess] = useState<{ clip: Clip; processed: PrivacyProcessedClip } | null>(null);
+  const [fulfilledRequest, setFulfilledRequest] = useState<FootageRequest | null>(null);
+  const [notifiedDeskOfficer, setNotifiedDeskOfficer] = useState<FootageRequest | null>(null);
+  const [cannotFulfillTarget, setCannotFulfillTarget] = useState<FootageRequest | null>(null);
+  const [cannotFulfillReason, setCannotFulfillReason] = useState("no_recording");
+
+  const selectedRequest = requests.find((r) => r.id === selectedRequestId) ?? null;
+
+  const filteredRequests = useMemo(() => {
+    return requests;
+  }, [requests]);
+
+  const filteredRecordings = useMemo(() => {
+    return RECORDINGS.filter((r) => {
+      if (cameraFilter !== "all") {
+        const cam = CAMERAS.find((c) => c.id === cameraFilter);
+        if (r.cameraId !== cameraFilter) return false;
+        if (cam && !cam.hasArchive) return false;
+      }
+      if (incidentFilter !== "all" && r.incidentId !== incidentFilter) return false;
+      if (eventTagFilter !== "all" && r.eventTag !== eventTagFilter) return false;
+      if (dateFilter) {
+        const d = new Date(r.startISO);
+        const localDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        if (localDate !== dateFilter) return false;
+      }
+      if (startTimeFilter || endTimeFilter) {
+        const sd = new Date(r.startISO);
+        const ed = new Date(sd.getTime() + r.duration * 1000);
+        const sm = sd.getHours() * 60 + sd.getMinutes();
+        const em = ed.getHours() * 60 + ed.getMinutes();
+        if (startTimeFilter) {
+          const st = timeToMinutes(startTimeFilter);
+          if (sm > st) return false;
+        }
+        if (endTimeFilter) {
+          const et = timeToMinutes(endTimeFilter);
+          if (em < et) return false;
+        }
+      }
+      return true;
+    });
+  }, [cameraFilter, dateFilter, startTimeFilter, endTimeFilter, incidentFilter, eventTagFilter]);
+
+  useEffect(() => {
+    if (!playing || !selected) return;
+    const limit = previewingSegment && clipEnd != null ? Math.min(clipEnd, selected.duration) : selected.duration;
+    const interval = setInterval(() => {
+      setCurrentSec((s) => (s >= limit ? s : s + 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [playing, selected, previewingSegment, clipEnd]);
+
+  useEffect(() => {
+    if (!selected || !playing) return;
+    const limit = previewingSegment && clipEnd != null ? clipEnd : selected.duration;
+    if (currentSec >= limit) {
+      setPlaying(false);
+      setPreviewingSegment(false);
+    }
+  }, [currentSec, playing, selected, previewingSegment, clipEnd]);
+
+  function applyRequest(r: FootageRequest) {
+    setSelectedRequestId(r.id);
+    setCameraFilter(r.cameraId ?? "all");
+    setDateFilter(r.date ?? "");
+    setStartTimeFilter(r.startTime ?? "");
+    setEndTimeFilter(r.endTime ?? "");
+    setIncidentFilter(r.incidentId ?? "all");
+    setEventTagFilter(r.eventTag ?? "all");
+    beep("info");
+  }
+
+  function loadRecording(rec: Recording) {
+    const cam = CAMERAS.find((c) => c.id === rec.cameraId);
+    if (cam && !cam.hasArchive) {
+      flash(`${cam.name} (${cam.id}) has no archived footage — live stream only`, { type: "warning" });
+      return;
+    }
+    setSelected(rec);
+    setCurrentSec(0);
+    setPlaying(false);
+    setClipStart(null);
+    setClipEnd(null);
+    setPreviewingSegment(false);
+    addEvidenceActivity({ action: "Viewed", clipId: rec.id, operator: operatorName });
+    beep("info");
+  }
+
+  function generateClip() {
+    if (!selected || clipStart == null || clipEnd == null || clipEnd <= clipStart) return;
+    const base = new Date(selected.startISO).getTime();
+    const s = new Date(base + clipStart * 1000);
+    const e = new Date(base + clipEnd * 1000);
+    const id = `CLIP-2026-${String(clipSeqRef.current++).padStart(4, "0")}`;
+    const now = new Date().toISOString();
+    const readonly = CAMERAS.find((c) => c.id === selected.cameraId);
+    const clip: Clip = {
+      id,
+      cameraId: selected.cameraId,
+      cameraName: selected.cameraName,
+      incidentId: selectedRequest && selectedRequest.incidentId ? selectedRequest.incidentId : undefined,
+      requestId: selectedRequest ? selectedRequest.id : undefined,
+      startTime: s.toISOString(),
+      endTime: e.toISOString(),
+      startSec: clipStart,
+      endSec: clipEnd,
+      durationSec: clipEnd - clipStart,
+      storageReference: `https://brgyculiat.supabase.co/storage/v1/object/public/${STORAGE_BUCKET}/${id}.mp4`,
+      fileType: "video/mp4",
+      fileSize: Math.round((clipEnd - clipStart) * 16_000),
+      uploadedBy: operatorName,
+      createdAt: now,
+      contentHash: `sha256:${id.replace("CLIP-2026-", "").padStart(4, "0")}`,
+      retentionStatus: "active",
+      privacyStatus: "original",
+      recorderSource: readonly?.controlled ? "system" : "external",
+    };
+    setClips((prev) => [clip, ...prev]);
+    setArchiveUsedGB((g) => g + CLIP_GB);
+    addEvidenceActivity({ action: "Generated", clipId: id, incidentId: clip.incidentId, operator: operatorName });
+    setClipStart(null);
+    setClipEnd(null);
+    setClipGenerated(clip);
+    beep("info");
+    flash(`${id} generated by ${operatorName} and saved to Supabase Storage (clip record logged)`);
+  }
+
+  function applyRedaction(masks: Mask[]) {
+    if (!redactTarget) return;
+    const now = new Date().toISOString();
+    const processedId = `PRIV-2026-${String(processedSeqRef.current++).padStart(4, "0")}`;
+    const processed: PrivacyProcessedClip = {
+      id: processedId,
+      sourceClipId: redactTarget.id,
+      processedBy: operatorName,
+      processedAt: now,
+      privacyStatus: "privacy_processed",
+      maskCount: masks.length,
+      masks,
+      storageReference: `https://brgyculiat.supabase.co/storage/v1/object/public/${STORAGE_BUCKET}/${processedId}.mp4`,
+    };
+    setProcessedClips((prev) => [processed, ...prev]);
+    addEvidenceActivity({ action: "Redacted", clipId: redactTarget.id, incidentId: redactTarget.incidentId, operator: operatorName });
+    setRedactedSuccess({ clip: redactTarget, processed });
+    setRedactTarget(null);
+    beep("info");
+    flash(`${processedId} created from ${redactTarget.id} — ${masks.length} manual mask(s) applied. Original preserved.`);
+  }
+
+  function attachClip(incidentId: string) {
+    if (!attachTarget) return;
+    const attachedAt = new Date().toISOString();
+    const updated: Clip = { ...attachTarget, incidentId, attachedAt, retainedUntil: retentionExpiry(attachedAt) };
+    setClips((prev) => prev.map((c) => (c.id === attachTarget.id ? updated : c)));
+    addEvidenceActivity({ action: "Attached", clipId: attachTarget.id, incidentId, operator: operatorName });
+    setAttachedSuccess(updated);
+    setAttachTarget(null);
+    beep("info");
+    flash(`${attachTarget.id} linked by ${operatorName} to ${incidentId} — ${RETENTION_YEARS}-year retention started`);
+  }
+
+  function fulfillRequest() {
+    if (!selectedRequest) return;
+    if (selectedRequest.status === "fulfilled") return;
+    const requestIncident = selectedRequest.incidentId;
+    const delivered = requestIncident
+      ? clips.some((c) => c.incidentId === requestIncident)
+      : clips.some((c) => c.requestId === selectedRequest.id);
+    if (!delivered) {
+      flash("Attach or generate a clip for this request before marking it fulfilled", { type: "warning" });
+      return;
+    }
+    const fulfilled = { ...selectedRequest, status: "fulfilled" as RequestStatus };
+    setRequests((prev) => prev.map((r) => (r.id === selectedRequest.id ? fulfilled : r)));
+    addEvidenceActivity({
+      action: "Attached",
+      clipId: "FOOTAGE-PROVIDED",
+      incidentId: selectedRequest.incidentId,
+      operator: operatorName,
+    });
+    setFulfilledRequest(fulfilled);
+    beep("info");
+    flash(`${selectedRequest.id} fulfilled — footage provided to the Desk Officer for ${selectedRequest.incidentId ?? "review"}`);
+  }
+
+  function startMarkUnavailable() {
+    if (!selectedRequest) return;
+    if (selectedRequest.status === "fulfilled" || selectedRequest.status === "cannot_fulfill") return;
+    setCannotFulfillTarget(selectedRequest);
+    setCannotFulfillReason("no_recording");
+  }
+
+  function confirmMarkUnavailable() {
+    if (!cannotFulfillTarget) return;
+    const reason = UNAVAILABLE_REASONS.find((r) => r.value === cannotFulfillReason)?.label ?? cannotFulfillReason;
+    const updated = { ...cannotFulfillTarget, status: "cannot_fulfill" as RequestStatus, note: reason };
+    setRequests((prev) => prev.map((r) => (r.id === cannotFulfillTarget.id ? updated : r)));
+    setNotifiedDeskOfficer(updated);
+    setCannotFulfillTarget(null);
+    beep("offline");
+  }
+
+  function clearFilters() {
+    setDateFilter("");
+    setStartTimeFilter("");
+    setEndTimeFilter("");
+    setCameraFilter("all");
+    setIncidentFilter("all");
+    setEventTagFilter("all");
+  }
+
+  const linkedClips = clips.filter((c) => c.incidentId).length;
+  const pendingRedaction = clips.filter((c) => !processedClips.some((p) => p.sourceClipId === c.id)).length;
+  const archivePct = Math.round((archiveUsedGB / ARCHIVE_TOTAL_GB) * 100);
+  const archiveCritical = archivePct >= 90;
+
+  const requestCounts = {
+    total: requests.length,
+    pending: requests.filter((r) => r.status === "pending").length,
+    fulfilled: requests.filter((r) => r.status === "fulfilled").length,
+  };
+
+  const selectedRequestClipCount = selectedRequest
+    ? clips.filter((c) => (selectedRequest.incidentId ? c.incidentId === selectedRequest.incidentId : c.requestId === selectedRequest.id)).length
+    : 0;
+
+  const kpis = [
+    { label: "FOOTAGE REQUESTS", value: requestCounts.total, sub: "filed by the Desk Officer", icon: ClipboardList },
+    { label: "PENDING FULFILLMENT", value: requestCounts.pending, sub: "awaiting operator action", icon: Clock },
+    { label: "FULFILLED", value: requestCounts.fulfilled, sub: "footage provided to Desk Officer", icon: CheckCircle },
+    { label: "CLIP RECORDS", value: clips.length, sub: "with storage & retention metadata", icon: Database },
+  ];
+
+  const clipErrors: string[] = [];
+  if (selected) {
+    if (clipStart != null && clipStart < 0) clipErrors.push("Clip start is before the recording start.");
+    if (clipStart != null && clipStart > selected.duration) clipErrors.push("Clip start is beyond the recording end.");
+    if (clipEnd != null && clipEnd < 0) clipErrors.push("Clip end is before the recording start.");
+    if (clipEnd != null && clipEnd > selected.duration) clipErrors.push("Clip end exceeds available footage duration.");
+    if (clipStart != null && clipEnd != null && clipEnd <= clipStart) clipErrors.push("Clip end must be after clip start.");
+  }
+  const canCreateClip = selected && clipStart != null && clipEnd != null && clipErrors.length === 0;
+  const clipDuration = clipStart != null && clipEnd != null ? clipEnd - clipStart : 0;
+  const selectedCamera = selected ? CAMERAS.find((c) => c.id === selected.cameraId) : null;
+
+  return (
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+      <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
+        <header className="mb-6 border-b border-stone-200 pb-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-bold text-stone-900">CCTV Footage Requests</h1>
+              <p className="mt-1 text-sm text-stone-500">
+                Fulfill footage requests filed by the Barangay Desk Officer — locate, review and provide the requested CCTV
+                recording securely and record every action in the audit log
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#0038A8]/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#0038A8]">
+                <User size={12} /> Operator: {operatorName}
+              </span>
+              <SoundToggle muted={muted} onToggle={() => setMuted((m) => !m)} />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0038A8]/5 px-3 py-1.5 text-[11px] font-medium text-[#0038A8]">
+                <Lock size={12} /> Authorized access only
+              </span>
+            </div>
+          </div>
+        </header>
+
+        {/* KPI row */}
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {kpis.map(({ label, value, sub, icon: Icon }) => (
+            <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
+              <div className="flex items-start justify-between">
+                <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">{label}</span>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                  <Icon size={15} />
+                </div>
+              </div>
+              <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+              <div className="mt-1 text-[11px] text-[#94A3B8]">{sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Storage banner */}
+        <div className={`mb-6 rounded-xl border px-5 py-3 shadow-sm ${archiveCritical ? "border-rose-200 bg-rose-50/50" : "border-black/5 bg-white"}`}>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2.5">
+              <HardDrive size={15} className={archiveCritical ? "shrink-0 text-rose-600" : "shrink-0 text-[#0038A8]"} />
+              <div className="min-w-0">
+                <h3 className="text-[13px] font-semibold text-[#334155]">Archive Storage Capacity</h3>
+                <p className="truncate text-[10px] text-[#94A3B8]">
+                  {archiveUsedGB.toFixed(1)} GB of {ARCHIVE_TOTAL_GB} GB used · {clips.length} clip records · {RETENTION_YEARS}-year retention · {archivePct}%
+                </p>
+              </div>
+              <div className="h-2 w-40 min-w-[100px] overflow-hidden rounded-full bg-stone-200">
+                <div className={`h-full rounded-full transition-all ${archiveCritical ? "bg-rose-500" : "bg-[#0038A8]"}`} style={{ width: `${archivePct}%` }} />
+              </div>
+            </div>
+            <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold ${archiveCritical ? "bg-rose-100 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
+              {archiveCritical ? "NEAR CAPACITY" : "HEALTHY"}
+            </span>
+          </div>
+        </div>
+
+        {/* Workspace: Request queue (left) + Fulfillment area (right) */}
+        <div className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-4">
+          {/* Request queue */}
+          <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
+            <div className="flex items-center justify-between px-5 py-4">
+              <div className="flex items-center gap-2">
+                <ClipboardList size={16} className="text-[#0038A8]" />
+                <div>
+                  <h3 className="text-[14px] font-semibold text-[#334155]">Desk Officer Requests</h3>
+                  <p className="text-[11px] text-[#94A3B8]">Select a request to load its search criteria</p>
+                </div>
+              </div>
+              <span className="rounded-full bg-stone-100 px-2.5 py-1 text-[10px] font-semibold text-stone-500">{filteredRequests.length}</span>
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-5 pb-4" style={{ maxHeight: 640 }}>
+              {filteredRequests.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-stone-200 py-12">
+                  <Inbox size={22} className="mb-2 text-stone-300" />
+                  <p className="text-[12px] font-medium text-stone-500">No requests in this view</p>
+                </div>
+              ) : (
+                filteredRequests.map((r) => {
+                  const cam = r.cameraId ? CAMERAS.find((c) => c.id === r.cameraId) : null;
+                  const isSelected = selectedRequestId === r.id;
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={() => applyRequest(r)}
+                      className={`w-full rounded-xl border p-3.5 text-left transition ${
+                        isSelected ? "border-[#0038A8] bg-[#0038A8]/5 shadow-sm" : "border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12px] font-bold text-stone-900">{r.id}</span>
+                          {r.priority === "urgent" && (
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-rose-100 px-1.5 py-0.5 text-[8px] font-bold text-rose-700">
+                              <Zap size={8} /> URGENT
+                            </span>
+                          )}
+                        </div>
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[8px] font-bold ${REQUEST_STATUS_META[r.status].badge}`}>
+                          {REQUEST_STATUS_META[r.status].label}
+                        </span>
+                      </div>
+
+                      <div className="mt-2.5 space-y-1">
+                        {r.incidentId && (
+                          <p className="flex items-center gap-1.5 text-[10px] font-semibold text-[#0038A8]">
+                            <Link2 size={9} /> {r.incidentId}
+                          </p>
+                        )}
+                        {cam && (
+                          <p className="flex items-center gap-1.5 text-[10px] text-stone-600">
+                            <Camera size={9} /> {cam.id} — {cam.name} · {cam.location}
+                          </p>
+                        )}
+                        {r.date && (
+                          <p className="flex items-center gap-1.5 text-[10px] text-stone-600">
+                            <Calendar size={9} /> {r.date}
+                            {r.startTime && r.endTime && (
+                              <span className="font-mono text-[9px] text-stone-500">· {r.startTime} – {r.endTime}</span>
+                            )}
+                          </p>
+                        )}
+                        <p className="flex items-center gap-1.5 text-[10px] text-stone-500">
+                          <User size={9} /> {r.requestedBy} · {r.requestedByRole}
+                        </p>
+                        <p className="flex items-center gap-1.5 text-[10px] text-stone-400">
+                          <Clock size={9} /> Requested {fmtStamp(r.requestedAt)}
+                        </p>
+                      </div>
+
+                      <p className="mt-2 line-clamp-2 text-[10px] italic leading-relaxed text-stone-400">{r.purpose}</p>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Selected request detail */}
+            {selectedRequest ? (
+              <div className="border-t border-stone-100 bg-[#F8FAFF]">
+                <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-4">
+                  <div className="flex items-start gap-2.5">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0038A8]/10 text-[#0038A8]">
+                      <ClipboardList size={15} />
+                    </span>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-[13px] font-bold text-stone-900">{selectedRequest.id}</h3>
+                        <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${REQUEST_STATUS_META[selectedRequest.status].badge}`}>
+                          {REQUEST_STATUS_META[selectedRequest.status].label}
+                        </span>
+                        {selectedRequest.priority === "urgent" && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-rose-100 px-1.5 py-0.5 text-[8px] font-bold text-rose-700">
+                            <Zap size={8} /> URGENT
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-[10px] text-stone-500">
+                        {selectedRequest.requestedBy} ({selectedRequest.requestedByRole}) · {fmtStamp(selectedRequest.requestedAt)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 px-5 pt-3">
+                  <div className="rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-1.5">
+                    <p className="text-[7px] font-semibold tracking-wider text-stone-400">CAMERA</p>
+                    <p className="mt-0.5 text-[10px] font-bold text-stone-900">
+                      {selectedRequest.cameraId ? `${selectedRequest.cameraId}${CAMERAS.find((c) => c.id === selectedRequest.cameraId) ? " · " + CAMERAS.find((c) => c.id === selectedRequest.cameraId)!.name : ""}` : "Any"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-1.5">
+                    <p className="text-[7px] font-semibold tracking-wider text-stone-400">INCIDENT</p>
+                    <p className="mt-0.5 text-[10px] font-bold text-stone-900">{selectedRequest.incidentId ?? "—"}</p>
+                  </div>
+                  <div className="rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-1.5">
+                    <p className="text-[7px] font-semibold tracking-wider text-stone-400">DATE / TIME</p>
+                    <p className="mt-0.5 font-mono text-[9px] font-bold text-stone-900">
+                      {selectedRequest.date ?? "any"}
+                      {selectedRequest.startTime && selectedRequest.endTime
+                        ? ` · ${selectedRequest.startTime}–${selectedRequest.endTime}`
+                        : ""}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-1.5">
+                    <p className="text-[7px] font-semibold tracking-wider text-stone-400">EVENT TAG</p>
+                    <p className="mt-0.5 text-[10px] font-bold text-stone-900">{selectedRequest.eventTag ?? "Any"}</p>
+                  </div>
+                </div>
+
+                <div className="px-5 pt-3">
+                  <p className="text-[8px] font-semibold tracking-wider text-stone-400">REQUEST DESCRIPTION / REASON</p>
+                  <p className="mt-1 text-[10px] italic leading-relaxed text-stone-500">{selectedRequest.purpose}</p>
+                  {selectedRequest.note && (
+                    <>
+                      <p className="mt-2 text-[8px] font-semibold tracking-wider text-stone-400">REQUESTER'S NOTES</p>
+                      <p className="mt-1 text-[10px] leading-relaxed text-stone-600">{selectedRequest.note}</p>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex gap-2 px-5 py-4">
+                  <button
+                    onClick={startMarkUnavailable}
+                    disabled={selectedRequest.status === "fulfilled" || selectedRequest.status === "cannot_fulfill"}
+                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2 text-[10px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Ban size={12} />
+                    {selectedRequest.status === "cannot_fulfill" ? "Unavailable" : "Mark Unavailable"}
+                  </button>
+                  <button
+                    onClick={fulfillRequest}
+                    disabled={selectedRequest.status === "fulfilled"}
+                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#0038A8] px-2 text-[10px] font-bold text-white transition hover:bg-[#002A8C] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <CheckCircle size={12} />
+                    {selectedRequest.status === "fulfilled" ? "Fulfilled" : "Provide Footage"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="border-t border-stone-100 px-5 py-4">
+                <p className="text-[10px] leading-relaxed text-stone-500">
+                  <span className="font-semibold text-stone-700">Select a request from the queue above.</span> Its camera, date,
+                  time, incident and event-tag criteria auto-fill the search. Then locate, review, retrieve and provide the footage.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Fulfillment area */}
+          <div className="xl:col-span-3 flex flex-col gap-5 overflow-hidden">
+            {/* Search section */}
+            <div className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Filter size={15} className="text-[#0038A8]" />
+                  <div>
+                    <h3 className="text-[14px] font-semibold text-[#334155]">Search the Available Archive</h3>
+                    <p className="text-[11px] text-[#94A3B8]">
+                      {selectedRequest
+                        ? `Criteria pre-filled from ${selectedRequest.id} — adjust if needed`
+                        : "Locate exact footage by camera, date, start/end time, related incident, or event tag"}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-medium text-[#94A3B8]">
+                  {filteredRecordings.length} of {RECORDINGS.length} recordings match
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <label className="mb-1 flex items-center gap-1 text-[10px] font-semibold tracking-wider text-stone-400">
+                    <Camera size={10} /> CAMERA
+                  </label>
+                  <select
+                    value={cameraFilter}
+                    onChange={(e) => setCameraFilter(e.target.value)}
+                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                  >
+                    <option value="all">All cameras</option>
+                    {CAMERAS.filter((c) => c.hasArchive).map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.id} — {c.name} · {c.location} · {c.purok} · {c.controlled ? "System recorder" : "External recorder"}
+                      </option>
+                    ))}
+                    {CAMERAS.filter((c) => !c.hasArchive).length > 0 && (
+                      <optgroup label="Live Stream Only — No Archive">
+                        {CAMERAS.filter((c) => !c.hasArchive).map((c) => (
+                          <option key={c.id} value={c.id} disabled>
+                            {c.id} — {c.name} · LIVE ONLY
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 flex items-center gap-1 text-[10px] font-semibold tracking-wider text-stone-400">
+                    <Calendar size={10} /> DATE
+                  </label>
+                  <input
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 flex items-center gap-1 text-[10px] font-semibold tracking-wider text-stone-400">
+                    <Clock size={10} /> START TIME
+                  </label>
+                  <input
+                    type="time"
+                    value={startTimeFilter}
+                    onChange={(e) => setStartTimeFilter(e.target.value)}
+                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 flex items-center gap-1 text-[10px] font-semibold tracking-wider text-stone-400">
+                    <Clock size={10} /> END TIME
+                  </label>
+                  <input
+                    type="time"
+                    value={endTimeFilter}
+                    onChange={(e) => setEndTimeFilter(e.target.value)}
+                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 flex items-center gap-1 text-[10px] font-semibold tracking-wider text-stone-400">
+                    <Link2 size={10} /> RELATED INCIDENT
+                  </label>
+                  <select
+                    value={incidentFilter}
+                    onChange={(e) => setIncidentFilter(e.target.value)}
+                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                  >
+                    <option value="all">All incidents</option>
+                    {[...new Set(RECORDINGS.filter((r) => r.incidentId).map((r) => r.incidentId))].map((incId) => {
+                      const inc = OPEN_INCIDENTS.find((i) => i.id === incId);
+                      return (
+                        <option key={incId} value={incId}>
+                          {incId}{inc ? ` — ${inc.title}` : ""}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 flex items-center gap-1 text-[10px] font-semibold tracking-wider text-stone-400">
+                    <Flag size={10} /> EVENT TAG
+                  </label>
+                  <select
+                    value={eventTagFilter}
+                    onChange={(e) => setEventTagFilter(e.target.value)}
+                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                  >
+                    <option value="all">All tags</option>
+                    {EVENT_TAGS.map((tag) => (
+                      <option key={tag} value={tag}>{tag}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-stone-100 pt-3">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {cameraFilter !== "all" && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                      Camera: {CAMERAS.find((c) => c.id === cameraFilter)?.name ?? cameraFilter}
+                      <button onClick={() => setCameraFilter("all")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                    </span>
+                  )}
+                  {dateFilter && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                      Date: {dateFilter}
+                      <button onClick={() => setDateFilter("")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                    </span>
+                  )}
+                  {startTimeFilter && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                      From: {startTimeFilter}
+                      <button onClick={() => setStartTimeFilter("")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                    </span>
+                  )}
+                  {endTimeFilter && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                      To: {endTimeFilter}
+                      <button onClick={() => setEndTimeFilter("")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                    </span>
+                  )}
+                  {incidentFilter !== "all" && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                      Incident: {incidentFilter}
+                      <button onClick={() => setIncidentFilter("all")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                    </span>
+                  )}
+                  {eventTagFilter !== "all" && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                      Tag: {eventTagFilter}
+                      <button onClick={() => setEventTagFilter("all")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={clearFilters} className="flex h-8 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 text-[11px] font-medium text-stone-500 transition hover:bg-stone-50">
+                    <RotateCcw size={11} /> Clear All
+                  </button>
+                  <button
+                    onClick={() => flash(`Footage search — ${filteredRecordings.length} recording(s) found`)}
+                    className="flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[#0038A8] px-4 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                  >
+                    <Search size={12} /> Find Footage
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Results + Playback */}
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+              <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
+                <div className="flex items-center justify-between px-5 py-4">
+                  <div className="flex items-center gap-2">
+                    <Camera size={16} className="text-[#0038A8]" />
+                    <div>
+                      <h3 className="text-[14px] font-semibold text-[#334155]">Find Footage</h3>
+                      <p className="text-[11px] text-[#94A3B8]">Found recordings matching the request filters</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-stone-100 px-2.5 py-1 text-[10px] font-semibold text-stone-500">{filteredRecordings.length}</span>
+                </div>
+                <div className="max-h-[560px] space-y-2 overflow-y-auto px-5 pb-4">
+                  {filteredRecordings.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-stone-200 py-12">
+                      <Search size={22} className="mb-2 text-stone-300" />
+                      <p className="text-[12px] font-medium text-stone-500">No footage found for this request</p>
+                      <p className="text-[10px] text-stone-400">Adjust the camera, date, time, incident or tag filters</p>
+                    </div>
+                  ) : (
+                    filteredRecordings.map((rec) => {
+                      const cam = CAMERAS.find((c) => c.id === rec.cameraId);
+                      const { start: startTime, end: endTime } = fmtRecordingRange(rec.startISO, rec.duration);
+                      const isLinked = !!rec.incidentId;
+                      return (
+                        <div
+                          key={rec.id}
+                          className={`rounded-xl border p-4 transition ${
+                            selected?.id === rec.id
+                              ? "border-[#0038A8] bg-[#0038A8]/5 shadow-sm"
+                              : "border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0038A8]/10 text-[#0038A8]">
+                                <Video size={14} />
+                              </span>
+                              <div>
+                                <p className="text-[13px] font-bold text-stone-900">{rec.id}</p>
+                                <p className="text-[10px] text-stone-400">{rec.sizeMB} MB</p>
+                              </div>
+                            </div>
+                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                              cam?.controlled ? "bg-emerald-100 text-emerald-700" : "bg-sky-100 text-sky-700"
+                            }`}>
+                              {cam?.controlled ? "SYSTEM RECORDER" : "EXTERNAL RECORDER"}
+                            </span>
+                          </div>
+
+                          <div className="mt-3 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
+                            <p className="text-[9px] font-semibold tracking-wider text-stone-400">CAMERA</p>
+                            <div className="mt-1 flex items-center gap-2">
+                              <span className="text-[11px] font-bold text-stone-900">{rec.cameraId}</span>
+                              <span className="text-[10px] text-stone-500">{rec.cameraName}</span>
+                            </div>
+                            <p className="flex items-center gap-1 text-[10px] text-stone-400">
+                              <MapPin size={9} /> {rec.location} · {rec.purok}
+                            </p>
+                          </div>
+
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            <div className="rounded-lg border border-stone-200 bg-white px-3 py-2">
+                              <p className="text-[9px] font-semibold tracking-wider text-stone-400">RECORDING DATE</p>
+                              <p className="mt-0.5 text-[11px] font-semibold text-stone-900">{fmtRecordingDate(rec.startISO)}</p>
+                            </div>
+                            <div className="rounded-lg border border-stone-200 bg-white px-3 py-2">
+                              <p className="text-[9px] font-semibold tracking-wider text-stone-400">DURATION</p>
+                              <p className="mt-0.5 text-[11px] font-bold text-[#0038A8]">{fmtClock(rec.duration)}</p>
+                            </div>
+                          </div>
+                          <div className="mt-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2">
+                            <p className="text-[9px] font-semibold tracking-wider text-stone-400">TIMESTAMP RANGE</p>
+                            <p className="mt-0.5 font-mono text-[11px] font-semibold text-stone-700">{startTime} – {endTime}</p>
+                          </div>
+
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                            {isLinked ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-bold text-[#0038A8]">
+                                <Link2 size={8} /> {rec.incidentId}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-[9px] font-medium text-stone-400">No incident</span>
+                            )}
+                            {rec.eventTag ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2 py-0.5 text-[9px] font-bold text-violet-700">
+                                <Flag size={8} /> {rec.eventTag}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-[9px] font-medium text-stone-400">No tag</span>
+                            )}
+                          </div>
+
+                          <div className="mt-3 flex items-center gap-2">
+                            <button
+                              onClick={() => loadRecording(rec)}
+                              className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#0038A8] text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                            >
+                              <Play size={12} />
+                              {selected?.id === rec.id ? "Playing" : "Review"}
+                            </button>
+                            <button
+                              onClick={() => loadRecording(rec)}
+                              className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 text-[11px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white"
+                            >
+                              <Scissors size={12} /> Select Clip
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Playback Station */}
+              <div className="flex flex-col gap-5 xl:col-span-2">
+                <div className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
+                  <div className="flex items-center justify-between px-5 py-4">
+                    <div className="flex items-center gap-2">
+                      <MonitorPlay size={16} className="text-[#0038A8]" />
+                      <div>
+                        <h3 className="text-[14px] font-semibold text-[#334155]">Review &amp; Playback</h3>
+                        <p className="text-[11px] text-[#94A3B8]">
+                          {selected ? `${selected.cameraId} · ${selected.cameraName} · ${selected.location}` : "Select a recording to review"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {selected && (
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                          selectedCamera?.controlled ? "bg-emerald-50 text-emerald-700" : "bg-sky-100 text-sky-700"
+                        }`}>
+                          {selectedCamera?.controlled ? "SYSTEM" : "EXTERNAL"}
+                        </span>
+                      )}
+                      {selectedRequest && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#0038A8] ring-1 ring-[#0038A8]/20">
+                          <ClipboardList size={10} /> {selectedRequest.id}
+                        </span>
+                      )}
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium ${playing ? "bg-rose-50 text-rose-600" : "bg-stone-100 text-stone-500"}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${playing ? "animate-pulse bg-rose-500" : "bg-stone-300"}`} />
+                        {playing ? "Playing" : "Paused"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mx-5 mb-4 overflow-hidden rounded-xl border border-black/20 bg-black">
+                    <div className="relative h-56 w-full sm:h-64">
+                      {selected ? (
+                        <>
+                          <FrameScene />
+                          <div className="absolute left-3 top-3 flex items-center gap-2">
+                            <span className="flex items-center gap-1.5 rounded-md bg-black/60 px-2 py-1 text-[10px] font-semibold text-white">
+                              <span className="h-2 w-2 animate-pulse rounded-full bg-rose-500" />
+                              REC
+                            </span>
+                            <span className="rounded-md bg-black/60 px-2 py-1 text-[10px] font-medium text-white/90">{selected.id}</span>
+                          </div>
+                          <div className="absolute right-3 top-3 rounded-md bg-black/60 px-2 py-1 text-[10px] font-mono text-white">
+                            {new Date(new Date(selected.startISO).getTime() + currentSec * 1000).toLocaleTimeString("en-US", { hour12: false })}
+                          </div>
+                          {!playing && currentSec === 0 && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                              <button
+                                onClick={() => setPlaying(true)}
+                                className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-[#0038A8] shadow-xl transition hover:scale-105"
+                              >
+                                <Play size={26} className="ml-1" />
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex h-full flex-col items-center justify-center bg-stone-900 text-center">
+                          <Video size={28} className="mb-2 text-stone-700" />
+                          <p className="text-[12px] font-medium text-stone-500">No footage loaded</p>
+                          <p className="text-[10px] text-stone-600">Choose a recording from the search results to begin review</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="px-5 pb-5">
+                    {selected ? (
+                      <>
+                        {selectedCamera && !selectedCamera.controlled && (
+                          <div className="mb-3 flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2">
+                            <Info size={12} className="mt-0.5 shrink-0 text-sky-600" />
+                            <p className="text-[10px] leading-relaxed text-sky-700">
+                              <span className="font-semibold">External recorder.</span> The system does not directly control
+                              this CCTV recorder — archive retrieval depends on the external recorder. Playback may be limited.
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="mb-3 grid grid-cols-3 gap-2">
+                          <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-center">
+                            <p className="text-[9px] font-semibold tracking-wider text-stone-400">START</p>
+                            <p className="mt-0.5 font-mono text-[11px] font-bold text-stone-700">{fmtTimestamp(selected.startISO)}</p>
+                          </div>
+                          <div className="rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-3 py-2 text-center">
+                            <p className="text-[9px] font-semibold tracking-wider text-[#0038A8]">CURRENT</p>
+                            <p className="mt-0.5 font-mono text-[11px] font-bold text-[#0038A8]">
+                              {new Date(new Date(selected.startISO).getTime() + currentSec * 1000).toLocaleTimeString("en-US", { hour12: false })}
+                            </p>
+                          </div>
+                          <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-center">
+                            <p className="text-[9px] font-semibold tracking-wider text-stone-400">END</p>
+                            <p className="mt-0.5 font-mono text-[11px] font-bold text-stone-700">
+                              {fmtTimestamp(new Date(new Date(selected.startISO).getTime() + selected.duration * 1000).toISOString())}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-[10px] font-semibold tracking-wider text-stone-400">SEEK</span>
+                          <span className="font-mono text-[11px] text-stone-700">{fmtClock(currentSec)} / {fmtClock(selected.duration)}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={selected.duration}
+                          value={currentSec}
+                          onChange={(e) => setCurrentSec(Number(e.target.value))}
+                          className="w-full accent-[#0038A8]"
+                        />
+
+                        <div className="mt-3 mb-2 flex flex-wrap items-center gap-2">
+                          <button
+                            onClick={() => setPlaying((p) => !p)}
+                            className="flex h-8 items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                          >
+                            {playing ? <Pause size={12} /> : <Play size={12} />}
+                            {playing ? "Pause" : "Play"}
+                          </button>
+                          <div className="flex items-center gap-1.5 rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-1.5">
+                            <button onClick={() => setVolume((v) => (v > 0 ? 0 : 80))} className="text-stone-500 hover:text-stone-700 transition">
+                              {volume === 0 ? <VolumeX size={13} /> : <Volume2 size={13} />}
+                            </button>
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              value={volume}
+                              onChange={(e) => setVolume(Number(e.target.value))}
+                              className="w-16 accent-[#0038A8]"
+                            />
+                            <span className="w-7 text-right font-mono text-[9px] text-stone-400">{volume}%</span>
+                          </div>
+                          <span className="ml-auto text-[10px] text-stone-400">
+                            Basic controls · dependent on recording source support
+                          </span>
+                        </div>
+
+                        <div className="mt-4 rounded-xl border border-stone-200 bg-white p-4">
+                          <div className="mb-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Scissors size={14} className="text-[#0038A8]" />
+                              <span className="text-[11px] font-bold tracking-wider text-[#334155]">SELECT FOOTAGE TO PROVIDE</span>
+                              {previewingSegment && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-1.5 py-0.5 text-[9px] font-semibold text-rose-600">
+                                  <span className="h-1 w-1 animate-pulse rounded-full bg-rose-500" /> PREVIEWING
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {selectedRequest && (
+                                <span className="rounded-full bg-white px-2 py-0.5 text-[9px] font-semibold text-[#0038A8] ring-1 ring-[#0038A8]/20">
+                                  will link {selectedRequest.incidentId ?? "request"}
+                                </span>
+                              )}
+                              {canCreateClip && (
+                                <span className="font-mono text-[11px] font-bold text-[#0038A8]">{fmtClock(clipDuration)}</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="relative mb-3">
+                            <div className="relative h-7 rounded-md bg-stone-100">
+                              {clipStart != null && clipEnd != null && clipEnd > clipStart && (
+                                <div
+                                  className="absolute top-0 h-7 rounded-md bg-[#0038A8]/20 border-y border-[#0038A8]/40"
+                                  style={{ left: `${(clipStart / selected.duration) * 100}%`, width: `${((clipEnd - clipStart) / selected.duration) * 100}%` }}
+                                />
+                              )}
+                              <div className="absolute left-0 top-0 h-7 w-0.5 bg-stone-400" />
+                              <div className="absolute right-0 top-0 h-7 w-0.5 bg-stone-400" />
+                              {clipStart != null && (
+                                <div className="absolute top-0 z-10 h-7 w-0.5 bg-emerald-600" style={{ left: `${(clipStart / selected.duration) * 100}%` }}>
+                                  <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-bold text-emerald-600">
+                                    ▲ {fmtClock(clipStart)}
+                                  </div>
+                                </div>
+                              )}
+                              {clipEnd != null && (
+                                <div className="absolute top-0 z-10 h-7 w-0.5 bg-rose-500" style={{ left: `${(clipEnd / selected.duration) * 100}%` }}>
+                                  <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-bold text-rose-500">
+                                    ▲ {fmtClock(clipEnd)}
+                                  </div>
+                                </div>
+                              )}
+                              <div className="absolute top-0 z-20 h-7 w-px bg-[#0038A8]" style={{ left: `${(currentSec / selected.duration) * 100}%` }}>
+                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded bg-[#0038A8] px-1 py-px text-[7px] font-bold text-white whitespace-nowrap">NOW</div>
+                              </div>
+                            </div>
+                            <div className="mt-7 flex justify-between">
+                              <span className="text-[8px] text-stone-400">Recording Start</span>
+                              <span className="text-[8px] text-stone-400">Recording End</span>
+                            </div>
+                          </div>
+
+                          <div className="mb-3 grid grid-cols-4 gap-2">
+                            <div className="rounded-lg border border-stone-200 bg-stone-50 px-2 py-1.5 text-center">
+                              <p className="text-[8px] font-semibold tracking-wider text-stone-400">CLIP START</p>
+                              <p className="mt-0.5 font-mono text-[11px] font-bold text-emerald-600">{clipStart != null ? fmtClock(clipStart) : "—"}</p>
+                            </div>
+                            <div className="rounded-lg border border-stone-200 bg-stone-50 px-2 py-1.5 text-center">
+                              <p className="text-[8px] font-semibold tracking-wider text-stone-400">CLIP END</p>
+                              <p className="mt-0.5 font-mono text-[11px] font-bold text-rose-500">{clipEnd != null ? fmtClock(clipEnd) : "—"}</p>
+                            </div>
+                            <div className="rounded-lg border border-stone-200 bg-stone-50 px-2 py-1.5 text-center">
+                              <p className="text-[8px] font-semibold tracking-wider text-stone-400">DURATION</p>
+                              <p className="mt-0.5 font-mono text-[11px] font-bold text-[#334155]">{canCreateClip ? fmtClock(clipDuration) : "—"}</p>
+                            </div>
+                            <div className="rounded-lg border border-stone-200 bg-stone-50 px-2 py-1.5 text-center">
+                              <p className="text-[8px] font-semibold tracking-wider text-stone-400">AVAILABLE</p>
+                              <p className="mt-0.5 font-mono text-[11px] font-bold text-stone-500">{fmtClock(selected.duration)}</p>
+                            </div>
+                          </div>
+
+                          <div className="mb-3 flex flex-wrap items-center gap-2">
+                            <button
+                              onClick={() => { setClipStart(currentSec); setPreviewingSegment(false); }}
+                              className="flex h-8 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-[10px] font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                            >
+                              <BookmarkPlus size={11} /> Set Start @ {fmtClock(currentSec)}
+                            </button>
+                            <button
+                              onClick={() => { setClipEnd(currentSec); setPreviewingSegment(false); }}
+                              disabled={currentSec <= (clipStart ?? 0)}
+                              className="flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 text-[10px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <BookmarkMinus size={11} /> Set End @ {fmtClock(currentSec)}
+                            </button>
+                            {clipStart != null && clipEnd != null && (
+                              <button
+                                onClick={() => { setClipStart(null); setClipEnd(null); setPreviewingSegment(false); }}
+                                className="flex h-8 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 text-[10px] font-semibold text-stone-500 transition hover:bg-stone-50"
+                              >
+                                <X size={11} /> Clear Selection
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                if (clipStart == null || clipEnd == null) return;
+                                setCurrentSec(clipStart);
+                                setPlaying(true);
+                                setPreviewingSegment(true);
+                              }}
+                              disabled={!canCreateClip}
+                              className="flex h-8 items-center gap-1.5 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-3 text-[10px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <Eye size={11} /> Preview Segment
+                            </button>
+                          </div>
+
+                          {clipErrors.length > 0 && (
+                            <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
+                              <div className="mb-1 flex items-center gap-1">
+                                <AlertTriangle size={10} className="text-rose-600" />
+                                <span className="text-[9px] font-bold tracking-wider text-rose-600">VALIDATION</span>
+                              </div>
+                              <ul className="space-y-0.5">
+                                {clipErrors.map((err, i) => (
+                                  <li key={i} className="flex items-start gap-1 text-[10px] leading-relaxed text-rose-700">
+                                    <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-rose-400" /> {err}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-2 border-t border-stone-100 pt-3">
+                            <button
+                              onClick={generateClip}
+                              disabled={!canCreateClip}
+                              className="flex h-9 items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 text-[11px] font-bold text-white shadow-sm transition hover:bg-[#002A8C] disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <CloudUpload size={12} /> Retrieve / Generate Clip
+                            </button>
+                            {selectedRequest && (
+                              <button
+                                onClick={fulfillRequest}
+                                disabled={selectedRequest.status === "fulfilled"}
+                                className="flex h-9 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 text-[11px] font-bold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                <CheckCircle size={12} /> {selectedRequest.status === "fulfilled" ? "Fulfilled" : "Provide to Desk Officer"}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => { setClipStart(null); setClipEnd(null); setPreviewingSegment(false); setPlaying(false); setCurrentSec(0); }}
+                              className="flex h-9 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-4 text-[11px] font-semibold text-stone-500 transition hover:bg-stone-50"
+                            >
+                              <X size={12} /> Cancel
+                            </button>
+                            <span className="ml-auto text-[9px] italic text-stone-400">
+                              Clips cut only from recorded footage — no pre-roll or post-roll
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-stone-200 py-4 text-[11px] text-stone-400">
+                        <ChevronRight size={12} /> Load a recording to enable play, pause, seek and volume controls
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Clip records + control / retention */}
+        <div className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-3">
+          <div className="xl:col-span-2 flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
+            <div className="flex items-center justify-between px-5 py-4">
+              <div className="flex items-center gap-2">
+                <Database size={16} className="text-[#0038A8]" />
+                <div>
+                  <h3 className="text-[14px] font-semibold text-[#334155]">Provided Footage / Clip Records</h3>
+                  <p className="text-[11px] text-[#94A3B8]">clip_id · camera_id · incident_id · start/end · storage_reference · type/size · uploader · retention/legal-hold</p>
+                </div>
+              </div>
+              <span className="rounded-full bg-stone-100 px-2.5 py-1 text-[10px] font-semibold text-stone-500">{clips.length} records</span>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto pt-1 pb-2">
+              {clips.length === 0 ? (
+                <div className="px-5 py-8 text-center">
+                  <p className="text-[12px] text-stone-400">No clips provided yet</p>
+                </div>
+              ) : (
+                clips.map((clip, i) => {
+                  const hasProcessed = processedClips.some((p) => p.sourceClipId === clip.id);
+                  const latestProcessed = processedClips.find((p) => p.sourceClipId === clip.id);
+                  const req = clip.requestId ? requests.find((r) => r.id === clip.requestId) : null;
+                  return (
+                    <div key={clip.id} className={`px-5 py-4 ${i < clips.length - 1 ? "border-b border-black/5" : ""}`}>
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-[12px] font-bold text-stone-900">{clip.id}</span>
+                            <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${clip.recorderSource === "system" ? "bg-emerald-100 text-emerald-700" : "bg-sky-100 text-sky-700"}`}>
+                              {clip.recorderSource === "system" ? "System recorder" : "External recorder"}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-1.5 py-0.5 text-[9px] font-medium text-sky-700">
+                              <Shield size={8} /> {clip.privacyStatus === "privacy_processed" ? "Privacy processed" : "Original"}
+                            </span>
+                            {clip.contentHash && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-1.5 py-0.5 text-[9px] font-medium text-stone-500">
+                                <CheckCircle2 size={8} /> Hash recorded
+                              </span>
+                            )}
+                            {clip.incidentId ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#0038A8]">
+                                <Link2 size={9} /> Linked {clip.incidentId}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-1.5 py-0.5 text-[9px] font-medium text-stone-500">Not attached</span>
+                            )}
+                            {req && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] font-bold text-violet-700">
+                                <ClipboardList size={8} /> {req.id}
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
+                            <p className="text-[9px] font-semibold tracking-wider text-stone-400">EVIDENCE DETAILS</p>
+                            <div className="mt-1.5 grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
+                              <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">Clip ID:</span> {clip.id}</p>
+                              <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">Camera ID:</span> {clip.cameraId} · {clip.cameraName}</p>
+                              <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">Incident ID:</span> {clip.incidentId ?? "—"}</p>
+                              <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">Request ID:</span> {clip.requestId ?? "—"}</p>
+                              <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">Timestamps:</span> {formatTime(clip.startTime)} → {formatTime(clip.endTime)}</p>
+                              <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">File Type / Size:</span> {clip.fileType} · {(clip.fileSize / 1_000_000).toFixed(2)} MB</p>
+                              <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">Uploader:</span> {clip.uploadedBy} · {fmtStamp(clip.createdAt)}</p>
+                              <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">Retention / Legal-Hold:</span> {clip.retentionStatus.replace("_", " ")}</p>
+                              <p className="text-[10px] text-stone-600"><span className="font-semibold text-stone-500">Content Hash:</span> {clip.contentHash ?? "not available"}</p>
+                            </div>
+                          </div>
+                          <p className="mt-1 flex items-center gap-1 truncate font-mono text-[9px] text-stone-400">
+                            <HardDrive size={9} /> {clip.storageReference}
+                          </p>
+                          {hasProcessed && latestProcessed && (
+                            <div className="mt-2 flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2">
+                              <Shield size={10} className="mt-0.5 shrink-0 text-sky-600" />
+                              <p className="text-[10px] leading-relaxed text-sky-700">
+                                <span className="font-semibold">Original preserved.</span> Blurred copy {latestProcessed.id} stored
+                                separately with {latestProcessed.maskCount} mask(s). Original is never overwritten.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                          <button
+                            onClick={() => setRedactTarget(clip)}
+                            className="flex h-7 items-center gap-1 rounded-md border border-stone-200 bg-white px-2 text-[11px] font-medium text-stone-600 transition hover:bg-stone-50"
+                          >
+                            <EyeOff size={11} /> {hasProcessed ? "Manage Privacy" : "Privacy Blur"}
+                          </button>
+                          <button
+                            onClick={() => setExportTarget(clip)}
+                            className="flex h-7 items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                          >
+                            <Download size={11} /> Export
+                          </button>
+                          <button
+                            onClick={() => setAttachTarget(clip)}
+                            disabled={!!clip.incidentId}
+                            className="flex h-7 items-center gap-1 rounded-md border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 text-[11px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Link2 size={11} /> {clip.incidentId ? "Attached" : "Attach"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Control + retention sidebar */}
+          <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
+            <div className="flex items-center justify-between px-5 py-4">
+              <div className="flex items-center gap-2">
+                <Shield size={16} className="text-[#0038A8]" />
+                <div>
+                  <h3 className="text-[14px] font-semibold text-[#334155]">Control &amp; Retention</h3>
+                  <p className="text-[11px] text-[#94A3B8]">Barangay record-keeping &amp; access policy</p>
+                </div>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
+              <div className="mb-3 rounded-xl border border-[#0038A8]/15 bg-[#0038A8]/5 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <Link2 size={14} className="text-[#0038A8]" />
+                  <p className="text-[11px] font-bold text-[#0038A8]">INCIDENT-LINKED ({linkedClips})</p>
+                </div>
+                <p className="mt-1.5 text-[10px] leading-relaxed text-stone-600">
+                  Once attached to an official incident, footage is retained for exactly {RETENTION_YEARS} year
+                  and made reviewable by the Desk Officer &amp; Captain.
+                </p>
+              </div>
+              <div className="mb-3 space-y-2">
+                {clips.filter((c) => c.incidentId).length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-stone-200 py-6 text-center">
+                    <FileText size={18} className="mx-auto mb-1.5 text-stone-300" />
+                    <p className="text-[11px] text-stone-400">No clips linked to incidents yet</p>
+                  </div>
+                ) : (
+                  clips.filter((c) => c.incidentId).map((c) => (
+                    <div key={c.id} className="rounded-lg border border-stone-200 bg-white px-3.5 py-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-stone-900">{c.id}</span>
+                        <span className="rounded-full bg-[#0038A8]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#0038A8]">{c.incidentId}</span>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between text-[10px] text-stone-500">
+                        <span className="flex items-center gap-1">
+                          <CalendarClock size={9} /> Retained to {c.retainedUntil ? formatTime(c.retainedUntil) : "—"}
+                        </span>
+                        <span className="font-semibold text-emerald-600">{c.retainedUntil ? daysUntil(c.retainedUntil) : 0} days left</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50/60 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <EyeOff size={14} className="text-amber-600" />
+                  <p className="text-[11px] font-bold text-amber-700">Manual Privacy Blur</p>
+                </div>
+                <p className="mt-1.5 text-[10px] leading-relaxed text-amber-700">
+                  Where technically available, the operator manually blurs faces / license plates before sharing.
+                  The <span className="font-semibold">original is preserved</span> and the blurred copy is stored as a
+                  separate file. The original is never overwritten; the action is recorded in the audit log.
+                </p>
+              </div>
+
+              <div className="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2.5">
+                <Lock size={12} className="mt-0.5 shrink-0 text-sky-600" />
+                <p className="text-[10px] leading-relaxed text-sky-700">
+                  <span className="font-semibold">Access control.</span> Only the Desk Officer may request footage and only
+                  authorized personnel access raw footage. Residents cannot access raw CCTV footage; credentials are never
+                  exposed to the browser.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Audit log */}
+        <EvidenceActivityPanel />
+      </main>
+
+      {redactTarget && <RedactionModal clip={redactTarget} onClose={() => setRedactTarget(null)} onApply={applyRedaction} />}
+
+      {attachTarget && <AttachModal clip={attachTarget} onClose={() => setAttachTarget(null)} onAttach={attachClip} />}
+
+      {exportTarget && (
+        <ExportEvidenceModal
+          clipId={exportTarget.id}
+          incidentId={exportTarget.incidentId}
+          operator={operatorName}
+          subtitle={`${exportTarget.cameraName} · ${exportTarget.cameraId}`}
+          onClose={() => setExportTarget(null)}
+        />
+      )}
+
+      {clipGenerated && (
+        <ConfirmModal
+          type="success"
+          title="Footage Retrieved &amp; Stored"
+          message={`${clipGenerated.id} created (${fmtClock(clipGenerated.durationSec)} clip) and saved to Supabase Storage. The clip record logs clip_id, camera_id, incident_id, start/end timestamps, storage reference, file type/size, uploader, and retention status.`}
+          onClose={() => setClipGenerated(null)}
+        />
+      )}
+
+      {attachedSuccess && (
+        <ConfirmModal
+          type="success"
+          title="Evidence Attached"
+          message={`${attachedSuccess.id} (${attachedSuccess.cameraId} — ${attachedSuccess.cameraName}) has been attached to ${attachedSuccess.incidentId}. Retention locked at ${RETENTION_YEARS} year (${attachedSuccess.retainedUntil ? formatTime(attachedSuccess.retainedUntil) : "—"}) for Desk Officer / Captain review.`}
+          onClose={() => setAttachedSuccess(null)}
+        />
+      )}
+
+      {redactedSuccess && (
+        <ConfirmModal
+          type="success"
+          title="Privacy Processing Complete"
+          message={`${redactedSuccess.processed.id} created from ${redactedSuccess.clip.id}. ${redactedSuccess.processed.maskCount} manual mask(s) applied. Original footage preserved and never overwritten.`}
+          onClose={() => setRedactedSuccess(null)}
+        />
+      )}
+
+      {cannotFulfillTarget && (
+        <Modal
+          onClose={() => setCannotFulfillTarget(null)}
+          title="Mark Request Unavailable"
+          subtitle={`Why can't ${cannotFulfillTarget.id} be fulfilled? This reason is recorded and sent to the Desk Officer.`}
+          icon={<Ban size={18} />}
+          iconClass="bg-rose-50 text-rose-600"
+          size="md"
+          footer={
+            <div className="flex gap-3">
+              <button
+                onClick={() => setCannotFulfillTarget(null)}
+                className="flex-1 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-600 hover:bg-stone-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmMarkUnavailable}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-rose-700"
+              >
+                <Ban size={13} />
+                Mark Unavailable &amp; Notify
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-2">
+            {UNAVAILABLE_REASONS.map((r) => (
+              <label
+                key={r.value}
+                className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${
+                  cannotFulfillReason === r.value ? "border-[#0038A8] bg-[#0038A8]/5" : "border-stone-200 hover:border-stone-300"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="cannot-reason"
+                  value={r.value}
+                  checked={cannotFulfillReason === r.value}
+                  onChange={() => setCannotFulfillReason(r.value)}
+                  className="mt-0.5 accent-[#0038A8]"
+                />
+                <div>
+                  <p className="text-[12px] font-medium text-stone-800">{r.label}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+        </Modal>
+      )}
+
+      {fulfilledRequest && (
+        <ConfirmModal
+          type="success"
+          title="Footage Provided"
+          message={`${fulfilledRequest.id} has been fulfilled. The requested footage (${fulfilledRequest.incidentId ? `for ${fulfilledRequest.incidentId}` : "for this request"}) was provided through the authorized CCTV workflow and is now available for the Desk Officer to review for incident assessment, response or documentation under the barangay's access policy.`}
+          onClose={() => setFulfilledRequest(null)}
+        />
+      )}
+
+      {notifiedDeskOfficer && (
+        <ConfirmModal
+          type="success"
+          title="Desk Officer Notified"
+          message={`${notifiedDeskOfficer.id}${notifiedDeskOfficer.incidentId ? ` (${notifiedDeskOfficer.incidentId})` : ""} has been marked as Not Available and the Desk Officer has been notified.${notifiedDeskOfficer.note ? ` Recorded reason: ${notifiedDeskOfficer.note}.` : ""} No footage is given to unauthorized users.`}
+          onClose={() => setNotifiedDeskOfficer(null)}
+        />
+      )}
+
+      {ToastPortal && <ToastPortal />}
+    </div>
+  );
+}
