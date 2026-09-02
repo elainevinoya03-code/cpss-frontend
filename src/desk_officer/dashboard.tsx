@@ -26,8 +26,6 @@ import {
   ArrowRight,
   MapPin,
   Video,
-  Wifi,
-  WifiOff,
   Navigation,
   PlusCircle,
   FileSearch,
@@ -2172,79 +2170,6 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
               )}
             </div>
           </div>
-        </section>
-
-        {/* Operational: IoT Sensor Status */}
-        <section className="mb-6 rounded-xl border border-black/5 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
-            <div className="flex items-center gap-2">
-              <Activity size={16} className="text-[#0038A8]" />
-              <div>
-                <h3 className="text-[14px] font-semibold text-[#334155]">IoT Sensor Status</h3>
-                <p className="text-[11px] text-[#94A3B8]">Operational sensor health across puroks</p>
-              </div>
-            </div>
-            {onNavigate && (
-              <button
-                onClick={() => go("iot_alerts")}
-                className="flex items-center gap-1 text-[11px] font-medium text-[#0038A8] hover:underline"
-              >
-                Open Command Center <ArrowRight size={11} />
-              </button>
-            )}
-          </div>
-          {failedSections.iot ? (
-            <div className="px-5 py-8">
-              <SectionError
-                section="IoT Sensor Status"
-                message="Telemetry from installed sensors could not be refreshed. Showing stale readings."
-                onRetry={() => resyncAll()}
-              />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-x-2 sm:grid-cols-2 lg:grid-cols-3">
-            {sensors.map((s) => {
-              const risk = sensorRisk(s);
-              const pct = s.type === "Smoke" ? Math.min(100, (s.value / s.threshold) * 100) : Math.min(100, (s.value / 90) * 100);
-              const riskColor =
-                risk === "critical" ? "bg-rose-500" : risk === "warning" ? "bg-amber-400" : "bg-emerald-400";
-              const Icon = s.status === "offline" ? WifiOff : s.status === "warning" ? Zap : Wifi;
-              return (
-                <div key={s.name} className="flex items-center gap-3 border-b border-black/5 px-5 py-3 last:border-0 sm:border-b">
-                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                    risk === "critical" ? "bg-rose-100 text-rose-600" : risk === "warning" ? "bg-amber-100 text-amber-600" : "bg-emerald-50 text-emerald-600"
-                  }`}>
-                    <Icon size={14} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[12px] font-semibold text-[#334155]">{s.name}</span>
-                      <span className="text-[11px] font-medium text-[#64748B]">
-                        {s.type === "Smoke" ? `${s.value} ppm` : `${s.value} dB`}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex items-center gap-2">
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-stone-100">
-                        <div className={`h-full rounded-full ${riskColor}`} style={{ width: `${pct}%` }} />
-                      </div>
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
-                        risk === "critical" ? "bg-rose-100 text-rose-700" : risk === "warning" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
-                      }`}>
-                        {risk}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-[10px] text-[#94A3B8]">{s.purok} · {s.type} sensor</p>
-                  </div>
-                  {s.status === "offline" && (
-                    <span className="shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[9px] font-semibold text-rose-700">
-                      Offline
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-            </div>
-          )}
         </section>
 
         {/* Part 9 — Alert Status + Recent Activity */}

@@ -11,8 +11,8 @@ archive each resolved case as a permanent digital blotter. Everything below sits
 | Order | Sidebar label | Nav key | File |
 | --- | --- | --- | --- |
 | 1 | Dashboard | `dashboard` | `dashboard.tsx` |
-| 2 | IoT Alert Command Center | `iot_alerts` | `iot_alert_command_center.tsx` |
-| 3 | Active Dispatches | `dispatches` | `active_dispatches.tsx` |
+| 2 | Active Dispatches | `dispatches` | `active_dispatches.tsx` |
+| 3 | Alert Management | `alert_management` | `alert_management.tsx` |
 | 4 | Patrol Scheduler & Routes | `patrol` | `patrol_scheduler_routes.tsx` |
 | 5 | Digital Barangay Blotter | `blotter` | `digital_blotter.tsx` |
 | 6 | Operations Chat Center | `chat` | `operations_chat_center.tsx` |
@@ -21,28 +21,26 @@ The officer lands on **Dashboard** by default (`defaultNav` in `App.tsx`). Login
 `App.tsx` maps any username starting with `desk` to this role. **Profile and Logout** live in the
 shared global `Header`, not the sidebar.
 
-The Dashboard embeds live preview widgets for the other five screens, each with an **Open ›**
-shortcut that calls `onNavigate("…")` (`iot_alerts`, `dispatches`, `patrol`, `blotter`, `chat`).
+The Dashboard embeds live preview widgets for the other screens, each with an **Open ›**
+shortcut that calls `onNavigate("…")` (`dispatches`, `patrol`, `blotter`, `chat`).
 
 ---
 
 ## 1. `dashboard.tsx` — Barangay Desk Officer Dashboard
 
-Central hub for triage, IoT alerts, field dispatch and official logs.
+Central hub for triage, field dispatch and official logs.
 
 ### Header actions
 - **Anonymous Report Lookup** — `KeyRound` button that opens the `AnonymousLookupModal` token lookup (see below).
 - **Mass Broadcast** — `Megaphone` button that opens the severity-graded `BroadcastCompose` (see below).
 - **Publish Safety Notice** — `Info` button that opens the teal `SafetyNoticeCompose` (see below).
-- Each of the five embedded live preview widgets (IoT Alert Command, Active Dispatches, Operations Chat
+- Each of the four embedded live preview widgets (Active Dispatches, Operations Chat
   Center, Patrol Scheduler & Routes, Digital Barangay Blotter) shows an **Open ›** shortcut that calls
   `onNavigate("…")`.
 
 ### KPIs (top row)
 - **ACTIVE INCIDENTS** — count of open (not yet resolved) incidents, broken down by
   `x SOS · y new · z SLA breached` (the breach counter only appears once a `new` incident overruns its target).
-- **IOT ALERTS** — count of sensors not in a healthy state, split into critical / warning. The card
-  pulses (rose ring + animate) while an instant pop-up alert is live.
 - **ACTIVE DISPATCHES** — count of dispatches not yet resolved, plus how many are `responding`.
 - **TANODS ON DUTY** — `x/y` teams on duty (not standby) and total field personnel.
 
@@ -176,22 +174,6 @@ Central hub for triage, IoT alerts, field dispatch and official logs.
 - A `statusNote` trail and a **Blotter created** tag appear once archived — the same record the
   Digital Barangay Blotter converts.
 
-### IoT Alert Command widget (live ESP32 telemetry)
-- Six simulated sensors (`SM-GATE-01`, `SM-PLAZA-02`, `DB-HALL-01`, `SM-PUROK3-01`, `DB-MARKET-01`,
-  `SM-CHAPEL-01`) across puroks, with smoke (ppm) or noise (dB) values and thresholds. Values jitter
-  every 4s; a threshold breach fires the `EmergencyPopUp` **and** creates a `SensorAlert` record
-  (`ALT-1xx`, status `open`).
-- Risk is derived (`sensorRisk`): offline → critical, value ≥ threshold → critical, warning status →
-  warning, else online. Each row shows a progress bar, live value, and status pill (`Wifi`/`WifiOff`/
-  `Zap`).
-- **SecurityAlert lifecycle (§6.5.3–6.5.4)** — each breached sensor row carries its alert chip
-  (`ALERT_STATUS_META`): `open → acknowledged → verification_in_progress → verified | false_unverified → dispatched → broadcasting → closed`. While anything but verified/false/closed, the row shows an amber
-  **Sensor Alert Pending Verification** chip, and per-status action buttons (**Acknowledge → Start
-  Verification → Verify — Confirmed / Mark False / Unverified → Create Incident & Dispatch → Broadcast → Close**). The raw sensor event
-  (device, value, threshold, trigger time) is preserved even when marked false. Alert status drives
-  the **IOT ALERTS** KPI sub (`x pending verification`). Each status change requires an `alert_note`
-  (mandatory for false/unverified outcomes) and is recorded in the alert's audit trail.
-
 ### EmergencyPopUp (instant alert, bypasses the queue)
 - Auto-appears ~9s after load for an **Emergency SOS** (simulated Ana Lim, Purok 6, live GPS locked at
   the commercial strip, top-priority ticket `INC-2070` created) and only on **critical** IoT breaches
@@ -251,110 +233,7 @@ Central hub for triage, IoT alerts, field dispatch and official logs.
 
 ---
 
-## 2. `iot_alert_command_center.tsx` — IoT Alert Command Center
-
-Live ESP32 telemetry ingestion, threshold bypasses and cascading mass broadcasts.
-
-### Header
-- **Gateway Live** emerald pill (pulsing dot) + **Force Ping** button that appends a
-  connection-confirmation line to the MQTT terminal.
-
-### KPIs (5 indicators)
-- **SENSORS DEPLOYED** — `online/total`, with the number requiring attention.
-- **ACTIVE ALERTS** — open alerts (SOS count shown), pulses while a pop-up is live.
-- **BROADCASTS QUEUED** — broadcasts awaiting Captain approval.
-- **ACTIVE ROUTES** — Tanods currently navigating in the field.
-- **DEVICES IN ALERT** — count of devices with any non-healthy alert status.
-
-### IoT Telemetry Ingestion Gateway
-- Six sensor devices (`DeviceType`: `smoke_sensor | noise_monitor | motion_detector | cctv_camera | gate_sensor | emergency_button`) with **battery %** (`batteryPercent`), **RSSI** (`rssiDbm`), and `DeviceHealthStatus` (`excellent | good | fair | poor | critical | offline`) alongside live value/threshold bars. Values
-  jitter every 4s; a threshold breach auto-creates an alert (`ALT-1xx`) and pops `AlertPopUp` (once per
-  device via `triggeredRef`).
-- Device health is computed from battery, signal, and last-seen timestamp; the health badge (emerald/amber/rose) and `Wifi`/`WifiOff`/`Zap` icons reflect this.
-- A dark **MQTT STREAM** terminal shows live `MQTT sensors/<unit>/telemetry` payloads (and
-  `NO RESPONSE rssi=-999` for offline units), refreshed every 2.5s. **Force Ping** appends a
-  connection-confirmation line.
-- An SOS alert (`SOS-043`, Purok 3 Market Zone) fires ~9s after load.
-
-### Alert Queue
-- **Clustered view (§6.5.6)** — alerts are grouped into **cluster cards** (`CL-0xx`) when multiple
-  alerts come from the **same device within a short window**, or from **multiple devices inside the
-  same area within a configured window** (10 min same-device / 15 min same-area, `buildClusters`).
-  Each cluster card shows the cluster ID, contributing alert IDs, area, **first → last alert time**,
-  member count, severity and current status — reducing duplicate top-level noise.
-- Clustering never hides originals: **Expand** reveals each contributing alert with its own
-  **Dispatch** and **Broadcast** actions (or dispatched/broadcasting pill), so the officer acts on
-  every alert individually. The **ACTIVE ALERTS** KPI and the `x open · y clusters` queue badge still
-  count raw open alerts.
-
-### Alert Lifecycle (8-state flow)
-Each alert follows `AlertStatus`:
-
-```text
-open → acknowledged → verification_in_progress → verified/false_unverified → dispatched → broadcasting → closed
-```
-
-1. **open** — alert just created by threshold breach; **Acknowledge** available.
-2. **acknowledged** — officer has acknowledged; **Start Verification** available.
-3. **verification_in_progress** — officer is verifying the sensor reading.
-4. **verified** — sensor reading confirmed as real incident; **Create Incident** + **Dispatch** available.
-5. **false_unverified** — sensor reading could not be confirmed; `alert_note` required explaining why.
-6. **dispatched** — incident created and field unit dispatched; `linked_incident_id` set.
-7. **broadcasting** — emergency message sent to residents in blast range.
-8. **closed** — alert fully resolved.
-
-> Each non-terminal status change records an `alert_note` (required when marking false/unverified) and
-> an `AlertAuditEntry` with `fromStatus`, `toStatus`, `note`, `userId`, and `timestamp`.
-
-### Alert Detail Panel
-- Full sensor reading details (value, threshold, unit, device health, GPS coordinates, timestamp).
-- **Create Incident** button (verified alerts only) — opens a modal to create a linked incident (`INC-xxxx`) from the alert data.
-- **Add Note** — free-text note appended to the alert's audit trail.
-- **Linked Incident** panel — shows the spawned incident's status and category when `linked_incident_id` is set.
-
-### AlertPopUp (instant pop-up)
-- Same bypass-the-queue behavior as the Dashboard: **Hold** (dismiss), **Dispatch Tanod** (opens the
-  Dispatch modal), and **Cascade Mass Broadcast** (routes through the broadcast engine).
-
-### DispatchModal (Field Dispatch)
-- Lists **available** on-duty Tanod units (dispatched ones are filtered out) with member counts and
-  nearest purok; shows turn-by-turn route guidance; **Dispatch Now** creates a route (`R-22x`, en
-  route), marks the alert `dispatched`, and confirms high-priority vibration + audio push fired on
-  assignment.
-
-### Cascading Mass Broadcast Engine
-- Severity-based notification routing:
-  - **Medium (Noise / Disturbance)** — silent/standard push only, routed to the Desk Officer, local
-    Purok Leader, and nearest on-duty Tanods. Sends immediately (`sent`).
-  - **High (Fire / Disaster / SOS)** — simultaneous cellular SMS + loud persistent push to **every
-    resident inside the affected geofence**; requires **Captain 1-tap authorization**.
-- **Broadcast Queue** lists each broadcast (`BC-0xx`) with target, channel, resident count, and an
-  **Authorize** button for pending ones. `CaptainAuthModal` previews the broadcast (target, channel,
-  trigger, resident count in the geofenced zone) with **Keep Queued** / **Approve & Send**; approval
-  flips it to `sent` and opens the roll-call overlay.
-
-### Active Citizen Roll-Call
-- **Four-state resident safety acknowledgment (§6.5.13)** — the overlay pushed to `reached` resident
-  phones offers **Safe / Need Help / Not Sure / Unable to Respond**. The response-rate breakdown shows
-  all four buckets (`safe`, `needHelp`, `notSure`, `unable`) plus `reached` and `noResponse`.
-- **Need Help** keeps its priority behavior: those residents are flagged for **priority rescue
-  routing**. **Not Sure** residents are re-prompted; **Unable to Respond** are queued for a physical
-  check by a Tanod.
-- **Non-Responders — Follow-Up**: an actionable list of the residents who haven't answered the
-  roll-call, each with their last known GPS and two actions — **Remind** (re-prompt via SMS + push)
-  and **Dispatch** (creates an en-route dispatch in the Field Routing panel to their location).
-  Non-responders are re-prompted every 5 min until they confirm or a Tanod reaches them.
-
-### Field Dispatch & Hardware Routing
-- Route list (`R-22x`) per alert with assigned Tanod, distance, ETA, and `en_route` / `on_scene`
-  status plus the turn-by-turn step pills.
-
-### On-Duty Tanod Coverage
-- Nearest responders for routing with Available / Dispatched pills.
-
----
-
-## 3. `active_dispatches.tsx` — Active Dispatches
+## 2. `active_dispatches.tsx` — Active Dispatches
 
 Assignment, routing and live on-scene monitoring of field responders.
 
@@ -424,7 +303,7 @@ Assignment, routing and live on-scene monitoring of field responders.
 
 ---
 
-## 4. `patrol_scheduler_routes.tsx` — Patrol Scheduler & Routes
+## 3. `patrol_scheduler_routes.tsx` — Patrol Scheduler & Routes
 
 Weekly shift planning, geofenced routes and live force heatmapping.
 
@@ -513,16 +392,9 @@ Weekly shift planning, geofenced routes and live force heatmapping.
 
 ---
 
-## 5. `digital_blotter.tsx` — Digital Barangay Blotter
+## 4. `digital_blotter.tsx` — Digital Barangay Blotter
 
 One-click archival of resolved incidents, ratings and executive oversight.
-
-### Permission-Based Rendering
-- The blotter renders differently based on the user's role (`BlotterRole` from `permissions.ts`):
-  - **Desk Officer** (`desk_officer`): sees full operational blotter with all management actions.
-  - **Captain** (`captain`): sees executive review, peace & order report generation, and oversight panels.
-  - **Barangay Staff** (`staff`): read-only access to blotter archive and search.
-- `hasPermission(userRole, permission)` gates each action (archive, export, generate report, etc.).
 
 ### KPIs
 - **TOTAL BLOTTERS FILED** (permanent records) · **PENDING CONVERSION** (resolved cases ready to
@@ -578,7 +450,7 @@ One-click archival of resolved incidents, ratings and executive oversight.
 
 ---
 
-## 6. `operations_chat_center.tsx` — Operations Chat Center
+## 5. `operations_chat_center.tsx` — Operations Chat Center
 
 Direct messaging with field Tanods & Purok Leaders for real-time status clarifications.
 
@@ -606,7 +478,43 @@ Direct messaging with field Tanods & Purok Leaders for real-time status clarific
 
 ---
 
-## 7. End-to-end scenario (single incident lifecycle)
+---
+
+## 5b. `alert_management.tsx` — Alert Management Control Center
+
+Operational interface to **receive, review, acknowledge, escalate, broadcast, and track** alerts across
+two surfaces:
+
+### Incoming System Alerts Queue
+- Local `SystemAlert` model spanning **IoT Smoke Sensor**, **IoT Noise Sensor**, and **Manual System Flag**
+  sources, each with a colored source chip/icon, severity pill (Low/Medium/High/Emergency), status pill, and
+  purok location.
+- Lifecycle statuses: `unacknowledged → acknowledged`, plus `linked`, `converted`, and `dismissed` terminal
+  states (`ALERT_STATUS_META`).
+- **Filter selects** (All + source / severity / status) re-filter the table live. Rows expose **Review**,
+  **Ack** (unacknowledged only), and **Link** actions; linked rows show the target incident ID.
+- **Alert Detail Drawer** (`Modal side="right"`): telemetry metadata tiles, an inline **SVG sensor graph**
+  with a dashed threshold line + breach highlight, **LINKED CCTV VISUALS** camera cards, and footer actions —
+  **Confirm & Acknowledge**, **Link to Incident**, **Convert to Incident**, **Dismiss (False Alarm)**. The
+  drawer can also **Escalate to Security Broadcast**, which hands off to the Create Security Alert modal.
+
+### Outgoing Broadcast Alert History
+- Renders the shared `safetyNoticeStore` security alerts (severity/audience-only) with target audience,
+  severity, broadcast time, and lifecycle status (**Active / Pending Approval / Resolved (All-Clear) / Draft**).
+- **All-Clear** action (teal) opens the **All-Clear dialog** — requires a resolution advisory, broadcasts to
+  the original audience, and moves the alert to Resolved.
+- **Create Security Alert** modal: linked incident selector, severity segmented control (High → **Punong
+  Barangay approval queue**), audience toggles, target location, message templates, and custom narrative.
+
+### Metrics & quick actions
+- **Active Alerts / Pending Approval / IoT Breaches / Sent Today** summary cards.
+- Quick actions: **Create Security Alert** and **Acknowledge Audio Alerts** (`useAlertSound`).
+- `recordActivity` + `addSafetyNotice` + `addBroadcastRecord` + `addIncident` integrations keep the shared
+  activity feed, broadcast store, incident store, and approval queues in sync.
+
+---
+
+## 6. End-to-end scenario (single incident lifecycle)
 
 The six screens are one pipeline: **ingest → verify → triage → dispatch → field → resolve → archive**. Here is
 the journey of one fire-smoke incident.
@@ -693,7 +601,6 @@ official use.
 ## Cross-cutting conventions
 
 - **Shared incident store** — `incidentStore.ts` provides the canonical `useIncidentStore` hook with a pub/sub pattern (`subscribe`, `getSnapshot`). All incident state — `IncidentStatus`, `IncidentSource`, `VerificationStatus`, `DeskPriority`, `ClosureReason`, `FinalDisposition`, `ClosureHistoryEntry` — lives here. The Dashboard, Active Dispatches, Digital Blotter, and IoT Command Center all read from this store, ensuring a single source of truth. The store also exports `convertIncidentToBlotter()` for one-click archival.
-- **Permissions system** (`permissions.ts`) — role-based access control via `BlotterRole` (`desk_officer | captain | staff`) and a `PERMISSIONS` matrix. Helper functions `hasPermission(role, perm)` and `getRolePermissions(role)` gate UI actions across all screens (archive, export, generate report, verify incident, assign, escalate, etc.). The blotter renders differently per role.
 - **Notification tracking** — every resident notification (`NotificationRecord`) tracks `type` (status_update / escalation / broadcast / sms_only), `channel` (push / sms / in_app), `status` (queued / sent / delivered / failed), and `isSafetyCritical` flag. High-priority incidents trigger SMS on Acknowledge and Resolve; all other transitions use push/in-app only.
 - **Service alerts** — `ServiceAlert` records (`service_alerts` field on `Incident`) monitor device health for CCTV and IoT sensors, with severity (`info | warning | critical`) and resolution tracking.
 - **UI language** — all six screens use the `#0038A8` royal-blue accent, a light-blue `#E9EDFB`

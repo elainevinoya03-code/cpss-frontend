@@ -23,12 +23,12 @@ import {
 import {
   DeskOfficerDashboard,
   IncidentTriage,
-  IotAlertCommandCenter,
   ActiveDispatches,
   PatrolSchedulerRoutes,
   DigitalBlotter,
   OperationsChatCenter,
   SecurityAlertCenter,
+  AlertManagement,
   CctvRequests,
 } from "./desk_officer";
 import {
@@ -48,7 +48,7 @@ import { PurokIncidentsProvider } from "./purok_leader/incidentStore";
 
 const ADMIN_NAV = ["dashboard", "users", "iot", "cctv", "boundaries", "patrol", "logs", "data_requests", "settings"];
 const CAPTAIN_NAV = ["dashboard", "analytics", "broadcasts", "patrol", "evidence", "bulletins", "cases"];
-const DESK_OFFICER_NAV = ["dashboard", "incident_triage", "iot_alerts", "dispatches", "patrol", "blotter", "chat", "footage_requests"];
+const DESK_OFFICER_NAV = ["dashboard", "incident_triage", "security_alerts", "alert_management", "dispatches", "patrol", "blotter", "chat", "footage_requests"];
 const CCTV_OPERATOR_NAV = ["surveillance", "recorded_footage", "footage_requests"];
 const PUROK_LEADER_NAV = ["reports", "escalated", "announcements", "contacts"];
 
@@ -206,13 +206,13 @@ export default function App() {
             <>
               {activeNav === "dashboard" && <DeskOfficerDashboard onNavigate={handleNavigate} />}
               {activeNav === "incident_triage" && <IncidentTriage onNavigate={handleNavigate} />}
-              {activeNav === "iot_alerts" && <IotAlertCommandCenter />}
               {activeNav === "dispatches" && <ActiveDispatches />}
               {activeNav === "patrol" && <PatrolSchedulerRoutes />}
               {activeNav === "blotter" && <DigitalBlotter />}
               {activeNav === "chat" && <OperationsChatCenter />}
               {activeNav === "footage_requests" && <CctvRequests />}
               {activeNav === "security_alerts" && <SecurityAlertCenter />}
+              {activeNav === "alert_management" && <AlertManagement />}
             </>
           ) : role === "cctv_operator" ? (
             <>

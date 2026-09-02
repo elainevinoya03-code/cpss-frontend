@@ -10,7 +10,6 @@
   BarChart3,
   Radio,
   Archive,
-  AlertTriangle,
   MessageSquare,
   Camera,
   Flag,
@@ -22,6 +21,7 @@
   Route,
   FileSearch,
   Shield,
+  BellRing,
 } from "lucide-react";
 import logo from "../../assets/logo.png";
 
@@ -51,7 +51,7 @@ const DESK_OFFICER_NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutGrid },
   { key: "incident_triage", label: "Incident Triage", icon: ClipboardList },
   { key: "security_alerts", label: "Security Alerts", icon: Shield },
-  { key: "iot_alerts", label: "IoT Alert Command Center", icon: AlertTriangle },
+  { key: "alert_management", label: "Alert Management", icon: BellRing },
   { key: "dispatches", label: "Active Dispatches", icon: Radio },
   { key: "patrol", label: "Patrol Operations", icon: Map },
   { key: "blotter", label: "Digital Barangay Blotter", icon: FileText },

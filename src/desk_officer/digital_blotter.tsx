@@ -39,13 +39,6 @@ import {
   type FinalDisposition,
   type AuditEntry,
 } from "./incidentStore";
-import {
-  hasPermission,
-  getCurrentRole,
-  shouldAnonymizeReporter,
-  canViewGPS,
-  type BlotterRole,
-} from "./permissions";
 import { CATEGORY_COLORS } from "./constants";
 
 // CATEGORY_COLORS is imported from ./constants
@@ -418,7 +411,6 @@ function BlotterDetail({
         <p className="mb-2 text-[10px] font-semibold tracking-wider text-[#0038A8]">
           SECTION D — GPS / LOCATION
         </p>
-        {canViewGPS() ? (
         <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
           <div className="flex items-center gap-2">
             <MapPin size={13} className="text-[#0038A8]" />
@@ -439,11 +431,6 @@ function BlotterDetail({
             )}
           </p>
         </div>
-        ) : (
-        <div className="rounded-lg border border-dashed border-stone-200 bg-stone-50 px-4 py-3 text-center">
-          <p className="text-[11px] text-stone-400 italic">GPS coordinates restricted — authorized access only</p>
-        </div>
-        )}
       </div>
 
       {/* ================================================================ */}
@@ -693,13 +680,6 @@ export default function DigitalBlotter() {
   const { flash, ToastPortal } = useToast();
   const store = useIncidentStore();
 
-  // Part 26 — Role and permissions
-  const [role, setRole] = useState<BlotterRole>(getCurrentRole);
-  const canConvert = hasPermission("convert_resolved_incidents");
-  const canExport = hasPermission("export_authorized_records");
-  const canGenerateReport = hasPermission("generate_official_reports");
-  const canViewOversight = hasPermission("view_oversight_metrics");
-
   // Part 30 — Loading states
   const [initialLoading, setInitialLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -929,13 +909,6 @@ export default function DigitalBlotter() {
   function executeConversion() {
     if (!confirmTarget) return;
 
-    // Part 26 — Permission check
-    if (!canConvert) {
-      flash("You do not have permission to convert incidents to blotter records.", { type: "error" });
-      setConfirmTarget(null);
-      return;
-    }
-
     try {
       const blotter = store.convertToBlotter(confirmTarget.id);
       setConfirmTarget(null);
@@ -963,12 +936,6 @@ export default function DigitalBlotter() {
   // §15.23 — Export filtered blotters as CSV (Part 23 + Part 29 error handling)
   function exportBlotters() {
     if (filteredBlotters.length === 0) return;
-
-    // Part 26 — Permission check
-    if (!canExport) {
-      flash("You do not have permission to export blotter records.", { type: "error" });
-      return;
-    }
 
     // Part 30 — Prevent duplicate export
     if (exporting) return;
@@ -1078,35 +1045,31 @@ export default function DigitalBlotter() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {canConvert && (
-                <button
-                  onClick={handleConvertNext}
-                  disabled={pendingCount === 0}
-                  className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-40"
-                >
-                  <FileText size={13} />
-                  Convert Next
-                </button>
-              )}
-              {canExport && (
-                <button
-                  onClick={exportBlotters}
-                  disabled={filteredBlotters.length === 0 || exporting}
-                  className="flex items-center gap-1.5 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-3 py-1.5 text-[11px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white disabled:opacity-40"
-                >
-                  {exporting ? (
-                    <>
-                      <Loader2 size={13} className="animate-spin" />
-                      Exporting...
-                    </>
-                  ) : (
-                    <>
-                      <Download size={13} />
-                      Export CSV
-                    </>
-                  )}
-                </button>
-              )}
+              <button
+                onClick={handleConvertNext}
+                disabled={pendingCount === 0}
+                className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-40"
+              >
+                <FileText size={13} />
+                Convert Next
+              </button>
+              <button
+                onClick={exportBlotters}
+                disabled={filteredBlotters.length === 0 || exporting}
+                className="flex items-center gap-1.5 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-3 py-1.5 text-[11px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white disabled:opacity-40"
+              >
+                {exporting ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    Exporting...
+                  </>
+                ) : (
+                  <>
+                    <Download size={13} />
+                    Export CSV
+                  </>
+                )}
+              </button>
             </div>
             </>
             )}
@@ -1705,8 +1668,7 @@ export default function DigitalBlotter() {
             </div>
           </div>
 
-          {/* F. EXECUTIVE REVIEW & OVERSIGHT — Part 26: Captain/Admin only */}
-          {canViewOversight && (
+          {/* F. EXECUTIVE REVIEW & OVERSIGHT */}
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
@@ -1845,8 +1807,7 @@ export default function DigitalBlotter() {
                 ))}
               </div>
 
-              {/* Part 25 + Part 26 — Generate Peace & Order Report (Captain/Admin only) */}
-              {canGenerateReport && (
+              {/* Part 25 — Generate Peace & Order Report */}
               <button
                 onClick={() => {
                   if (reportGenerating) return;
@@ -1876,10 +1837,8 @@ export default function DigitalBlotter() {
                   </>
                 )}
               </button>
-              )}
             </div>
           </div>
-          )}
         </div>
       </main>
 
