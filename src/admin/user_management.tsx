@@ -5,7 +5,7 @@ import { ConfirmModal, Modal } from "../components/ui";
 import { pushAuditLog } from "../utils/auditLog";
 import { INPUT_CLASS, Field } from "./_shared";
 
-const API_BASE = "http://127.0.0.1:8080";
+const API_BASE = import.meta.env.VITE_API_URL;
 
 const ROLES = ["Captain", "Desk Officer", "CCTV Operator", "Tanod", "Purok Leader", "Resident"];
 
