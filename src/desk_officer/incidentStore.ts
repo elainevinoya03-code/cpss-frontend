@@ -20,6 +20,7 @@ export type IncidentSource =
   | "desk_officer"
   | "cctv"
   | "iot"
+  | "iot_cctv"
   | "sos";
 
 export type VerificationStatus =
@@ -117,6 +118,16 @@ export interface Incident {
   dispatchId?: string;
   closureHistory?: ClosureHistoryEntry[];
   resolvedAt?: string;
+  iotData?: {
+    sensorType: string;
+    sensorId: string;
+    reading: string;
+    unit: string;
+    thresholdState: "normal" | "elevated" | "critical";
+    threshold: string;
+    timestamp: string;
+    location: string;
+  };
   feedback?: string;
 }
 
@@ -265,6 +276,7 @@ const SOURCE_LABELS: Record<IncidentSource, string> = {
   desk_officer: "Desk Officer",
   cctv: "CCTV Operator",
   iot: "IoT Sensor Alert",
+  iot_cctv: "IoT via CCTV Operator",
   sos: "SOS Alert",
 };
 
@@ -394,6 +406,34 @@ const SEED_INCIDENTS: Incident[] = [
     verificationStatus: "verified",
     verifiedBy: "Desk Officer",
     verifiedAt: isoAgo(200),
+  },
+  {
+    id: "INC-2066",
+    category: "Hazard or Obstruction",
+    severity: "warning",
+    purok: "Purok 2",
+    description:
+      "CCTV operator flagged IoT alert — motion sensor triggered at restricted alley near court, possible unauthorized entry after hours",
+    source: "iot_cctv",
+    reporter: "CCTV Op. Santos",
+    time: isoAgo(45),
+    status: "new",
+    photos: 0,
+    lat: 230,
+    lng: 75,
+    priority: "Medium",
+    notes: [],
+    iotData: {
+      sensorType: "Motion Detector",
+      sensorId: "MD-COURT-02",
+      reading: "Triggered",
+      unit: "",
+      thresholdState: "elevated",
+      threshold: "No activity expected after 10 PM",
+      timestamp: isoAgo(44),
+      location: "Purok 2 — Restricted Alley",
+    },
+    verificationStatus: "new",
   },
   {
     id: "INC-2065",

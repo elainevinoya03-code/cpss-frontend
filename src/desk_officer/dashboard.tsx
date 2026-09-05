@@ -98,11 +98,6 @@ import {
   activityActionLabel,
   type ActivityEvent,
 } from "../utils/recentActivityStore";
-import { setSecurityAlertTarget } from "../utils/securityAlertTarget";
-import {
-  alertStatusOf,
-  type AlertStatus,
-} from "../utils/safetyNoticeStore";
 
 // ---------------------------------------------------------------------------
 // Shared metadata (kept in sync with incident_triage.tsx conventions)
@@ -122,6 +117,7 @@ const SOURCE_META: Record<IncidentSource, { label: string; icon: typeof Smartpho
   desk_officer: { label: "Desk Officer", icon: ClipboardList },
   cctv: { label: "CCTV", icon: Camera },
   iot: { label: "IoT Sensor", icon: Zap },
+  iot_cctv: { label: "IoT via CCTV", icon: Camera },
   sos: { label: "SOS", icon: Siren },
 };
 
@@ -130,24 +126,6 @@ const DESK_PRIORITY_META: Record<DeskPriority, { chip: string; dot: string; ring
   Medium: { chip: "bg-amber-100 text-amber-700", dot: "bg-amber-400", ring: "stroke-amber-400" },
   High: { chip: "bg-rose-100 text-rose-700", dot: "bg-rose-500", ring: "stroke-rose-500" },
 };
-
-// Part 9 — compact alert-status / severity meta used by the Alert Status section.
-const ALERT_STATUS_META: Record<AlertStatus, { label: string; chip: string; dot: string }> = {
-  draft: { label: "Draft", chip: "bg-stone-100 text-stone-500", dot: "bg-stone-400" },
-  pending_approval: { label: "Pending Approval", chip: "bg-amber-100 text-amber-700", dot: "bg-amber-400" },
-  sent: { label: "Sent", chip: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
-  all_clear: { label: "All-Clear issued", chip: "bg-teal-100 text-teal-700", dot: "bg-teal-500" },
-};
-
-const ALERT_SEVERITY_META: Record<string, { chip: string; dot: string }> = {
-  High: { chip: "bg-rose-100 text-rose-700", dot: "bg-rose-500" },
-  Warning: { chip: "bg-amber-100 text-amber-700", dot: "bg-amber-400" },
-  Info: { chip: "bg-sky-100 text-sky-700", dot: "bg-sky-400" },
-};
-
-function alertTargetLabel(n: SafetyNotice) {
-  return n.target.kind === "barangay" ? "Entire Barangay" : n.target.purok;
-}
 
 const ACTIVITY_ICON: Record<ActivityEvent["kind"], ComponentType<{ size?: number; className?: string }>> = {
   incident: ClipboardList,
@@ -1078,9 +1056,6 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
   const [activeNoticeIncident, setActiveNoticeIncident] = useState<Incident | null>(null);
   const [selectedTanod, setSelectedTanod] = useState<Tanod | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<FootageRequest | null>(null);
-  const [alerts, setAlerts] = useState<SafetyNotice[]>(() =>
-    getSafetyNotices().filter((n) => n.severity !== undefined || n.isAllClear)
-  );
   const [activity, setActivity] = useState<ActivityEvent[]>(() => getActivity());
   const [emergencyPulse, setEmergencyPulse] = useState(false);
   const seenEmergencyRef = useRef<string[]>(
@@ -1120,7 +1095,6 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
 
   function resyncAll() {
     setRecentNotices([...getSafetyNotices()]);
-    setAlerts(getSafetyNotices().filter((n) => n.severity !== undefined || n.isAllClear));
     setRequests([...getFootageRequests()]);
     setTanods([...getTanods()]);
     setActivity([...getActivity()]);
@@ -1130,7 +1104,6 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
   useEffect(() => {
     return subscribeSafetyNotices(() => {
       setRecentNotices([...getSafetyNotices()]);
-      setAlerts(getSafetyNotices().filter((n) => n.severity !== undefined || n.isAllClear));
     });
   }, []);
 
@@ -1403,21 +1376,12 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
     go("incident_triage");
   }
 
-  // Part 9 — Alert Status row → dedicated Security Alert Center (deep link).
-  function openSecurityAlert(id: string) {
-    setSecurityAlertTarget(id);
-    go("security_alerts");
-  }
-
   // Part 9 — Recent Activity row → associated record (deep-link where possible).
   function openActivityTarget(ev: ActivityEvent) {
     if (ev.incidentId && (ev.kind === "incident" || ev.kind === "closure")) {
       setDeskCaseTarget({ incidentId: ev.incidentId });
       go("incident_triage");
       return;
-    }
-    if (ev.target === "security_alerts" && ev.refId) {
-      setSecurityAlertTarget(ev.refId);
     }
     go(ev.target);
   }
@@ -2172,101 +2136,10 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
           </div>
         </section>
 
-        {/* Part 9 — Alert Status + Recent Activity */}
-        <section className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-5">
-          {/* Alert Status */}
-          <div className="rounded-xl border border-black/5 bg-white shadow-sm lg:col-span-2">
-            <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
-              <div className="flex items-center gap-2">
-                <BellRing size={16} className="text-[#0038A8]" />
-                <div>
-                  <h3 className="text-[14px] font-semibold text-[#334155]">Alert Status</h3>
-                  <p className="text-[11px] text-[#94A3B8]">Active, pending, sent &amp; all-clear</p>
-                </div>
-              </div>
-              {onNavigate && (
-                <button
-                  onClick={() => go("security_alerts")}
-                  className="flex items-center gap-1 text-[11px] font-medium text-[#0038A8] hover:underline"
-                >
-                  View All <ArrowUpRight size={11} />
-                </button>
-              )}
-            </div>
-
-            {alerts.length === 0 ? (
-              <div className="px-5 py-10 text-center">
-                <BellRing size={24} className="mx-auto text-stone-300" />
-                <p className="mt-2 text-[12px] text-stone-400">No security alerts yet</p>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-4 gap-2 border-b border-stone-100 px-5 py-3">
-                  {[
-                    { label: "Active", value: alerts.filter((a) => alertStatusOf(a) === "sent" && a.severity !== "Info" && !a.isAllClear).length, chip: "border-rose-200 bg-rose-50 text-rose-700" },
-                    { label: "Pending", value: alerts.filter((a) => alertStatusOf(a) === "pending_approval").length, chip: "border-amber-200 bg-amber-50 text-amber-700" },
-                    { label: "Sent", value: alerts.filter((a) => alertStatusOf(a) === "sent").length, chip: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-                    { label: "All-Clear", value: alerts.filter((a) => alertStatusOf(a) === "all_clear").length, chip: "border-teal-200 bg-teal-50 text-teal-700" },
-                  ].map((c) => (
-                    <div key={c.label} className={`rounded-lg border px-2 py-1.5 text-center ${c.chip}`}>
-                      <div className="text-[16px] font-bold leading-none">{c.value}</div>
-                      <div className="mt-1 text-[8px] font-semibold uppercase tracking-wide">{c.label}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="max-h-[320px] overflow-y-auto">
-                  {alerts.slice(0, 8).map((a) => {
-                    const status = alertStatusOf(a);
-                    const st = ALERT_STATUS_META[status];
-                    const sev = ALERT_SEVERITY_META[a.severity ?? "Info"] ?? ALERT_SEVERITY_META.Info;
-                    const pending = status === "pending_approval";
-                    return (
-                      <button
-                        key={a.id}
-                        onClick={() => openSecurityAlert(a.id)}
-                        className={`block w-full border-b border-stone-50 px-5 py-3 text-left transition hover:bg-[#E9EDFB]/40 ${pending ? "bg-amber-50/40" : ""}`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="truncate text-[12px] font-semibold text-[#334155]">{a.title}</p>
-                            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-[#94A3B8]">
-                              <span className="inline-flex items-center gap-1">
-                                <span className={`h-1.5 w-1.5 rounded-full ${sev.dot}`} />
-                                {a.severity ?? "Info"}
-                              </span>
-                              <span>·</span>
-                              <span>{alertTargetLabel(a)}</span>
-                              {a.incidentId && (
-                                <>
-                                  <span>·</span>
-                                  <span className="inline-flex items-center gap-0.5">
-                                    <Link2 size={9} /> {a.incidentId}
-                                  </span>
-                                </>
-                              )}
-                              <span>·</span>
-                              <span>{formatTimeAgo(a.createdAt)}</span>
-                            </div>
-                          </div>
-                          <div className="flex shrink-0 flex-col items-end gap-1">
-                            <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${st.chip}`}>{st.label}</span>
-                            {pending && (
-                              <span className="text-[8px] font-medium uppercase tracking-wide text-amber-600">
-                                awaiting Captain
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-
+        {/* Part 9 — Recent Activity */}
+        <section className="mb-6">
           {/* Recent Activity */}
-          <div className="rounded-xl border border-black/5 bg-white shadow-sm lg:col-span-3">
+          <div className="rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
               <div className="flex items-center gap-2">
                 <Activity size={16} className="text-[#0038A8]" />

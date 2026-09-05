@@ -88,6 +88,7 @@ const SOURCE_META: Record<IncidentSource, { label: string; badge: string; desc: 
   desk_officer: { label: "Desk Officer Entry", badge: "bg-stone-200 text-stone-700", desc: "Incident manually logged by the Desk Officer" },
   cctv: { label: "CCTV Escalation", badge: "bg-violet-100 text-violet-700", desc: "Escalated by the CCTV surveillance operator" },
   iot: { label: "IoT Sensor Breach", badge: "bg-amber-100 text-amber-700", desc: "Threshold breach from an ESP32 sensor device" },
+  iot_cctv: { label: "IoT via CCTV", badge: "bg-orange-100 text-orange-700", desc: "IoT sensor alert flagged by the CCTV surveillance operator" },
   sos: { label: "SOS Distress Signal", badge: "bg-rose-100 text-rose-700", desc: "Emergency SOS — live GPS locked" },
 };
 

@@ -111,6 +111,7 @@ const SOURCE_META: Record<IncidentSource, { label: string; badge: string; icon: 
   desk_officer: { label: "Desk Officer", badge: "bg-stone-200 text-stone-700", icon: ClipboardList },
   cctv: { label: "CCTV", badge: "bg-violet-100 text-violet-700", icon: Camera },
   iot: { label: "IoT Sensor", badge: "bg-amber-100 text-amber-700", icon: Zap },
+  iot_cctv: { label: "IoT via CCTV", badge: "bg-orange-100 text-orange-700", icon: Wifi },
   sos: { label: "SOS", badge: "bg-rose-100 text-rose-700", icon: Siren },
 };
 
@@ -2879,6 +2880,7 @@ export default function IncidentTriage({ onNavigate }: { onNavigate?: (page: str
                 <option value="tanod">Tanod</option>
                 <option value="cctv">CCTV</option>
                 <option value="iot">IoT</option>
+                <option value="iot_cctv">IoT via CCTV</option>
                 <option value="sos">SOS</option>
               </select>
               <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-1.5 text-[11px] font-medium text-stone-700 outline-none focus:border-[#0038A8]">

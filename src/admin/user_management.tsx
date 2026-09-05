@@ -1,9 +1,11 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Search, Plus, Pencil, Power, Key, ChevronLeft, ChevronRight, Mail, ShieldCheck, Clock } from "lucide-react";
 import { PUROK_OPTIONS } from "../constants/purok";
 import { ConfirmModal, Modal } from "../components/ui";
 import { pushAuditLog } from "../utils/auditLog";
 import { INPUT_CLASS, Field } from "./_shared";
+
+const API_BASE = "http://127.0.0.1:8080";
 
 const ROLES = ["Captain", "Desk Officer", "CCTV Operator", "Tanod", "Purok Leader", "Resident"];
 
@@ -17,29 +19,7 @@ function needsPurokFor(role: string) {
   return ["Tanod", "Purok Leader", "Resident"].includes(role);
 }
 
-const ROLE_ID_PREFIXES: Record<string, string> = {
-  "Super Admin": "SA",
-  Captain: "CA",
-  "Desk Officer": "DO",
-  "CCTV Operator": "CO",
-  Tanod: "TA",
-  "Purok Leader": "PL",
-  Resident: "RE",
-};
-
-function generateUserId(role: string, existingUsers: any[]) {
-  const prefix = ROLE_ID_PREFIXES[role] || "US";
-  const taken = new Set(existingUsers.map((u) => u.userId));
-  let userId: string;
-  do {
-    let digits = "";
-    for (let i = 0; i < 8; i++) digits += Math.floor(Math.random() * 10);
-    userId = prefix + digits;
-  } while (taken.has(userId));
-  return userId;
-}
-
-const ROLE_STYLES = {
+const ROLE_STYLES: Record<string, string> = {
   Captain: "bg-stone-200 text-stone-700",
   "Desk Officer": "bg-orange-100 text-orange-700",
   "CCTV Operator": "bg-blue-100 text-blue-700",
@@ -50,112 +30,19 @@ const ROLE_STYLES = {
 
 const ALL_FILTERS = ["All", ...ROLES, "Active", "Deactivated"];
 
-const INITIAL_USERS = [
-  {
-    id: 1,
-    userId: "CA48291736",
-    name: "Hello World",
-    email: "hello.world@brgy.gov.ph",
-    phone: "+63 917 123 4567",
-    role: "Captain",
-    purok: "",
-    active: true,
-    twoFactor: "enabled",
-    lastLogin: "2026-07-20 08:14",
-    sendInvite: false,
-  },
-  {
-    id: 2,
-    userId: "DO39174625",
-    name: "Hello World",
-    email: "hello.world@brgy.gov.ph",
-    phone: "+63 918 234 5678",
-    role: "Desk Officer",
-    purok: "",
-    active: true,
-    twoFactor: "enabled",
-    lastLogin: "2026-07-20 07:55",
-    sendInvite: false,
-  },
-  {
-    id: 3,
-    userId: "CO82651409",
-    name: "Hello World",
-    email: "hello.world@brgy.gov.ph",
-    phone: "+63 919 345 6789",
-    role: "CCTV Operator",
-    purok: "",
-    active: true,
-    twoFactor: "none",
-    lastLogin: "2026-07-19 22:10",
-    sendInvite: false,
-  },
-  {
-    id: 4,
-    userId: "TA17483952",
-    name: "Hello World",
-    email: "hello.world@brgy.gov.ph",
-    phone: "+63 920 456 7890",
-    role: "Tanod",
-    purok: "Purok 1 — Riverside",
-    active: true,
-    twoFactor: "none",
-    lastLogin: "2026-07-20 06:30",
-    sendInvite: false,
-  },
-  {
-    id: 5,
-    userId: "PL60392741",
-    name: "Hello World",
-    email: "hello.world@brgy.gov.ph",
-    phone: "+63 921 567 8901",
-    role: "Purok Leader",
-    purok: "Purok 3 — Market Zone",
-    active: false,
-    twoFactor: "none",
-    lastLogin: "2026-06-15 14:22",
-    sendInvite: false,
-  },
-  {
-    id: 6,
-    userId: "TA95821467",
-    name: "Hello World",
-    email: "hello.world@brgy.gov.ph",
-    phone: "+63 922 678 9012",
-    role: "Tanod",
-    purok: "Purok 2 — Chapel Area",
-    active: true,
-    twoFactor: "none",
-    lastLogin: "2026-07-20 05:48",
-    sendInvite: false,
-  },
-  {
-    id: 7,
-    userId: "PL71520384",
-    name: "Hello World",
-    email: "hello.world@brgy.gov.ph",
-    phone: "+63 923 789 0123",
-    role: "Purok Leader",
-    purok: "Purok 4 — School District",
-    active: true,
-    twoFactor: "none",
-    lastLogin: "2026-07-18 11:05",
-    sendInvite: false,
-  },
-  {
-    id: 8,
-    userId: "RE95821467",
-    name: "Hello World",
-    email: "hello.world@brgy.gov.ph",
-    phone: "+63 924 890 1234",
-    role: "Resident",
-    purok: "Purok 2 — Chapel Area",
-    active: true,
-    twoFactor: "none",
-    lastLogin: "2026-07-19 19:32",
-    sendInvite: false,
-  },
-];
+interface UserRecord {
+  id: number;
+  userId: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  purok: string;
+  active: boolean;
+  twoFactor: string;
+  lastLogin: string;
+  sendInvite?: boolean;
+}
 
 const ITEMS_PER_PAGE = 10;
 
@@ -168,10 +55,24 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-
+async function apiFetch(path: string, options?: RequestInit) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options?.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
 
 export default function UserManagement() {
-  const [users, setUsers] = useState(INITIAL_USERS);
+  const [users, setUsers] = useState<UserRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [modal, setModal] = useState<{type: string; user?: any} | null>(null);
   const [filter, setFilter] = useState("All");
@@ -185,6 +86,21 @@ export default function UserManagement() {
     sendInvite: true,
   });
 
+  const fetchUsers = useCallback(async () => {
+    try {
+      const data = await apiFetch("/api/users");
+      setUsers(data);
+    } catch (err) {
+      console.error("Failed to fetch users:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
   const activeCount = users.filter((u) => u.active).length;
   const deactivatedCount = users.length - activeCount;
 
@@ -197,12 +113,10 @@ export default function UserManagement() {
   const filtered = useMemo(() => {
     let list = users;
 
-    // role / status filter
     if (filter === "Active") list = list.filter((u) => u.active);
     else if (filter === "Deactivated") list = list.filter((u) => !u.active);
     else if (filter !== "All") list = list.filter((u) => u.role === filter);
 
-    // text search
     const q = query.trim().toLowerCase();
     if (q) {
       list = list.filter(
@@ -250,79 +164,79 @@ export default function UserManagement() {
     setModal(null);
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim() || !form.email.trim() || !modal) return;
 
-    if (modal.type === "create") {
-      const privileged = isPrivilegedRole(form.role);
-      const newUser = {
-        id: Math.max(0, ...users.map((u) => u.id)) + 1,
-        userId: generateUserId(form.role, users),
-        name: form.name.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim(),
-        role: form.role,
-        purok: needsPurokFor(form.role) ? form.purok : "",
-        active: true,
-        twoFactor: privileged ? "pending" : "none",
-        lastLogin: "—",
-        sendInvite: form.sendInvite,
-      };
-      setUsers((prev) => [...prev, newUser]);
-      const roleLabel = form.role;
-      const purokLabel = newUser.purok ? `, ${newUser.purok}` : "";
-      pushAuditLog("User Created", `New account created for ${form.name.trim()} (${roleLabel}${purokLabel}) — User ID: ${newUser.userId}`);
-      if (privileged) {
-        pushAuditLog("Configuration Change", `2FA policy: ${roleLabel} account ${form.name.trim()} created with mandatory two-factor enrollment pending`);
-      }
-      setModalMessage(
-        privileged
-          ? { title: "User Created — 2FA Pending", message: `User created — 2FA setup required. Account cannot become Active until ${form.email.trim()} completes two-factor enrollment.` }
-          : form.sendInvite
-            ? { title: "User Created", message: `User created — invite sent to ${form.email.trim()}` }
-            : { title: "User Created", message: `User created successfully` }
-      );
-    } else if (modal.type === "edit") {
-      const oldUser = modal.user;
-      const nextPurok = needsPurokFor(form.role) ? form.purok : "";
-      setUsers((prev) =>
-        prev.map((u) => {
-          if (u.id !== oldUser.id) return u;
-          const next = {
-            ...u,
-            name: form.name.trim(),
-            email: form.email.trim(),
-            phone: form.phone.trim(),
-            role: form.role,
-            purok: nextPurok,
-          };
-          const wasPrivileged = isPrivilegedRole(u.role);
-          const nowPrivileged = isPrivilegedRole(form.role);
-          if (nowPrivileged && !wasPrivileged) next.twoFactor = "pending";
-          else if (!nowPrivileged && wasPrivileged) next.twoFactor = "none";
-          return next;
-        })
-      );
-      const changed: string[] = [];
-      if (oldUser.role !== form.role) changed.push(`role to ${form.role}`);
-      if ((oldUser.purok || "") !== nextPurok) {
-        changed.push(nextPurok ? `purok to ${nextPurok}` : "purok cleared");
-      }
-      if (oldUser.name !== form.name.trim()) changed.push("name");
-      if (oldUser.email !== form.email.trim()) changed.push("email");
-      if (oldUser.phone !== form.phone.trim()) changed.push("contact number");
-      const detail = changed.length ? ` (${changed.join(", ")})` : "";
-      pushAuditLog("User Updated", `Updated ${form.role} "${form.name.trim()}"${detail}`);
-      if (isPrivilegedRole(form.role) && !isPrivilegedRole(oldUser.role)) {
-        pushAuditLog(
-          "Configuration Change",
-          `2FA policy: ${form.role} account ${form.name.trim()} now requires mandatory two-factor enrollment (pending)`
+    try {
+      if (modal.type === "create") {
+        const payload = {
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+          role: form.role,
+          purok: needsPurokFor(form.role) ? form.purok : "",
+          sendInvite: form.sendInvite,
+        };
+        const newUser = await apiFetch("/api/users", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+
+        setUsers((prev) => [...prev, newUser]);
+        const privileged = isPrivilegedRole(form.role);
+        const roleLabel = form.role;
+        const purokLabel = newUser.purok ? `, ${newUser.purok}` : "";
+        pushAuditLog("User Created", `New account created for ${form.name.trim()} (${roleLabel}${purokLabel}) — User ID: ${newUser.userId}`);
+        if (privileged) {
+          pushAuditLog("Configuration Change", `2FA policy: ${roleLabel} account ${form.name.trim()} created with mandatory two-factor enrollment pending`);
+        }
+        setModalMessage(
+          privileged
+            ? { title: "User Created — 2FA Pending", message: `User created — 2FA setup required. Account cannot become Active until ${form.email.trim()} completes two-factor enrollment.` }
+            : form.sendInvite
+              ? { title: "User Created", message: `User created — invite sent to ${form.email.trim()}` }
+              : { title: "User Created", message: `User created successfully` }
         );
+      } else if (modal.type === "edit") {
+        const oldUser = modal.user;
+        const payload = {
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+          role: form.role,
+          purok: needsPurokFor(form.role) ? form.purok : "",
+        };
+        const updated = await apiFetch(`/api/users/${oldUser.id}`, {
+          method: "PUT",
+          body: JSON.stringify(payload),
+        });
+
+        setUsers((prev) => prev.map((u) => (u.id === oldUser.id ? updated : u)));
+
+        const nextPurok = needsPurokFor(form.role) ? form.purok : "";
+        const changed: string[] = [];
+        if (oldUser.role !== form.role) changed.push(`role to ${form.role}`);
+        if ((oldUser.purok || "") !== nextPurok) {
+          changed.push(nextPurok ? `purok to ${nextPurok}` : "purok cleared");
+        }
+        if (oldUser.name !== form.name.trim()) changed.push("name");
+        if (oldUser.email !== form.email.trim()) changed.push("email");
+        if (oldUser.phone !== form.phone.trim()) changed.push("contact number");
+        const detail = changed.length ? ` (${changed.join(", ")})` : "";
+        pushAuditLog("User Updated", `Updated ${form.role} "${form.name.trim()}"${detail}`);
+        if (isPrivilegedRole(form.role) && !isPrivilegedRole(oldUser.role)) {
+          pushAuditLog(
+            "Configuration Change",
+            `2FA policy: ${form.role} account ${form.name.trim()} now requires mandatory two-factor enrollment (pending)`
+          );
+        }
+        setModalMessage({ title: "User Updated", message: `Updated "${form.name.trim()}"` });
       }
-      setModalMessage({ title: "User Updated", message: `Updated "${form.name.trim()}"` });
+      closeModal();
+    } catch (err: any) {
+      setModalMessage({ title: "Error", message: err.message || "Operation failed" });
     }
-    closeModal();
   }
 
   function requestToggle(user: any) {
@@ -333,33 +247,37 @@ export default function UserManagement() {
     setConfirmAction({ kind: "reset", user });
   }
 
-  function confirmSensitiveAction() {
+  async function confirmSensitiveAction() {
     if (!confirmAction) return;
     const { kind, user } = confirmAction;
-    if (kind === "disable") {
-      setUsers((prev) =>
-        prev.map((u) => (u.id === user.id ? { ...u, active: false } : u))
-      );
-      pushAuditLog("User Disabled", `Disabled account for ${user.name} (${user.role})`);
-      setModalMessage({
-        title: "User Disabled",
-        message: `${user.name}'s account has been disabled and can no longer sign in.`,
-      });
-    } else if (kind === "enable") {
-      setUsers((prev) =>
-        prev.map((u) => (u.id === user.id ? { ...u, active: true } : u))
-      );
-      pushAuditLog("User Enabled", `Enabled account for ${user.name} (${user.role})`);
-      setModalMessage({
-        title: "User Enabled",
-        message: `${user.name}'s account has been re-enabled.`,
-      });
-    } else if (kind === "reset") {
-      pushAuditLog("Password Reset", `Password reset link sent to ${user.email} for ${user.name}`);
-      setModalMessage({
-        title: "Password Reset",
-        message: `Password reset link sent to ${user.email}.`,
-      });
+
+    try {
+      if (kind === "disable") {
+        const updated = await apiFetch(`/api/users/${user.id}/toggle-active`, { method: "PATCH" });
+        setUsers((prev) => prev.map((u) => (u.id === user.id ? updated : u)));
+        pushAuditLog("User Disabled", `Disabled account for ${user.name} (${user.role})`);
+        setModalMessage({
+          title: "User Disabled",
+          message: `${user.name}'s account has been disabled and can no longer sign in.`,
+        });
+      } else if (kind === "enable") {
+        const updated = await apiFetch(`/api/users/${user.id}/toggle-active`, { method: "PATCH" });
+        setUsers((prev) => prev.map((u) => (u.id === user.id ? updated : u)));
+        pushAuditLog("User Enabled", `Enabled account for ${user.name} (${user.role})`);
+        setModalMessage({
+          title: "User Enabled",
+          message: `${user.name}'s account has been re-enabled.`,
+        });
+      } else if (kind === "reset") {
+        await apiFetch(`/api/users/${user.id}/reset-password`, { method: "PATCH" });
+        pushAuditLog("Password Reset", `Password reset link sent to ${user.email} for ${user.name}`);
+        setModalMessage({
+          title: "Password Reset",
+          message: `Password reset link sent to ${user.email}.`,
+        });
+      }
+    } catch (err: any) {
+      setModalMessage({ title: "Error", message: err.message || "Operation failed" });
     }
     setConfirmAction(null);
   }
@@ -390,7 +308,7 @@ export default function UserManagement() {
             <div>
               <h2 className="text-base font-semibold text-stone-900">User Directory</h2>
               <p className="mt-0.5 text-sm text-stone-400">
-                {activeCount} active · {deactivatedCount} deactivated
+                {loading ? "Loading..." : `${activeCount} active · ${deactivatedCount} deactivated`}
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -475,7 +393,13 @@ export default function UserManagement() {
               </tr>
             </thead>
             <tbody>
-              {paginated.map((u) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={9} className="px-6 py-10 text-center text-sm text-stone-400">
+                    Loading users...
+                  </td>
+                </tr>
+              ) : paginated.map((u) => (
                 <tr key={u.id} className="border-t border-stone-100">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -507,7 +431,7 @@ export default function UserManagement() {
                   </td>
                   <td className="px-6 py-4">
                     <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${ROLE_STYLES[u.role]}`}
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${ROLE_STYLES[u.role] || "bg-stone-100 text-stone-600"}`}
                     >
                       {u.role}
                     </span>
@@ -609,7 +533,7 @@ export default function UserManagement() {
                   </td>
                 </tr>
               ))}
-              {paginated.length === 0 && (
+              {!loading && paginated.length === 0 && (
                 <tr>
                   <td colSpan={9} className="px-6 py-10 text-center text-sm text-stone-400">
                     No users match your search or filter.

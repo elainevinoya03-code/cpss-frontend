@@ -22,6 +22,9 @@
   FileSearch,
   Shield,
   BellRing,
+  CalendarClock,
+  AlertTriangle,
+  Eye,
 } from "lucide-react";
 import logo from "../../assets/logo.png";
 
@@ -50,7 +53,6 @@ const CAPTAIN_NAV_ITEMS = [
 const DESK_OFFICER_NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutGrid },
   { key: "incident_triage", label: "Incident Triage", icon: ClipboardList },
-  { key: "security_alerts", label: "Security Alerts", icon: Shield },
   { key: "alert_management", label: "Alert Management", icon: BellRing },
   { key: "dispatches", label: "Active Dispatches", icon: Radio },
   { key: "patrol", label: "Patrol Operations", icon: Map },
@@ -60,8 +62,10 @@ const DESK_OFFICER_NAV_ITEMS = [
 ];
 
 const CCTV_OPERATOR_NAV_ITEMS = [
-  { key: "surveillance", label: "Surveillance Matrix", icon: Camera },
-  { key: "recorded_footage", label: "Recorded Footage & Evidence", icon: Video },
+  { key: "surveillance", label: "Surveillance Matrix", icon: LayoutGrid },
+  { key: "live_monitoring", label: "Live Monitoring", icon: Eye },
+  { key: "camera_map", label: "Camera Map", icon: Map },
+  { key: "recorded_footage", label: "Recorded Footage & Evidence", icon: Camera },
   { key: "footage_requests", label: "Footage Requests", icon: FileSearch },
 ];
 
@@ -70,6 +74,17 @@ const PUROK_LEADER_NAV_ITEMS = [
   { key: "escalated", label: "Escalated Cases", icon: ArrowUpRight },
   { key: "announcements", label: "Purok Announcements", icon: Megaphone },
   { key: "contacts", label: "Contacts", icon: Users },
+];
+
+const CHIEF_TANOD_NAV_ITEMS = [
+  { key: "dashboard", label: "Dashboard", icon: LayoutGrid },
+  { key: "patrol_scheduling", label: "Patrol Scheduling", icon: CalendarClock },
+  { key: "live_tracking", label: "Live Tanod Tracking", icon: Map },
+  { key: "incidents", label: "Incident Oversight", icon: AlertTriangle },
+  { key: "referred_cases", label: "Referred Cases", icon: ArrowUpRight },
+  { key: "team_performance", label: "Team Performance", icon: Users },
+  { key: "neighborhood_watch", label: "Neighborhood Watch", icon: Shield },
+  { key: "reports_analytics", label: "Reports & Analytics", icon: FileText },
 ];
 
 interface SidebarProps {
@@ -134,8 +149,8 @@ function SidebarContent({ items, sectionLabel, activeKey, onNavigate, collapsed 
 }
 
 export default function Sidebar({ activeKey = "dashboard", onNavigate = () => {}, collapsed = false, role = "admin", onClose }: SidebarProps) {
-  const items = role === "captain" ? CAPTAIN_NAV_ITEMS : role === "desk_officer" ? DESK_OFFICER_NAV_ITEMS : role === "cctv_operator" ? CCTV_OPERATOR_NAV_ITEMS : role === "purok_leader" ? PUROK_LEADER_NAV_ITEMS : ADMIN_NAV_ITEMS;
-  const sectionLabel = role === "captain" ? "EXECUTIVE OVERSIGHT" : role === "desk_officer" ? "DESK OFFICER MENU" : role === "cctv_operator" ? "CCTV OPERATIONS" : role === "purok_leader" ? "PUROK LEADER MENU" : "NAVIGATION";
+  const items = role === "captain" ? CAPTAIN_NAV_ITEMS : role === "desk_officer" ? DESK_OFFICER_NAV_ITEMS : role === "cctv_operator" ? CCTV_OPERATOR_NAV_ITEMS : role === "purok_leader" ? PUROK_LEADER_NAV_ITEMS : role === "chief_tanod" ? CHIEF_TANOD_NAV_ITEMS : ADMIN_NAV_ITEMS;
+  const sectionLabel = role === "captain" ? "EXECUTIVE OVERSIGHT" : role === "desk_officer" ? "DESK OFFICER MENU" : role === "cctv_operator" ? "CCTV OPERATIONS" : role === "purok_leader" ? "PUROK LEADER MENU" : role === "chief_tanod" ? "CHIEF TANOD MENU" : "NAVIGATION";
 
   return (
     <>

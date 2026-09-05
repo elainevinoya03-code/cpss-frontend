@@ -13,7 +13,7 @@ archive each resolved case as a permanent digital blotter. Everything below sits
 | 1 | Dashboard | `dashboard` | `dashboard.tsx` |
 | 2 | Active Dispatches | `dispatches` | `active_dispatches.tsx` |
 | 3 | Alert Management | `alert_management` | `alert_management.tsx` |
-| 4 | Patrol Scheduler & Routes | `patrol` | `patrol_scheduler_routes.tsx` |
+| 4 | Patrol Scheduler & Routes | `patrol` | `patrol.tsx` |
 | 5 | Digital Barangay Blotter | `blotter` | `digital_blotter.tsx` |
 | 6 | Operations Chat Center | `chat` | `operations_chat_center.tsx` |
 
@@ -303,7 +303,7 @@ Assignment, routing and live on-scene monitoring of field responders.
 
 ---
 
-## 3. `patrol_scheduler_routes.tsx` — Patrol Scheduler & Routes
+## 3. `patrol.tsx` — Patrol Scheduler & Routes
 
 Weekly shift planning, geofenced routes and live force heatmapping.
 

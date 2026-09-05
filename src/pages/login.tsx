@@ -3,22 +3,38 @@ import { User, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react"
 import culiatBg from "../assets/culiat.jpg";
 import logo from "../assets/logo.png";
 
+const API_BASE = "http://127.0.0.1:8080";
+
+interface LoginResponse {
+  id: number;
+  userId: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  purok: string;
+  active: boolean;
+  twoFactor: string;
+  lastLogin: string;
+}
+
 interface LoginProps {
-  onLogin?: (e: React.FormEvent, username: string) => void;
+  onLogin?: (e: React.FormEvent, userData: LoginResponse) => void;
 }
 
 export default function Login({ onLogin }: LoginProps) {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [errors, setErrors] = useState<{ username: string | null; password: string | null }>({ username: null, password: null });
+  const [errors, setErrors] = useState<{ email: string | null; password: string | null; general: string | null }>({ email: null, password: null, general: null });
   const [shakeField, setShakeField] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [leftVisible, setLeftVisible] = useState(false);
-  const usernameRef = useRef<HTMLInputElement>(null);
+  const [userData, setUserData] = useState<LoginResponse | null>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -33,10 +49,10 @@ export default function Login({ onLogin }: LoginProps) {
   };
 
   const validate = () => {
-    const newErrors: { username: string | null; password: string | null } = { username: null, password: null };
-    if (!username.trim()) {
-      newErrors.username = "Username is required";
-      triggerShake("username");
+    const newErrors: { email: string | null; password: string | null; general: string | null } = { email: null, password: null, general: null };
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
+      triggerShake("email");
     }
     if (!password.trim()) {
       newErrors.password = "Password is required";
@@ -49,20 +65,40 @@ export default function Login({ onLogin }: LoginProps) {
     return Object.values(newErrors).every((v) => v === null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setLoading(true);
-    setErrors({ username: null, password: null });
+    setErrors({ email: null, password: null, general: null });
 
-    setTimeout(() => {
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg = data.detail || "Login failed";
+        setErrors({ email: null, password: null, general: msg });
+        setLoading(false);
+        triggerShake("email");
+        return;
+      }
+
+      const data: LoginResponse = await res.json();
+      setUserData(data);
       setLoading(false);
       setSuccess(true);
       setTimeout(() => {
-        if (onLogin) onLogin(e, username.trim().toLowerCase());
+        if (onLogin) onLogin(e, data);
       }, 1200);
-    }, 1800);
+    } catch (err) {
+      setErrors({ email: null, password: null, general: "Cannot connect to server. Please try again." });
+      setLoading(false);
+    }
   };
 
   return (
@@ -124,6 +160,14 @@ export default function Login({ onLogin }: LoginProps) {
             </p>
           </div>
 
+          {/* General error */}
+          {errors.general && (
+            <div className="mb-6 flex animate-[fadeIn_0.4s_ease] items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-[15px] font-semibold text-red-600">
+              <AlertCircle size={20} />
+              {errors.general}
+            </div>
+          )}
+
           {/* Success message */}
           {success && (
             <div className="mb-6 flex animate-[fadeIn_0.4s_ease] items-center justify-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3.5 text-[15px] font-semibold text-green-600">
@@ -132,7 +176,7 @@ export default function Login({ onLogin }: LoginProps) {
             </div>
           )}
 
-          {/* Username */}
+          {/* Email */}
           <div
             style={{
               opacity: mounted ? 1 : 0,
@@ -140,47 +184,47 @@ export default function Login({ onLogin }: LoginProps) {
               transition: "all 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.3s",
             }}
           >
-            <label className="mb-3 flex items-center gap-2 text-[clamp(15px,2vw,18px)] font-bold text-[#33437A]" htmlFor="username">
+            <label className="mb-3 flex items-center gap-2 text-[clamp(15px,2vw,18px)] font-bold text-[#33437A]" htmlFor="email">
               <User size={18} className="text-[#0038A8]" />
-              Username
+              Email
             </label>
             <div
               className="relative rounded-xl border-[1.5px] bg-[#F1F5F9] transition-all duration-200"
               style={{
-                borderColor: errors.username
+                borderColor: errors.email
                   ? "#dc2626"
-                  : focusedField === "username"
+                  : focusedField === "email"
                     ? "#0038A8"
                     : "#E2E8F0",
-                boxShadow: errors.username
+                boxShadow: errors.email
                   ? "0 0 0 3px rgba(220,38,38,0.12)"
-                  : focusedField === "username"
+                  : focusedField === "email"
                     ? "0 0 0 3px rgba(0,56,168,0.12)"
                     : "none",
                 animation:
-                  shakeField === "username" ? "shake 0.4s ease-in-out" : "none",
+                  shakeField === "email" ? "shake 0.4s ease-in-out" : "none",
               }}
             >
               <input
-                ref={usernameRef}
-                id="username"
-                type="text"
-                placeholder="Enter your username"
-                value={username}
+                ref={emailRef}
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
                 onChange={(e) => {
-                  setUsername(e.target.value);
-                  if (errors.username) setErrors((p) => ({ ...p, username: null }));
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors((p) => ({ ...p, email: null, general: null }));
                 }}
-                onFocus={() => setFocusedField("username")}
+                onFocus={() => setFocusedField("email")}
                 onBlur={() => setFocusedField(null)}
                 className="w-full border-none bg-transparent px-5 py-4 text-[clamp(15px,2vw,18px)] text-[#33437A] outline-none sm:px-[22px] sm:py-5"
                 disabled={loading || success}
               />
             </div>
-            {errors.username && (
+            {errors.email && (
               <div className="mt-2 flex items-center gap-1.5 text-[14px] font-medium text-red-600">
                 <AlertCircle size={14} />
-                {errors.username}
+                {errors.email}
               </div>
             )}
           </div>
@@ -223,7 +267,7 @@ export default function Login({ onLogin }: LoginProps) {
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
-                  if (errors.password) setErrors((p) => ({ ...p, password: null }));
+                  if (errors.password) setErrors((p) => ({ ...p, password: null, general: null }));
                 }}
                 onFocus={() => setFocusedField("password")}
                 onBlur={() => setFocusedField(null)}
