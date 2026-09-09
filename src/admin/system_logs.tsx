@@ -97,6 +97,7 @@ function roleFor(admin: string): string {
   if (a.includes("captain")) return "Captain";
   if (a.includes("desk")) return "Desk Officer";
   if (a.includes("operator") || a.includes("cctv")) return "CCTV Operator";
+  if (a.includes("chief") && a.includes("tanod")) return "Chief Tanod";
   if (a.includes("tanod")) return "Tanod";
   if (a.includes("patrol")) return "Patrol Leader";
   return "System Admin";

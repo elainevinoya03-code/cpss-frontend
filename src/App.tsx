@@ -62,11 +62,13 @@ const DESK_OFFICER_NAV = ["dashboard", "incident_triage", "alert_management", "d
 const CCTV_OPERATOR_NAV = ["surveillance", "live_monitoring", "camera_map", "recorded_footage", "footage_requests"];
 const PUROK_LEADER_NAV = ["reports", "escalated", "announcements", "contacts"];
 const CHIEF_TANOD_NAV = ["dashboard", "patrol_scheduling", "live_tracking", "incidents", "referred_cases", "team_performance", "neighborhood_watch", "reports_analytics"];
+const TANOD_NAV = ["dashboard", "patrol_scheduling", "live_tracking", "incidents"];
 
 function defaultNav(role) {
   if (role === "cctv_operator") return "surveillance";
   if (role === "purok_leader") return "reports";
   if (role === "chief_tanod") return "dashboard";
+  if (role === "tanod") return "dashboard";
   return "dashboard";
 }
 
@@ -76,6 +78,7 @@ function canAccess(role, key) {
   if (role === "cctv_operator") return CCTV_OPERATOR_NAV.includes(key);
   if (role === "purok_leader") return PUROK_LEADER_NAV.includes(key);
   if (role === "chief_tanod") return CHIEF_TANOD_NAV.includes(key);
+  if (role === "tanod") return TANOD_NAV.includes(key);
   return ADMIN_NAV.includes(key);
 }
 
@@ -89,6 +92,7 @@ function loadSession() {
       if (data.page && data.role) {
         // Guard against stale purok-leader nav keys from before the streamlined prototype.
         if (data.role === "purok_leader" && !PUROK_LEADER_NAV.includes(data.activeNav)) return null;
+        if (data.role === "tanod" && !TANOD_NAV.includes(data.activeNav)) return null;
         return data;
       }
     }
@@ -140,7 +144,8 @@ export default function App() {
       "Captain": "captain",
       "Desk Officer": "desk_officer",
       "CCTV Operator": "cctv_operator",
-      "Tanod": "chief_tanod",
+      "Chief Tanod": "chief_tanod",
+      "Tanod": "tanod",
       "Purok Leader": "purok_leader",
       "Resident": "admin",
     };
@@ -199,9 +204,9 @@ export default function App() {
     return <Login onLogin={handleLogin} />;
   }
 
-  const currentInitials = role === "captain" ? "CA" : role === "desk_officer" ? "DO" : role === "cctv_operator" ? "CO" : role === "purok_leader" ? "PL" : role === "chief_tanod" ? "CT" : "BA";
-  const currentLabel = role === "captain" ? "Captain" : role === "desk_officer" ? "Desk Officer" : role === "cctv_operator" ? "CCTV Operator" : role === "purok_leader" ? "Purok Leader" : role === "chief_tanod" ? "Chief Tanod" : "System Admin";
-  const currentSubLabel = role === "captain" ? "Executive Oversight" : role === "desk_officer" ? "Operations Desk" : role === "cctv_operator" ? "Surveillance Unit" : role === "purok_leader" ? "Community Lead" : role === "chief_tanod" ? "Tanod Operations" : "Barangay Admin";
+  const currentInitials = role === "captain" ? "CA" : role === "desk_officer" ? "DO" : role === "cctv_operator" ? "CO" : role === "purok_leader" ? "PL" : role === "chief_tanod" ? "CT" : role === "tanod" ? "TA" : "BA";
+  const currentLabel = role === "captain" ? "Captain" : role === "desk_officer" ? "Desk Officer" : role === "cctv_operator" ? "CCTV Operator" : role === "purok_leader" ? "Purok Leader" : role === "chief_tanod" ? "Chief Tanod" : role === "tanod" ? "Tanod" : "System Admin";
+  const currentSubLabel = role === "captain" ? "Executive Oversight" : role === "desk_officer" ? "Operations Desk" : role === "cctv_operator" ? "Surveillance Unit" : role === "purok_leader" ? "Community Lead" : role === "chief_tanod" ? "Tanod Operations" : role === "tanod" ? "Field Operations" : "Barangay Admin";
 
   return (
     <PurokIncidentsProvider>
@@ -261,6 +266,13 @@ export default function App() {
               {activeNav === "team_performance" && <TeamPerformance onNavigate={handleNavigate} />}
               {activeNav === "neighborhood_watch" && <NeighborhoodWatchCoordination onNavigate={handleNavigate} />}
               {activeNav === "reports_analytics" && <ReportsAnalytics onNavigate={handleNavigate} />}
+            </>
+          ) : role === "tanod" ? (
+            <>
+              {activeNav === "dashboard" && <ChiefTanodDashboard onNavigate={handleNavigate} />}
+              {activeNav === "patrol_scheduling" && <PatrolScheduling onNavigate={handleNavigate} />}
+              {activeNav === "live_tracking" && <LiveTanodTracking onNavigate={handleNavigate} />}
+              {activeNav === "incidents" && <IncidentOversight onNavigate={handleNavigate} />}
             </>
           ) : (
             <>

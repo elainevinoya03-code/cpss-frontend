@@ -119,6 +119,7 @@ export default function SystemSettings() {
   const [roleMatrix, setRoleMatrix] = useState([
     { role: "Desk Officer", low: false, med: true, high: true, crit: true },
     { role: "CCTV Operator", low: false, med: false, high: true, crit: true },
+    { role: "Chief Tanod", low: false, med: true, high: true, crit: true },
     { role: "Tanod", low: false, med: true, high: true, crit: false },
     { role: "Purok Leader", low: false, med: true, high: true, crit: false },
   ]);

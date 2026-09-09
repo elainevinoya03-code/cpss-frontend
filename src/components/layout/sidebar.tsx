@@ -87,6 +87,13 @@ const CHIEF_TANOD_NAV_ITEMS = [
   { key: "reports_analytics", label: "Reports & Analytics", icon: FileText },
 ];
 
+const TANOD_NAV_ITEMS = [
+  { key: "dashboard", label: "Dashboard", icon: LayoutGrid },
+  { key: "patrol_scheduling", label: "Patrol Scheduling", icon: CalendarClock },
+  { key: "live_tracking", label: "Live Tanod Tracking", icon: Map },
+  { key: "incidents", label: "Incident Oversight", icon: AlertTriangle },
+];
+
 interface SidebarProps {
   activeKey?: string;
   onNavigate?: (key: string) => void;
@@ -149,8 +156,8 @@ function SidebarContent({ items, sectionLabel, activeKey, onNavigate, collapsed 
 }
 
 export default function Sidebar({ activeKey = "dashboard", onNavigate = () => {}, collapsed = false, role = "admin", onClose }: SidebarProps) {
-  const items = role === "captain" ? CAPTAIN_NAV_ITEMS : role === "desk_officer" ? DESK_OFFICER_NAV_ITEMS : role === "cctv_operator" ? CCTV_OPERATOR_NAV_ITEMS : role === "purok_leader" ? PUROK_LEADER_NAV_ITEMS : role === "chief_tanod" ? CHIEF_TANOD_NAV_ITEMS : ADMIN_NAV_ITEMS;
-  const sectionLabel = role === "captain" ? "EXECUTIVE OVERSIGHT" : role === "desk_officer" ? "DESK OFFICER MENU" : role === "cctv_operator" ? "CCTV OPERATIONS" : role === "purok_leader" ? "PUROK LEADER MENU" : role === "chief_tanod" ? "CHIEF TANOD MENU" : "NAVIGATION";
+  const items = role === "captain" ? CAPTAIN_NAV_ITEMS : role === "desk_officer" ? DESK_OFFICER_NAV_ITEMS : role === "cctv_operator" ? CCTV_OPERATOR_NAV_ITEMS : role === "purok_leader" ? PUROK_LEADER_NAV_ITEMS : role === "chief_tanod" ? CHIEF_TANOD_NAV_ITEMS : role === "tanod" ? TANOD_NAV_ITEMS : ADMIN_NAV_ITEMS;
+  const sectionLabel = role === "captain" ? "EXECUTIVE OVERSIGHT" : role === "desk_officer" ? "DESK OFFICER MENU" : role === "cctv_operator" ? "CCTV OPERATIONS" : role === "purok_leader" ? "PUROK LEADER MENU" : role === "chief_tanod" ? "CHIEF TANOD MENU" : role === "tanod" ? "TANOD MENU" : "NAVIGATION";
 
   return (
     <>

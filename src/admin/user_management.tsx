@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { Search, Plus, Pencil, Power, Key, ChevronLeft, ChevronRight, Mail, ShieldCheck, Clock } from "lucide-react";
+import { Search, Plus, Pencil, Power, Key, ChevronLeft, ChevronRight, Mail, ShieldCheck, Clock, Eye, Trash2 } from "lucide-react";
 import { PUROK_OPTIONS } from "../constants/purok";
 import { ConfirmModal, Modal } from "../components/ui";
 import { pushAuditLog } from "../utils/auditLog";
@@ -7,7 +7,7 @@ import { INPUT_CLASS, Field } from "./_shared";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
-const ROLES = ["Captain", "Desk Officer", "CCTV Operator", "Tanod", "Purok Leader", "Resident"];
+const ROLES = ["Captain", "Desk Officer", "CCTV Operator", "Chief Tanod", "Tanod", "Purok Leader", "Resident"];
 
 const PRIVILEGED_ROLES = ["Admin", "Captain", "Desk Officer"];
 
@@ -16,14 +16,15 @@ function isPrivilegedRole(role: string) {
 }
 
 function needsPurokFor(role: string) {
-  return ["Tanod", "Purok Leader", "Resident"].includes(role);
+  return ["Chief Tanod", "Tanod", "Purok Leader", "Resident"].includes(role);
 }
 
 const ROLE_STYLES: Record<string, string> = {
   Captain: "bg-stone-200 text-stone-700",
   "Desk Officer": "bg-orange-100 text-orange-700",
   "CCTV Operator": "bg-blue-100 text-blue-700",
-  Tanod: "bg-emerald-100 text-emerald-700",
+  "Chief Tanod": "bg-emerald-100 text-emerald-700",
+  Tanod: "bg-teal-100 text-teal-700",
   "Purok Leader": "bg-violet-100 text-violet-700",
   Resident: "bg-sky-100 text-sky-700",
 };
@@ -42,6 +43,10 @@ interface UserRecord {
   twoFactor: string;
   lastLogin: string;
   sendInvite?: boolean;
+  birthday: string;
+  sex: string;
+  civilStatus: string;
+  address: string;
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -53,6 +58,22 @@ function initials(name: string) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+}
+
+function computeAge(birthday: string): number | null {
+  if (!birthday) return null;
+  const birth = new Date(birthday);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  return age >= 0 ? age : null;
+}
+
+function formatDateDisplay(birthday: string): string {
+  if (!birthday) return "—";
+  const d = new Date(birthday);
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
 
 async function apiFetch(path: string, options?: RequestInit) {
@@ -84,6 +105,10 @@ export default function UserManagement() {
     role: ROLES[3],
     purok: PUROK_OPTIONS[0],
     sendInvite: true,
+    birthday: "",
+    sex: "Male",
+    civilStatus: "Single",
+    address: "",
   });
 
   const fetchUsers = useCallback(async () => {
@@ -106,9 +131,10 @@ export default function UserManagement() {
 
   const [modalMessage, setModalMessage] = useState<{ title: string; message: string } | null>(null);
   const [confirmAction, setConfirmAction] = useState<{
-    kind: "disable" | "enable" | "reset";
+    kind: "disable" | "enable" | "reset" | "delete";
     user: any;
   } | null>(null);
+  const [detailUser, setDetailUser] = useState<any>(null);
 
   const filtered = useMemo(() => {
     let list = users;
@@ -144,6 +170,10 @@ export default function UserManagement() {
       role: ROLES[3],
       purok: PUROK_OPTIONS[0],
       sendInvite: true,
+      birthday: "",
+      sex: "Male",
+      civilStatus: "Single",
+      address: "",
     });
     setModal({ type: "create" });
   }
@@ -156,6 +186,10 @@ export default function UserManagement() {
       role: user.role,
       purok: user.purok || PUROK_OPTIONS[0],
       sendInvite: false,
+      birthday: user.birthday || "",
+      sex: user.sex || "Male",
+      civilStatus: user.civilStatus || "Single",
+      address: user.address || "",
     });
     setModal({ type: "edit", user });
   }
@@ -177,6 +211,10 @@ export default function UserManagement() {
           role: form.role,
           purok: needsPurokFor(form.role) ? form.purok : "",
           sendInvite: form.sendInvite,
+          birthday: form.birthday,
+          sex: form.sex,
+          civilStatus: form.civilStatus,
+          address: form.address.trim(),
         };
         const newUser = await apiFetch("/api/users", {
           method: "POST",
@@ -206,6 +244,10 @@ export default function UserManagement() {
           phone: form.phone.trim(),
           role: form.role,
           purok: needsPurokFor(form.role) ? form.purok : "",
+          birthday: form.birthday,
+          sex: form.sex,
+          civilStatus: form.civilStatus,
+          address: form.address.trim(),
         };
         const updated = await apiFetch(`/api/users/${oldUser.id}`, {
           method: "PUT",
@@ -247,6 +289,10 @@ export default function UserManagement() {
     setConfirmAction({ kind: "reset", user });
   }
 
+  function requestDelete(user: any) {
+    setConfirmAction({ kind: "delete", user });
+  }
+
   async function confirmSensitiveAction() {
     if (!confirmAction) return;
     const { kind, user } = confirmAction;
@@ -274,6 +320,14 @@ export default function UserManagement() {
         setModalMessage({
           title: "Password Reset",
           message: `Password reset link sent to ${user.email}.`,
+        });
+      } else if (kind === "delete") {
+        await apiFetch(`/api/users/${user.id}`, { method: "DELETE" });
+        setUsers((prev) => prev.filter((u) => u.id !== user.id));
+        pushAuditLog("User Deleted", `Deleted account for ${user.name} (${user.role})`);
+        setModalMessage({
+          title: "User Deleted",
+          message: `${user.name}'s account has been permanently deleted.`,
         });
       }
     } catch (err: any) {
@@ -492,6 +546,14 @@ export default function UserManagement() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1.5">
                       <button
+                        onClick={() => setDetailUser(u)}
+                        title="View details"
+                        className="flex items-center gap-1 rounded-md border border-stone-200 px-2.5 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50"
+                      >
+                        <Eye size={12} />
+                        Detail
+                      </button>
+                      <button
                         onClick={() => openEdit(u)}
                         title="Edit user"
                         className="flex items-center gap-1 rounded-md border border-stone-200 px-2.5 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50"
@@ -528,6 +590,14 @@ export default function UserManagement() {
                       >
                         <Power size={12} />
                         {u.active ? "Disable" : "Enable"}
+                      </button>
+                      <button
+                        onClick={() => requestDelete(u)}
+                        title="Delete user"
+                        className="flex items-center gap-1 rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50"
+                      >
+                        <Trash2 size={12} />
+                        Delete
                       </button>
                     </div>
                   </td>
@@ -641,6 +711,61 @@ export default function UserManagement() {
               />
             </Field>
 
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="BIRTHDAY">
+                <input
+                  type="date"
+                  className={INPUT_CLASS}
+                  value={form.birthday}
+                  onChange={(e) => setForm((f) => ({ ...f, birthday: e.target.value }))}
+                />
+              </Field>
+
+              <Field label="SEX">
+                <select
+                  className={INPUT_CLASS}
+                  value={form.sex}
+                  onChange={(e) => setForm((f) => ({ ...f, sex: e.target.value }))}
+                >
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </Field>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="CIVIL STATUS">
+                <select
+                  className={INPUT_CLASS}
+                  value={form.civilStatus}
+                  onChange={(e) => setForm((f) => ({ ...f, civilStatus: e.target.value }))}
+                >
+                  <option value="Single">Single</option>
+                  <option value="Married">Married</option>
+                  <option value="Widowed">Widowed</option>
+                  <option value="Separated">Separated</option>
+                </select>
+              </Field>
+
+              <Field label="AGE" hint="Auto-computed from birthday">
+                <input
+                  className={`${INPUT_CLASS} cursor-not-allowed bg-stone-50`}
+                  value={computeAge(form.birthday) ?? "—"}
+                  readOnly
+                  disabled
+                />
+              </Field>
+            </div>
+
+            <Field label="ADDRESS">
+              <input
+                className={INPUT_CLASS}
+                placeholder="e.g. 123 Main St, Purok 1"
+                value={form.address}
+                onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+              />
+            </Field>
+
             <Field label="SYSTEM ROLE">
               <select
                 className={INPUT_CLASS}
@@ -746,23 +871,33 @@ export default function UserManagement() {
       {confirmAction && (
         <ConfirmModal
           type="confirm"
-          tone={confirmAction.kind === "disable" ? "danger" : "primary"}
+          tone={confirmAction.kind === "disable" || confirmAction.kind === "delete" ? "danger" : "primary"}
           title={
             confirmAction.kind === "disable"
               ? "Disable User"
               : confirmAction.kind === "enable"
                 ? "Enable User"
-                : "Reset Password"
+                : confirmAction.kind === "delete"
+                  ? "Delete User"
+                  : "Reset Password"
           }
           message={
             confirmAction.kind === "disable"
               ? `Disable ${confirmAction.user.name}'s account? They will lose access to the platform.`
               : confirmAction.kind === "enable"
                 ? `Enable ${confirmAction.user.name}'s account? They will regain access to the platform.`
-                : `Send a password reset link to ${confirmAction.user.email} for ${confirmAction.user.name}?`
+                : confirmAction.kind === "delete"
+                  ? `Permanently delete ${confirmAction.user.name}'s account? This action cannot be undone.`
+                  : `Send a password reset link to ${confirmAction.user.email} for ${confirmAction.user.name}?`
           }
           confirmLabel={
-            confirmAction.kind === "disable" ? "Disable" : confirmAction.kind === "enable" ? "Enable" : "Send Reset"
+            confirmAction.kind === "disable"
+              ? "Disable"
+              : confirmAction.kind === "enable"
+                ? "Enable"
+                : confirmAction.kind === "delete"
+                  ? "Delete"
+                  : "Send Reset"
           }
           onConfirm={confirmSensitiveAction}
           onClose={() => setConfirmAction(null)}
@@ -775,6 +910,111 @@ export default function UserManagement() {
           message={modalMessage.message}
           onClose={() => setModalMessage(null)}
         />
+      )}
+
+      {detailUser && (
+        <Modal
+          title="User Details"
+          subtitle={`Account information for ${detailUser.name}`}
+          onClose={() => setDetailUser(null)}
+        >
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div
+                className={`flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold ${
+                  detailUser.active
+                    ? "bg-[#0038A8] text-white"
+                    : "bg-stone-200 text-stone-400"
+                }`}
+              >
+                {initials(detailUser.name)}
+              </div>
+              <div>
+                <div className="text-base font-semibold text-stone-900">{detailUser.name}</div>
+                <div className="text-sm text-stone-500">{detailUser.email}</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 rounded-lg border border-stone-200 bg-stone-50 p-4 text-sm">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">User ID</p>
+                <p className="mt-0.5 font-mono text-xs font-medium text-stone-700">{detailUser.userId}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">Role</p>
+                <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${ROLE_STYLES[detailUser.role] || "bg-stone-100 text-stone-600"}`}>
+                  {detailUser.role}
+                </span>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">Contact</p>
+                <p className="mt-0.5 text-xs text-stone-700">{detailUser.phone || "—"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">Purok / Zone</p>
+                <p className="mt-0.5 text-xs text-stone-700">{detailUser.purok || "—"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">Birthday</p>
+                <p className="mt-0.5 text-xs text-stone-700">{formatDateDisplay(detailUser.birthday)}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">Age</p>
+                <p className="mt-0.5 text-xs text-stone-700">{computeAge(detailUser.birthday) ?? "—"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">Sex</p>
+                <p className="mt-0.5 text-xs text-stone-700">{detailUser.sex || "—"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">Civil Status</p>
+                <p className="mt-0.5 text-xs text-stone-700">{detailUser.civilStatus || "—"}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">Address</p>
+                <p className="mt-0.5 text-xs text-stone-700">{detailUser.address || "—"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">Status</p>
+                <span className={`mt-0.5 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${detailUser.active ? "bg-emerald-50 text-emerald-600" : "bg-stone-100 text-stone-400"}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${detailUser.active ? "bg-emerald-500" : "bg-stone-400"}`} />
+                  {detailUser.active ? "Active" : "Deactivated"}
+                </span>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">2FA</p>
+                {isPrivilegedRole(detailUser.role) ? (
+                  detailUser.twoFactor === "pending" ? (
+                    <span className="mt-0.5 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium bg-amber-50 text-amber-700">
+                      <Clock size={11} />
+                      Pending
+                    </span>
+                  ) : (
+                    <span className="mt-0.5 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-600">
+                      <ShieldCheck size={11} />
+                      Enabled
+                    </span>
+                  )
+                ) : (
+                  <span className="mt-0.5 text-xs text-stone-400">—</span>
+                )}
+              </div>
+              <div className="col-span-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400">Last Login</p>
+                <p className="mt-0.5 text-xs text-stone-700">{detailUser.lastLogin || "Never"}</p>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={() => setDetailUser(null)}
+                className="rounded-md border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
