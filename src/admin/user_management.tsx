@@ -7,9 +7,9 @@ import { INPUT_CLASS, Field } from "./_shared";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
-const ROLES = ["Captain", "Desk Officer", "CCTV Operator", "Chief Tanod", "Tanod", "Purok Leader", "Resident"];
+const ROLES = ["Captain", "Desk Officer", "CCTV Operator", "Chief Tanod", "Tanod", "Purok Leader", "Resident", "Executive Officer"];
 
-const PRIVILEGED_ROLES = ["Admin", "Captain", "Desk Officer"];
+const PRIVILEGED_ROLES = ["Admin", "Captain", "Desk Officer", "Executive Officer"];
 
 function isPrivilegedRole(role: string) {
   return PRIVILEGED_ROLES.includes(role);
@@ -27,6 +27,7 @@ const ROLE_STYLES: Record<string, string> = {
   Tanod: "bg-teal-100 text-teal-700",
   "Purok Leader": "bg-violet-100 text-violet-700",
   Resident: "bg-sky-100 text-sky-700",
+  "Executive Officer": "bg-indigo-100 text-indigo-700",
 };
 
 const ALL_FILTERS = ["All", ...ROLES, "Active", "Deactivated"];

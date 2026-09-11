@@ -53,6 +53,7 @@ import {
   PurokAnnouncements,
   PurokContacts,
 } from "./purok_leader";
+import { ExOfficerDashboard } from "./ex_o";
 import { PurokIncidentsProvider } from "./purok_leader/incidentStore";
 
 
@@ -63,12 +64,14 @@ const CCTV_OPERATOR_NAV = ["surveillance", "live_monitoring", "camera_map", "rec
 const PUROK_LEADER_NAV = ["reports", "escalated", "announcements", "contacts"];
 const CHIEF_TANOD_NAV = ["dashboard", "patrol_scheduling", "live_tracking", "incidents", "referred_cases", "team_performance", "neighborhood_watch", "reports_analytics"];
 const TANOD_NAV = ["dashboard", "patrol_scheduling", "live_tracking", "incidents"];
+const EX_O_NAV = ["dashboard"];
 
 function defaultNav(role) {
   if (role === "cctv_operator") return "surveillance";
   if (role === "purok_leader") return "reports";
   if (role === "chief_tanod") return "dashboard";
   if (role === "tanod") return "dashboard";
+  if (role === "ex_o") return "dashboard";
   return "dashboard";
 }
 
@@ -79,6 +82,7 @@ function canAccess(role, key) {
   if (role === "purok_leader") return PUROK_LEADER_NAV.includes(key);
   if (role === "chief_tanod") return CHIEF_TANOD_NAV.includes(key);
   if (role === "tanod") return TANOD_NAV.includes(key);
+  if (role === "ex_o") return EX_O_NAV.includes(key);
   return ADMIN_NAV.includes(key);
 }
 
@@ -147,6 +151,7 @@ export default function App() {
       "Chief Tanod": "chief_tanod",
       "Tanod": "tanod",
       "Purok Leader": "purok_leader",
+      "Executive Officer": "ex_o",
       "Resident": "admin",
     };
     const validRole = roleMap[backendRole] || "admin";
@@ -204,9 +209,9 @@ export default function App() {
     return <Login onLogin={handleLogin} />;
   }
 
-  const currentInitials = role === "captain" ? "CA" : role === "desk_officer" ? "DO" : role === "cctv_operator" ? "CO" : role === "purok_leader" ? "PL" : role === "chief_tanod" ? "CT" : role === "tanod" ? "TA" : "BA";
-  const currentLabel = role === "captain" ? "Captain" : role === "desk_officer" ? "Desk Officer" : role === "cctv_operator" ? "CCTV Operator" : role === "purok_leader" ? "Purok Leader" : role === "chief_tanod" ? "Chief Tanod" : role === "tanod" ? "Tanod" : "System Admin";
-  const currentSubLabel = role === "captain" ? "Executive Oversight" : role === "desk_officer" ? "Operations Desk" : role === "cctv_operator" ? "Surveillance Unit" : role === "purok_leader" ? "Community Lead" : role === "chief_tanod" ? "Tanod Operations" : role === "tanod" ? "Field Operations" : "Barangay Admin";
+  const currentInitials = role === "captain" ? "CA" : role === "desk_officer" ? "DO" : role === "cctv_operator" ? "CO" : role === "purok_leader" ? "PL" : role === "chief_tanod" ? "CT" : role === "tanod" ? "TA" : role === "ex_o" ? "EO" : "BA";
+  const currentLabel = role === "captain" ? "Captain" : role === "desk_officer" ? "Desk Officer" : role === "cctv_operator" ? "CCTV Operator" : role === "purok_leader" ? "Purok Leader" : role === "chief_tanod" ? "Chief Tanod" : role === "tanod" ? "Tanod" : role === "ex_o" ? "Executive Officer" : "System Admin";
+  const currentSubLabel = role === "captain" ? "Executive Oversight" : role === "desk_officer" ? "Operations Desk" : role === "cctv_operator" ? "Surveillance Unit" : role === "purok_leader" ? "Community Lead" : role === "chief_tanod" ? "Tanod Operations" : role === "tanod" ? "Field Operations" : role === "ex_o" ? "Executive Staff" : "Barangay Admin";
 
   return (
     <PurokIncidentsProvider>
@@ -273,6 +278,10 @@ export default function App() {
               {activeNav === "patrol_scheduling" && <PatrolScheduling onNavigate={handleNavigate} />}
               {activeNav === "live_tracking" && <LiveTanodTracking onNavigate={handleNavigate} />}
               {activeNav === "incidents" && <IncidentOversight onNavigate={handleNavigate} />}
+            </>
+          ) : role === "ex_o" ? (
+            <>
+              {activeNav === "dashboard" && <ExOfficerDashboard />}
             </>
           ) : (
             <>
