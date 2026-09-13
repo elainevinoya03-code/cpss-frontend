@@ -10,6 +10,15 @@ import {
   Camera,
   Zap,
   ImageIcon,
+  Lock,
+  Home,
+  Users,
+  ShieldAlert,
+  Car,
+  Trash2,
+  PawPrint,
+  HelpCircle,
+  Building2,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -24,6 +33,18 @@ export const CATEGORY_ICON: Record<string, typeof Flame> = {
   "Suspicious Activity": Eye,
   "Medical or Welfare Concern": Shield,
   Other: Flag,
+  // Canonical categories from the resident app report specification
+  // (resident_app/lib/frontend/report.dart)
+  "Public Safety & Peace and Order": Siren,
+  "Crime & Property": Lock,
+  "Domestic & Family": Home,
+  "Community Disputes": Users,
+  "Violence & Gender-Related": ShieldAlert,
+  "Traffic & Road": Car,
+  "Environmental & Sanitation": Trash2,
+  "Animal-Related": PawPrint,
+  "Missing / Welfare": HelpCircle,
+  "Barangay / Administrative": Building2,
   // Alternate labels used by active_dispatches
   "Fire/Smoke": Flame,
 };
@@ -36,6 +57,17 @@ export const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   "Suspicious Activity": { bg: "bg-violet-50", text: "text-violet-600" },
   "Medical or Welfare Concern": { bg: "bg-emerald-50", text: "text-emerald-600" },
   Other: { bg: "bg-stone-100", text: "text-stone-600" },
+  // Canonical categories from the resident app report specification
+  "Public Safety & Peace and Order": { bg: "bg-rose-50", text: "text-rose-600" },
+  "Crime & Property": { bg: "bg-slate-100", text: "text-slate-700" },
+  "Domestic & Family": { bg: "bg-blue-50", text: "text-blue-600" },
+  "Community Disputes": { bg: "bg-blue-50", text: "text-blue-600" },
+  "Violence & Gender-Related": { bg: "bg-rose-50", text: "text-rose-700" },
+  "Traffic & Road": { bg: "bg-amber-50", text: "text-amber-600" },
+  "Environmental & Sanitation": { bg: "bg-emerald-50", text: "text-emerald-600" },
+  "Animal-Related": { bg: "bg-emerald-50", text: "text-emerald-700" },
+  "Missing / Welfare": { bg: "bg-sky-50", text: "text-sky-600" },
+  "Barangay / Administrative": { bg: "bg-stone-100", text: "text-stone-600" },
   // Alternate labels used by active_dispatches
   "Fire/Smoke": { bg: "bg-rose-50", text: "text-rose-600" },
 };

@@ -1,4 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
+import {
+  fetchResidentReports,
+  patchResidentReport,
+  type ResidentReport,
+  type ResidentReportStatus,
+} from "./reportsApi";
 
 // ---------------------------------------------------------------------------
 // §15.1 — Canonical types shared between Desk Officer Dashboard and Digital
@@ -691,6 +697,14 @@ let dispatches: DispatchItem[] = [...SEED_DISPATCHES];
 let blotters: Blotter[] = [...SEED_BLOTTERS];
 let auditTrail: AuditEntry[] = [...SEED_AUDIT];
 
+// §15.8a — Resident-submitted reports (report.dart → Supabase → FastAPI).
+// Maintained in parallel to `incidents`: the raw report carries every field
+// captured by report.dart; a slim mapping is merged into `incidents` so the
+// shared Desk Officer pages (Dashboard, dispatch queues) see them too.
+let residentReports: ResidentReport[] = [];
+let residentReportsLoading = false;
+let residentReportsError = false;
+
 const listeners: Set<Listener> = new Set();
 
 function emit() {
@@ -713,6 +727,17 @@ export function getDispatches(): DispatchItem[] {
 }
 export function getBlotters(): Blotter[] {
   return blotters;
+}
+
+// §15.9a — Resident report read helpers
+export function getResidentReports(): ResidentReport[] {
+  return residentReports;
+}
+export function getResidentReportsLoading(): boolean {
+  return residentReportsLoading;
+}
+export function getResidentReportsError(): boolean {
+  return residentReportsError;
 }
 
 // Part 14 — Audit trail read helpers.  The trail is append-only and not
@@ -808,6 +833,163 @@ export function setDispatches(next: DispatchItem[]) {
 export function setBlotters(next: Blotter[]) {
   blotters = next;
   emit();
+}
+
+// §15.10b — Resident report ↔ Incident mapping helpers
+export const REPORT_TO_INCIDENT_STATUS: Record<ResidentReportStatus, IncidentStatus> = {
+  pending: "new",
+  under_review: "acknowledged",
+  assigned: "in_progress",
+  resolved: "resolved",
+  closed: "closed_false_alarm",
+};
+
+export const INCIDENT_TO_REPORT_STATUS: Record<IncidentStatus, ResidentReportStatus> = {
+  new: "pending",
+  acknowledged: "under_review",
+  in_progress: "assigned",
+  resolved: "resolved",
+  closed_false_alarm: "closed",
+};
+
+function deskPriorityFromReport(report: ResidentReport): DeskPriority {
+  const p = (report.priority || "Normal").toLowerCase();
+  if (p === "high" || p === "critical" || report.is_emergency) return "High";
+  if (p === "low") return "Low";
+  return "Medium";
+}
+
+function severityFromReport(report: ResidentReport): string {
+  if (report.is_emergency) return "critical";
+  const p = (report.priority || "Normal").toLowerCase();
+  if (p === "high" || p === "critical") return "critical";
+  if (p === "low") return "low";
+  return "warning";
+}
+
+function verificationFromReport(status: ResidentReportStatus): VerificationStatus {
+  switch (status) {
+    case "pending":
+      return "new";
+    case "under_review":
+      return "under_review";
+    case "resolved":
+      return "verified";
+    case "closed":
+      return "unverified";
+    case "assigned":
+    default:
+      return "verified";
+  }
+}
+
+function purokFromPlace(report: ResidentReport): string {
+  const haystack = `${report.place} ${report.landmark}`.toLowerCase();
+  const match = haystack.match(/purok\s*\d/);
+  if (match) {
+    const digits = match[0].match(/\d+/);
+    if (digits) return `Purok ${digits[0]}`;
+  }
+  return "";
+}
+
+/**
+ * §15.10c — Build a slim `Incident` from a resident report so the shared
+ * Desk Officer pages (Dashboard, dispatches) pick up real resident
+ * submissions alongside the demo seed data.
+ */
+export function incidentFromReport(report: ResidentReport): Incident {
+  return {
+    id: report.tracking_id,
+    category: report.category || report.subtype || "Other",
+    severity: severityFromReport(report),
+    purok: purokFromPlace(report),
+    description: report.narrative || report.subtype || "No description provided.",
+    source: "resident",
+    reporter: report.anonymous ? "Anonymous" : report.user_email || "Resident",
+    time: report.incident_date_time || report.report_date_time || report.created_at,
+    status: REPORT_TO_INCIDENT_STATUS[report.status],
+    photos: report.photos.length,
+    lat: report.latitude ?? 0,
+    lng: report.longitude ?? 0,
+    priority: deskPriorityFromReport(report),
+    notes: [],
+    anonymous: report.anonymous,
+    trackingToken: report.tracking_id,
+    verificationStatus: verificationFromReport(report.status),
+  };
+}
+
+/**
+ * §15.10d — Merge the mapped resident reports into the shared `incidents`
+ * array. Resident source records are keyed by tracking ID; any that
+ * disappeared from the API are dropped while seed/manual records stay.
+ */
+function mergeResidentIncidents(reports: ResidentReport[]) {
+  const mapped = reports.map(incidentFromReport);
+  const byId = new Map<string, Incident>();
+  for (const inc of incidents) {
+    if (inc.source !== "resident") byId.set(inc.id, inc);
+  }
+  for (const inc of mapped) byId.set(inc.id, inc);
+  incidents = [...byId.values()];
+}
+
+/**
+ * §15.10e — Pull fresh resident reports from the backend (`/api/reports`)
+ * and merge them into the shared store. The Desk Officer Incident Triage
+ * calls this on mount and on a refresh interval.
+ */
+export async function syncResidentReports(): Promise<void> {
+  residentReportsLoading = true;
+  emit();
+  try {
+    const reports = await fetchResidentReports();
+    residentReports = reports;
+    residentReportsError = false;
+    mergeResidentIncidents(reports);
+  } catch {
+    residentReportsError = true;
+  } finally {
+    residentReportsLoading = false;
+    emit();
+  }
+}
+
+/**
+ * §15.10f — Persist a Desk Officer processing action (status advance and/or
+ * priority change) to the backend and reflect it in both the raw report list
+ * and the shared incident mapping.
+ */
+export async function updateResidentReportStatus(
+  reportId: number,
+  changes: {
+    status?: ResidentReportStatus;
+    priority?: DeskPriority;
+    resolution_note?: string;
+  }
+): Promise<ResidentReport | null> {
+  try {
+    const updated = await patchResidentReport(reportId, {
+      status: changes.status,
+      priority: changes.priority,
+      resolution_note: changes.resolution_note,
+    });
+    residentReports = residentReports.map((r) => (r.id === updated.id ? updated : r));
+    const incident = incidents.find(
+      (i) => i.source === "resident" && i.id === updated.tracking_id
+    );
+    if (incident) {
+      const merged = { ...incidentFromReport(updated), notes: incident.notes };
+      incidents = incidents.map((i) =>
+        i.source === "resident" && i.id === updated.tracking_id ? merged : i
+      );
+    }
+    emit();
+    return updated;
+  } catch {
+    return null;
+  }
 }
 
 // §15.10a — Look up the dispatch record for an incident.
@@ -982,6 +1164,11 @@ export function useIncidentStore() {
     auditTrail,
     blotterEligible,
     avgResponseTime,
+    residentReports,
+    residentReportsLoading,
+    residentReportsError,
+    syncResidentReports,
+    updateResidentReportStatus,
     convertToBlotter,
     setIncidents,
     setDispatches,
