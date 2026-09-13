@@ -1,9 +1,9 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { User, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
 import culiatBg from "../assets/culiat.jpg";
 import logo from "../assets/logo.png";
 
-const API_BASE = import.meta.env.VITE_API_URL;
+const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 interface LoginResponse {
   id: number;
@@ -73,11 +73,29 @@ export default function Login({ onLogin }: LoginProps) {
     setErrors({ email: null, password: null, general: null });
 
     try {
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
-      });
+      let res: Response;
+      try {
+        res = await fetch(`${API_BASE}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+        });
+      } catch (networkErr) {
+        const altBase = API_BASE.includes("8080")
+          ? API_BASE.replace("8080", "8000")
+          : API_BASE.includes("8000")
+          ? API_BASE.replace("8000", "8080")
+          : null;
+        if (altBase) {
+          res = await fetch(`${altBase}/api/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+          });
+        } else {
+          throw networkErr;
+        }
+      }
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

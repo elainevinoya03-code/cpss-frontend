@@ -1697,7 +1697,7 @@ function PublishWeekModal({
 /*                             MAIN COMPONENT                                 */
 /* -------------------------------------------------------------------------- */
 
-export default function PatrolSchedulerRoutes() {
+export default function PatrolSchedulerRoutes({ onNavigate }: { onNavigate?: (key: string) => void } = {}) {
   const { flash, ToastPortal } = useToast();
 
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>(INITIAL_CHECKPOINTS);

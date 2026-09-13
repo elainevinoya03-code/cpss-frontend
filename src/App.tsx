@@ -7,7 +7,6 @@ import {
   IotProvisioning as Provisioning,
   CctvPlacement,
   DigitalBoundaries,
-  PatrolConfiguration,
   SystemLogs,
   SystemSettings,
   DataRequests,
@@ -53,18 +52,18 @@ import {
   PurokAnnouncements,
   PurokContacts,
 } from "./purok_leader";
-import { ExOfficerDashboard } from "./ex_o";
+import { ExOfficerDashboard, PatrolConfiguration } from "./ex_o";
 import { PurokIncidentsProvider } from "./purok_leader/incidentStore";
 
 
-const ADMIN_NAV = ["dashboard", "users", "iot", "cctv", "boundaries", "patrol", "logs", "data_requests", "settings"];
+const ADMIN_NAV = ["dashboard", "users", "iot", "cctv", "boundaries", "logs", "data_requests", "settings"];
 const CAPTAIN_NAV = ["dashboard", "analytics", "broadcasts", "patrol", "evidence", "bulletins", "cases"];
 const DESK_OFFICER_NAV = ["dashboard", "incident_triage", "alert_management", "dispatches", "patrol", "blotter", "chat", "footage_requests"];
 const CCTV_OPERATOR_NAV = ["surveillance", "live_monitoring", "camera_map", "recorded_footage", "footage_requests"];
 const PUROK_LEADER_NAV = ["reports", "escalated", "announcements", "contacts"];
 const CHIEF_TANOD_NAV = ["dashboard", "patrol_scheduling", "live_tracking", "incidents", "referred_cases", "team_performance", "neighborhood_watch", "reports_analytics"];
 const TANOD_NAV = ["dashboard", "patrol_scheduling", "live_tracking", "incidents"];
-const EX_O_NAV = ["dashboard"];
+const EX_O_NAV = ["dashboard", "patrol"];
 
 function defaultNav(role) {
   if (role === "cctv_operator") return "surveillance";
@@ -282,6 +281,9 @@ export default function App() {
           ) : role === "ex_o" ? (
             <>
               {activeNav === "dashboard" && <ExOfficerDashboard />}
+              {activeNav === "patrol" && (
+                <PatrolConfiguration navGuardRef={navGuardRef} onDiscardNavigate={handleDiscardNavigate} />
+              )}
             </>
           ) : (
             <>
@@ -290,9 +292,6 @@ export default function App() {
               {activeNav === "iot" && <Provisioning />}
               {activeNav === "cctv" && <CctvPlacement />}
               {activeNav === "boundaries" && <DigitalBoundaries />}
-              {activeNav === "patrol" && (
-                <PatrolConfiguration navGuardRef={navGuardRef} onDiscardNavigate={handleDiscardNavigate} />
-              )}
               {activeNav === "logs" && <SystemLogs />}
               {activeNav === "data_requests" && <DataRequests />}
               {activeNav === "settings" && <SystemSettings />}

@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useCallback, useMemo, useEffect, type ReactNode } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect, type ReactNode } from "react";
 import {
   Pencil,
   Trash2,
@@ -38,7 +38,7 @@ import {
   pointInPolygon,
   MapControlButton,
   DetailItem,
-} from "./_shared";
+} from "../admin/_shared";
 
 const UndoIcon = Undo2;
 const RedoIcon = Redo2;
