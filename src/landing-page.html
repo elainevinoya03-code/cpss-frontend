@@ -1,0 +1,3770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Community Policing & Surveillance System - CPSS</title>
+  <meta name="description" content="Building a safer tomorrow through community partnership, smart surveillance and responsive policing.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    :root {
+      --primary: #5C1A1A;
+      --primary-dark: #4A1515;
+      --primary-light: #6B1F1F;
+      --primary-hover: #7A2222;
+      --cream: #F5F2E8;
+      --white: #FFFFFF;
+      --text-dark: #1A1A1A;
+      --text-body: #2B2B2B;
+      --text-muted: #6B6B6B;
+      --border-light: #E5E0D6;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow: 0 4px 20px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+      --radius: 8px;
+      --font-heading: 'Poppins', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --section-padding: 90px 0;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      font-size: 1rem;
+      line-height: 1.65;
+      color: var(--text-body);
+      background: var(--white);
+    }
+
+    img, svg {
+      display: block;
+      max-width: 100%;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      margin: 0;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    .eyebrow {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--primary);
+      display: block;
+      margin-bottom: 0.75rem;
+    }
+
+    .section-heading {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+      line-height: 1.2;
+      color: var(--text-dark);
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 3.5rem;
+    }
+
+    .skip-link {
+      position: absolute;
+      top: -100px;
+      left: 1rem;
+      padding: 0.5rem 1rem;
+      background: var(--primary);
+      color: var(--white);
+      font-size: 0.875rem;
+      z-index: 1000;
+      transition: top 0.2s;
+      border-radius: 0 0 6px 6px;
+    }
+
+    .skip-link:focus {
+      top: 0;
+    }
+
+    #main-content,
+    #hero,
+    #about,
+    #services,
+    #initiatives,
+    #how-it-works,
+    #resources,
+    #mobile-app,
+    #contact {
+      scroll-margin-top: 80px;
+    }
+
+    /* SCROLL REVEAL ANIMATIONS */
+    .reveal,
+    .reveal-left,
+    .reveal-right,
+    .reveal-up,
+    .reveal-scale {
+      opacity: 0;
+      transition: opacity 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .reveal { transform: translateY(40px); }
+    .reveal-left { transform: translateX(-50px); }
+    .reveal-right { transform: translateX(50px); }
+    .reveal-up { transform: translateY(60px); }
+    .reveal-scale { transform: scale(0.85); }
+
+    .reveal.revealed,
+    .reveal-left.revealed,
+    .reveal-right.revealed,
+    .reveal-up.revealed,
+    .reveal-scale.revealed {
+      opacity: 1;
+      transform: translate(0) scale(1);
+    }
+
+    /* Stagger children */
+    .stagger-children > * {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      transition-delay: var(--stagger-delay, 0s);
+    }
+
+    .stagger-children.revealed > * {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* SCROLL PROGRESS BAR */
+    .scroll-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      z-index: 9999;
+      background: transparent;
+    }
+
+    .scroll-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary-light), var(--primary));
+      transition: width 0.1s linear;
+    }
+
+    /* TOAST NOTIFICATIONS */
+    .toast-container {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-width: 360px;
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      font-size: 0.875rem;
+      line-height: 1.4;
+      transform: translateX(120%);
+      opacity: 0;
+      transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s;
+    }
+
+    .toast--visible {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    .toast--info {
+      background: var(--white);
+      color: var(--text-body);
+      border-left: 4px solid var(--primary);
+    }
+
+    .toast--success {
+      background: #e8f5e9;
+      color: #1b5e20;
+      border-left: 4px solid #4caf50;
+    }
+
+    .toast--error {
+      background: #fce4ec;
+      color: #b71c1c;
+      border-left: 4px solid #e53935;
+    }
+
+    .toast-text {
+      flex: 1;
+    }
+
+    .toast-close {
+      background: none;
+      border: none;
+      font-size: 1.25rem;
+      cursor: pointer;
+      opacity: 0.5;
+      padding: 0;
+      line-height: 1;
+      color: inherit;
+    }
+
+    .toast-close:hover {
+      opacity: 1;
+    }
+
+    /* KEYFRAME ANIMATIONS */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .animate-float {
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .animate-pulse {
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    ::selection {
+      background: var(--primary);
+      color: var(--white);
+    }
+
+    /* GOVERNMENT UTILITY BAR */
+    .gov-bar {
+      background: var(--primary);
+      color: rgba(255,255,255,0.85);
+      font-size: 0.6875rem;
+      font-weight: 500;
+      padding: 0.4rem 0;
+      letter-spacing: 0.02em;
+    }
+
+    .gov-bar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .gov-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .gov-emblem {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .gov-text {
+      font-size: 0.6875rem;
+    }
+
+    .gov-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .gov-skip {
+      color: rgba(255,255,255,0.7);
+      transition: color 0.2s;
+    }
+
+    .gov-skip:hover {
+      color: var(--white);
+    }
+
+    .gov-sep {
+      color: rgba(255,255,255,0.3);
+      font-size: 0.6875rem;
+    }
+
+    .gov-font-size {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .gov-font-btn {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      padding: 0.1rem 0.25rem;
+      transition: color 0.2s;
+    }
+
+    .gov-font-btn:hover, .gov-font-btn.active {
+      color: var(--white);
+    }
+
+    .gov-lang {
+      color: rgba(255,255,255,0.85);
+      cursor: default;
+    }
+
+    /* SITE HEADER / NAVIGATION */
+    .site-header {
+      background: var(--white);
+      border-bottom: 1px solid var(--border-light);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .site-header > .container {
+      margin: 0 auto;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 0;
+      width: 100%;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+      margin-right: 3rem;
+      margin-left: -1rem;
+    }
+
+    .header-shield {
+      width: 34px;
+      height: 34px;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .header-wordmark {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header-wordmark-primary {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 0.8125rem;
+      color: var(--text-dark);
+      line-height: 1.2;
+      letter-spacing: 0.02em;
+      max-width: 220px;
+    }
+
+    .header-wordmark-secondary {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--primary);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .header-nav {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 1.25rem;
+      flex: 1;
+    }
+
+    .header-nav a {
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: var(--text-body);
+      padding: 0.5rem 1.25rem;
+      transition: color 0.2s;
+      white-space: nowrap;
+      letter-spacing: 0.01em;
+    }
+
+    .header-nav a:hover {
+      color: var(--primary);
+    }
+
+    .header-nav a.active {
+      color: var(--primary);
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      text-decoration-color: var(--primary);
+      text-decoration-thickness: 2px;
+    }
+
+    .header-cta {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.5rem 1.25rem !important;
+      background: var(--primary);
+      color: var(--white) !important;
+      font-size: 0.75rem !important;
+      font-weight: 600 !important;
+      border-radius: 8px;
+      letter-spacing: 0.04em;
+      transition: background 0.2s;
+      text-decoration: none !important;
+    }
+
+    .header-cta:hover {
+      background: var(--primary-hover) !important;
+      color: var(--white) !important;
+    }
+
+    .nav-toggle {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+      color: var(--text-dark);
+    }
+
+    .nav-toggle span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: currentColor;
+      margin: 4px 0;
+      transition: 0.2s;
+    }
+
+    /* BUTTONS */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.8rem 2rem;
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      text-align: center;
+      white-space: nowrap;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary {
+      background: var(--white);
+      color: var(--primary);
+      border-color: var(--white);
+    }
+
+    .btn-primary:hover {
+      background: rgba(255,255,255,0.9);
+      border-color: rgba(255,255,255,0.9);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--white);
+      border-color: rgba(255,255,255,0.5);
+    }
+
+    .btn-outline:hover {
+      background: rgba(255,255,255,0.1);
+      border-color: var(--white);
+      transform: translateY(-2px);
+    }
+
+    .btn-maroon {
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .btn-maroon:hover {
+      background: var(--primary);
+      color: var(--white);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(92,26,26,0.2);
+    }
+
+    /* HERO */
+    .hero {
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 0;
+      padding-bottom: 2rem;
+    }
+
+    .hero-inner {
+      position: relative;
+      display: flex;
+      min-height: 60vh;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      flex: 0 0 60%;
+      background: linear-gradient(90deg, var(--primary) 25%, transparent 100%);
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 4rem 0 9rem;
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+    }
+
+    .hero-visual {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      z-index: 1;
+      will-change: transform;
+    }
+
+    .hero-container {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 0 0 6rem;
+      padding: 0 4rem 0 0;
+      text-align: left;
+    }
+
+    .hero-content .eyebrow {
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      display: block;
+      animation: fadeIn 0.6s 0.2s both;
+    }
+
+    .hero-title {
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: clamp(2.5rem, 4.5vw, 4rem);
+      line-height: 1.1;
+      max-width: 540px;
+      margin: 0 0 0.75rem;
+      animation: slideUp 0.7s 0.3s both;
+    }
+
+    .hero-text {
+      font-size: clamp(1.125rem, 1.6vw, 1.5rem);
+      color: rgba(255,255,255,0.8);
+      max-width: 480px;
+      margin: 0 0 1.5rem;
+      line-height: 1.6;
+      animation: slideUp 0.7s 0.4s both;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      animation: slideUp 0.7s 0.5s both;
+    }
+
+    /* INITIATIVES */
+    .initiatives {
+      padding: var(--section-padding);
+      padding-top: 3rem;
+      background: var(--white);
+    }
+
+    .initiatives > .container {
+      max-width: 1400px;
+    }
+
+    .initiatives-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.25rem;
+    }
+
+    .initiative-card {
+      background: var(--cream);
+      border-radius: 12px;
+      padding: 0;
+      transition: box-shadow 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), border-color 0.3s ease;
+      will-change: transform;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border-light);
+      display: flex;
+      flex-direction: column;
+      cursor: default;
+      transform-style: preserve-3d;
+      perspective: 800px;
+    }
+
+    .initiative-card::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--primary);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      z-index: 2;
+    }
+
+    .initiative-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .initiative-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .initiative-card:hover::after {
+      opacity: 1;
+    }
+
+    .initiative-card:hover {
+      box-shadow: 0 16px 48px rgba(92,26,26,0.12);
+      transform: translateY(-6px);
+      border-color: rgba(92,26,26,0.15);
+    }
+
+    .initiative-card-inner {
+      padding: 1.75rem 1.5rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      flex: 1;
+      position: relative;
+      z-index: 1;
+      text-align: center;
+    }
+
+    .initiative-icon {
+      width: 44px;
+      height: 44px;
+      color: var(--white);
+      background: var(--primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.6rem;
+      margin-bottom: 0.25rem;
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), border-radius 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: 0 2px 8px rgba(92,26,26,0.15);
+      position: relative;
+    }
+
+    .initiative-icon::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 14px;
+      border: 2px solid var(--primary);
+      opacity: 0;
+      transform: scale(0.85);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .initiative-card:hover .initiative-icon {
+      transform: scale(1.08) rotate(-5deg);
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(92,26,26,0.25);
+    }
+
+    .initiative-card:hover .initiative-icon::after {
+      opacity: 0.3;
+      transform: scale(1);
+    }
+
+    .initiative-icon svg {
+      width: 22px;
+      height: 22px;
+      transition: transform 0.3s ease;
+    }
+
+    .initiative-card:hover .initiative-icon svg {
+      animation: initIconPulse 0.6s ease;
+    }
+
+    @keyframes initIconPulse {
+      0% { transform: scale(1); }
+      30% { transform: scale(1.2) rotate(-8deg); }
+      60% { transform: scale(0.9) rotate(4deg); }
+      100% { transform: scale(1) rotate(0); }
+    }
+
+    .initiative-title {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.0625rem;
+      line-height: 1.3;
+      color: var(--text-dark);
+      transition: color 0.3s ease;
+    }
+
+    .initiative-card:hover .initiative-title {
+      color: var(--primary);
+    }
+
+    .initiative-desc {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+      flex: 1;
+    }
+
+    .initiative-card-inner > * {
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .stagger-children.revealed .initiative-card-inner > * {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .stagger-children.revealed .initiative-card-inner > .initiative-icon {
+      transition-delay: 0.05s;
+    }
+
+    .stagger-children.revealed .initiative-card-inner > .initiative-title {
+      transition-delay: 0.15s;
+    }
+
+    .stagger-children.revealed .initiative-card-inner > .initiative-desc {
+      transition-delay: 0.25s;
+    }
+
+    /* SERVICES */
+    .services {
+      padding: var(--section-padding);
+      background: var(--cream);
+    }
+
+    .services > .container {
+      max-width: 1400px;
+    }
+
+    .services-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 2.5rem 0 1.5rem;
+    }
+
+    .services-grid.stagger-children > * {
+      transform: translateY(30px) scale(0.6);
+    }
+
+    .services-grid.stagger-children.revealed > * {
+      transform: translateY(0) scale(1);
+    }
+
+    .service-card {
+      width: calc(33.33% - 2rem);
+      min-width: 220px;
+      flex: 0 0 auto;
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 2rem 1.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+      display: flex;
+      flex-direction: column;
+      transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      position: relative;
+      overflow: visible;
+      will-change: transform;
+    }
+
+    .service-card::after {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: inherit;
+      border: 2px solid var(--primary);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+
+    .service-card:hover::after {
+      opacity: 1;
+    }
+
+    .service-card:hover {
+      rotate: 0deg;
+      translate: 0 0;
+      scale: 1.07;
+      box-shadow: 0 20px 60px rgba(92,26,26,0.2);
+      z-index: 10;
+    }
+
+    .service-card:nth-child(1) {
+      rotate: -2deg;
+      translate: 0 -0.5rem;
+      z-index: 3;
+    }
+
+    .service-card:nth-child(2) {
+      rotate: 3deg;
+      translate: 0 1rem;
+      z-index: 2;
+    }
+
+    .service-card:nth-child(3) {
+      rotate: -1.5deg;
+      translate: 0 -1rem;
+      z-index: 5;
+    }
+
+    .service-card:nth-child(4) {
+      rotate: 2deg;
+      translate: 0 0.5rem;
+      z-index: 1;
+    }
+
+    .service-card:nth-child(5) {
+      rotate: -3.5deg;
+      translate: 0 1.5rem;
+      z-index: 4;
+    }
+
+    .service-card:nth-child(6) {
+      rotate: 2.5deg;
+      translate: 0 -0.25rem;
+      z-index: 3;
+    }
+
+    .service-icon {
+      width: 48px;
+      height: 48px;
+      color: var(--primary);
+      margin-bottom: 1.25rem;
+      transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .service-card:hover .service-icon {
+      transform: scale(1.3) rotate(-5deg);
+    }
+
+    .service-icon svg {
+      width: 48px;
+      height: 48px;
+    }
+
+    .service-title {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 1.0625rem;
+      line-height: 1.3;
+      color: var(--text-dark);
+      margin-bottom: 0.75rem;
+    }
+
+    .service-desc {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+      flex: 1;
+      margin-bottom: 1.25rem;
+    }
+
+    .service-link {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: gap 0.2s;
+    }
+
+    .service-link:hover {
+      gap: 0.6rem;
+    }
+
+    /* HOW IT WORKS */
+    .how-it-works {
+      padding: var(--section-padding);
+      background: var(--white);
+      position: relative;
+    }
+
+    .how-it-works > .container {
+      max-width: 1400px;
+    }
+
+    .how-subtitle {
+      font-size: 1.0625rem;
+      color: var(--text-muted);
+      margin-top: 0.75rem;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .how-grid {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    .how-step {
+      flex: 0 0 200px;
+      text-align: center;
+      padding: 1.5rem;
+      position: relative;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .how-step.revealed {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .how-step-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 1rem;
+      color: var(--primary);
+      background: rgba(92,26,26,0.06);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem;
+      position: relative;
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s ease;
+    }
+
+    .how-step-icon::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 2px solid var(--primary);
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .how-step:hover .how-step-icon {
+      transform: scale(1.12) rotate(-6deg);
+      background: rgba(92,26,26,0.12);
+    }
+
+    .how-step:hover .how-step-icon::after {
+      opacity: 0.25;
+      transform: scale(1);
+    }
+
+    .how-step-icon svg {
+      width: 28px;
+      height: 28px;
+      transition: transform 0.3s ease;
+    }
+
+    .how-step:hover .how-step-icon svg {
+      animation: howIconBounce 0.5s ease;
+    }
+
+    @keyframes howIconBounce {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-8deg) scale(1.1); }
+      50% { transform: rotate(4deg) scale(0.95); }
+      75% { transform: rotate(-3deg) scale(1.05); }
+    }
+
+    .how-step-num {
+      display: block;
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 2.5rem;
+      color: rgba(92,26,26,0.08);
+      line-height: 1;
+      margin-bottom: 0.25rem;
+      letter-spacing: -0.03em;
+      transition: color 0.3s ease, transform 0.3s ease;
+    }
+
+    .how-step:hover .how-step-num {
+      color: var(--primary);
+      transform: scale(1.1);
+    }
+
+    .how-step-title {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.125rem;
+      color: var(--text-dark);
+      margin-bottom: 0.5rem;
+      transition: color 0.3s ease;
+    }
+
+    .how-step:hover .how-step-title {
+      color: var(--primary);
+    }
+
+    .how-step-desc {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .how-connector {
+      flex: 0 0 48px;
+      color: var(--primary);
+      opacity: 0.2;
+      padding-top: 1.8rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .how-connector svg {
+      width: 48px;
+      height: 48px;
+      animation: howArrowFlow 1.8s ease-in-out infinite;
+    }
+
+    @keyframes howArrowFlow {
+      0%, 100% { opacity: 0.3; transform: translateX(0); }
+      50% { opacity: 0.8; transform: translateX(4px); }
+    }
+
+    .how-step {
+      border-radius: 12px;
+      transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease, background 0.3s ease;
+    }
+
+    .how-step:hover {
+      background: rgba(92,26,26,0.03);
+      box-shadow: 0 8px 32px rgba(92,26,26,0.08);
+    }
+
+    /* STATS */
+    .stats {
+      padding: 4rem 0;
+      background: var(--primary);
+      color: var(--white);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2rem;
+      text-align: center;
+    }
+
+    .stat-item {
+      position: relative;
+    }
+
+    .stat-item + .stat-item::before {
+      content: '';
+      position: absolute;
+      left: -1rem;
+      top: 10%;
+      height: 80%;
+      width: 1px;
+      background: rgba(255,255,255,0.2);
+    }
+
+    .stat-number {
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 3rem;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+      color: var(--white);
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: rgba(255,255,255,0.7);
+      font-weight: 500;
+    }
+
+    /* ABOUT */
+    .about {
+      padding: var(--section-padding);
+      background: var(--white);
+    }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    .about-text {
+      font-size: 1rem;
+      color: var(--text-body);
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+    }
+
+    .about-visual {
+      display: flex;
+      justify-content: center;
+    }
+
+    .about-image-placeholder {
+      width: 100%;
+      max-width: 500px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .about-image-placeholder img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* MOBILE APP */
+    .app-download {
+      padding: var(--section-padding);
+      background: var(--cream);
+    }
+
+    .app-download > .container {
+      max-width: 1400px;
+    }
+
+    .app-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    .app-text {
+      font-size: 1rem;
+      color: var(--text-body);
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+    }
+
+    .app-badges {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .app-badge {
+      display: inline-flex;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .app-badge:hover {
+      transform: translateY(-2px);
+      opacity: 0.9;
+    }
+
+    .app-badge svg {
+      width: 120px;
+      height: 40px;
+      border-radius: 6px;
+    }
+
+    .app-features {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .app-features li {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-size: 0.9375rem;
+      color: var(--text-body);
+    }
+
+    .app-features li svg {
+      width: 18px;
+      height: 18px;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .app-visual {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .app-mockup {
+      width: 220px;
+      max-width: 100%;
+    }
+
+    .app-mockup svg {
+      width: 100%;
+      height: auto;
+      filter: drop-shadow(0 8px 40px rgba(0,0,0,0.15));
+      border-radius: 24px;
+    }
+
+    /* UPDATES */
+    .updates {
+      padding: var(--section-padding);
+      background: var(--white);
+    }
+
+    .updates-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 2rem;
+    }
+
+    .updates-view-all {
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .carousel-wrap {
+      position: relative;
+      padding: 0.5rem 1rem 1rem;
+    }
+
+    .carousel-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--white);
+      border: 1px solid var(--border-light);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      z-index: 2;
+    }
+
+    .carousel-arrow:hover {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: var(--white);
+    }
+
+    .carousel-arrow--prev {
+      left: -0.5rem;
+    }
+
+    .carousel-arrow--next {
+      right: -0.5rem;
+    }
+
+    .carousel-arrow svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .carousel-track-wrap {
+      position: relative;
+      min-height: 400px;
+    }
+
+    .updates-grid {
+      height: 400px;
+      position: relative;
+    }
+
+    .update-card {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 380px;
+      height: 385px;
+      background: var(--white);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border-light);
+      transition: opacity 0.3s ease;
+    }
+
+    .update-thumb {
+      height: 240px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .update-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .update-tag {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .tag-module {
+      background: var(--primary);
+      color: var(--white);
+    }
+
+    .tag-feature {
+      background: #e8f5e9;
+      color: #1b5e20;
+    }
+
+    .tag-community {
+      background: #e3f2fd;
+      color: #0d47a1;
+    }
+
+    .update-body {
+      padding: 1rem 1.25rem 1.25rem;
+    }
+
+    .update-date {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .update-title {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 0.9375rem;
+      color: var(--text-dark);
+      line-height: 1.4;
+      margin-bottom: 0.75rem;
+    }
+
+    .update-link {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .carousel-footer {
+      display: flex;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+
+    .carousel-dots {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .carousel-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border-light);
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .carousel-dot.is-active {
+      background: var(--primary);
+      transform: scale(1.2);
+    }
+
+    /* CONTACT */
+    .contact-section {
+      padding: var(--section-padding);
+      position: relative;
+      background: linear-gradient(135deg, var(--cream) 0%, #f0ece2 100%);
+      overflow: hidden;
+    }
+
+    .contact-bg-decor {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .contact-bg-decor::before {
+      content: '';
+      position: absolute;
+      top: -30%;
+      right: -10%;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(92,26,26,0.04) 0%, transparent 70%);
+      animation: contactFloatA 8s ease-in-out infinite;
+    }
+
+    .contact-bg-decor::after {
+      content: '';
+      position: absolute;
+      bottom: -20%;
+      left: -5%;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(92,26,26,0.03) 0%, transparent 70%);
+      animation: contactFloatB 10s ease-in-out infinite;
+    }
+
+    @keyframes contactFloatA {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(-30px, 20px); }
+    }
+
+    @keyframes contactFloatB {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(25px, -15px); }
+    }
+
+    .contact-section > .container {
+      max-width: 1400px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .contact-subtitle {
+      font-size: 1.0625rem;
+      color: var(--text-muted);
+      margin-top: 0.75rem;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5rem;
+      align-items: start;
+      margin-top: 2rem;
+    }
+
+    .contact-grid > * {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .revealed .contact-grid > * {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .revealed .contact-grid > *:nth-child(2) {
+      transition-delay: 0.15s;
+    }
+
+    .contact-form-wrap {
+      background: var(--white);
+      border-radius: 12px;
+      padding: 2.25rem;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+      border: 1px solid var(--border-light);
+    }
+
+    .contact-form-header {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border-light);
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 1.0625rem;
+      color: var(--text-dark);
+    }
+
+    .contact-form-icon {
+      width: 22px;
+      height: 22px;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .contact-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .contact-form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .contact-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      position: relative;
+    }
+
+    .contact-form-group > .contact-label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      letter-spacing: 0.01em;
+      transition: color 0.25s;
+    }
+
+    .contact-form-group:focus-within > .contact-label {
+      color: var(--primary);
+    }
+
+    .contact-input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1.5px solid var(--border-light);
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 0.9375rem;
+      color: var(--text-dark);
+      background: var(--white);
+      outline: none;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
+    }
+
+    .contact-input::placeholder {
+      color: #b0aba0;
+      transition: opacity 0.25s;
+    }
+
+    .contact-input:focus::placeholder {
+      opacity: 0.5;
+    }
+
+    .contact-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(92,26,26,0.08);
+      transform: translateY(-1px);
+    }
+
+    .contact-input.error {
+      border-color: #e53935;
+      box-shadow: 0 0 0 3px rgba(229,57,53,0.08);
+    }
+
+    .contact-input.success {
+      border-color: #4caf50;
+      box-shadow: 0 0 0 3px rgba(76,175,80,0.08);
+    }
+
+    .contact-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B6B6B' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.85rem center;
+      padding-right: 2.25rem;
+      cursor: pointer;
+    }
+
+    .contact-textarea {
+      resize: vertical;
+      min-height: 130px;
+    }
+
+    .contact-charcount {
+      align-self: flex-end;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .contact-submit {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.8rem 2rem;
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border: 2px solid var(--primary);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      text-align: center;
+      white-space: nowrap;
+      background: var(--primary);
+      color: var(--white);
+    }
+
+    .contact-submit:hover {
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(92,26,26,0.2);
+    }
+
+    .contact-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .contact-side {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .contact-info-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .contact-info-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1.25rem;
+      background: var(--white);
+      border-radius: 12px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-light);
+    }
+
+    .contact-info-icon {
+      width: 40px;
+      height: 40px;
+      background: rgba(92,26,26,0.06);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .contact-info-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .contact-info-card > div {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .contact-info-card strong {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--text-dark);
+    }
+
+    .contact-info-card span {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .contact-map {
+      flex: 1;
+      min-height: 250px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border-light);
+    }
+
+    /* FOOTER */
+    .site-footer {
+      background: var(--primary);
+      color: rgba(255,255,255,0.8);
+      padding: 3.5rem 0 0;
+    }
+
+    .site-footer > .container {
+      max-width: 1400px;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 2.5rem;
+      padding-bottom: 2.5rem;
+    }
+
+    .footer-shield {
+      width: 36px;
+      height: 36px;
+      color: rgba(255,255,255,0.4);
+      flex-shrink: 0;
+      margin-bottom: 0.75rem;
+    }
+
+    .footer-name {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.125rem;
+      color: var(--white);
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-desc {
+      font-size: 0.8125rem;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.65;
+      margin-bottom: 1.25rem;
+      max-width: 320px;
+    }
+
+    .footer-social {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .footer-social a {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255,255,255,0.5);
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+
+    .footer-social a:hover {
+      background: rgba(255,255,255,0.1);
+      color: var(--white);
+      border-color: rgba(255,255,255,0.4);
+    }
+
+    .footer-social a svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .footer-col-title {
+      font-family: var(--font-heading);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--white);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1.25rem;
+    }
+
+    .footer-links li + li {
+      margin-top: 0.6rem;
+    }
+
+    .footer-links a {
+      font-size: 0.8125rem;
+      color: rgba(255,255,255,0.55);
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover {
+      color: var(--white);
+    }
+
+    .footer-contact li {
+      font-size: 0.8125rem;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.6;
+    }
+
+    .contact-label {
+      color: rgba(255,255,255,0.7);
+      font-weight: 500;
+    }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding: 1.5rem 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .footer-bottom-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .footer-bottom-links a {
+      color: rgba(255,255,255,0.4);
+      transition: color 0.2s;
+    }
+
+    .footer-bottom-links a:hover {
+      color: var(--white);
+    }
+
+    /* CHAT BOT */
+    .chat-bot {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 999;
+    }
+
+    .chat-toggle {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-lg);
+      transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.3s;
+    }
+
+    .chat-toggle:hover {
+      transform: scale(1.1) rotate(-5deg);
+      box-shadow: 0 8px 32px rgba(92,26,26,0.3);
+    }
+
+    .chat-toggle:active {
+      transform: scale(0.95);
+    }
+
+    .chat-toggle svg {
+      width: 26px;
+      height: 26px;
+    }
+
+    .chat-panel {
+      position: absolute;
+      bottom: 68px;
+      right: 0;
+      width: 340px;
+      max-height: 480px;
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      transform-origin: bottom right;
+      animation: chatSlideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .chat-bot.chat-open .chat-panel {
+      display: flex;
+    }
+
+    @keyframes chatSlideIn {
+      from { opacity: 0; transform: scale(0.9) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .chat-header {
+      background: var(--primary);
+      color: var(--white);
+      padding: 0.85rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-header-title {
+      font-weight: 600;
+      font-size: 0.9375rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .chat-header-status {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4caf50;
+      display: inline-block;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .chat-close {
+      background: none;
+      border: none;
+      color: var(--white);
+      font-size: 1.25rem;
+      cursor: pointer;
+      opacity: 0.7;
+      line-height: 1;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .chat-close:hover {
+      opacity: 1;
+      transform: rotate(90deg);
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      min-height: 200px;
+      max-height: 320px;
+      scroll-behavior: smooth;
+    }
+
+    .chat-msg {
+      max-width: 85%;
+      padding: 0.6rem 0.9rem;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      line-height: 1.4;
+      animation: msgIn 0.25s ease-out;
+    }
+
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(8px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .chat-msg--bot {
+      background: var(--cream);
+      color: var(--text-body);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-msg--user {
+      background: var(--primary);
+      color: var(--white);
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-form {
+      display: flex;
+      border-top: 1px solid var(--border-light);
+      padding: 0.5rem;
+      gap: 0.5rem;
+    }
+
+    .chat-input {
+      flex: 1;
+      border: 1px solid var(--border-light);
+      border-radius: 20px;
+      padding: 0.5rem 0.85rem;
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .chat-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(92,26,26,0.1);
+    }
+
+    .chat-send {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.2s, transform 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chat-send:hover {
+      background: var(--primary-hover);
+      transform: scale(1.05);
+    }
+
+    .chat-send:active {
+      transform: scale(0.95);
+    }
+
+    .chat-send svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 1024px) {
+      .services-grid {
+        gap: 0.75rem;
+        padding: 2rem 0 1rem;
+      }
+
+      .service-card {
+        width: calc(33.33% - 1.5rem);
+        min-width: 200px;
+      }
+
+      .initiatives-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+
+    }
+
+    @media (max-width: 900px) {
+      .hero-inner {
+        flex-direction: column;
+        min-height: auto;
+      }
+
+      .hero-content {
+        clip-path: none;
+        flex: none;
+        width: 100%;
+        padding: 3.5rem 0;
+        border-radius: 0;
+        background: linear-gradient(135deg, var(--primary) 60%, var(--primary-dark) 100%);
+        justify-content: center;
+      }
+
+      .hero-container {
+        max-width: none;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+        text-align: center;
+      }
+
+      .hero-visual {
+        display: none;
+      }
+
+      .services-grid {
+        gap: 0.75rem;
+        padding: 1.5rem 0 0.5rem;
+      }
+
+      .service-card {
+        width: calc(50% - 1.5rem);
+        min-width: 200px;
+      }
+
+      .service-card:nth-child(1) { rotate: -1deg; translate: 0 0; }
+      .service-card:nth-child(2) { rotate: 1.5deg; translate: 0 0.5rem; }
+      .service-card:nth-child(3) { rotate: -0.5deg; translate: 0 -0.5rem; }
+      .service-card:nth-child(4) { rotate: 1deg; translate: 0 0; }
+      .service-card:nth-child(5) { rotate: -1.5deg; translate: 0 0.5rem; }
+      .service-card:nth-child(6) { rotate: 1.5deg; translate: 0 -0.25rem; }
+
+      .initiatives-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stat-item:nth-child(2)::before {
+        display: none;
+      }
+
+      .stat-item:nth-child(3)::before {
+        display: none;
+      }
+
+      .about-grid {
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .footer-col--brand {
+        grid-column: 1 / -1;
+      }
+
+      .how-grid {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .how-step {
+        flex: 0 0 auto;
+        width: 100%;
+        max-width: 360px;
+      }
+
+      .how-connector {
+        flex: 0 0 auto;
+        transform: rotate(90deg);
+        opacity: 0.2;
+      }
+
+      .app-grid {
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+      }
+
+      .app-content {
+        order: 2;
+      }
+
+      .app-visual {
+        order: 1;
+      }
+
+      .contact-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .contact-form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 639px) {
+      .gov-bar-right {
+        gap: 0.35rem;
+      }
+
+      .gov-skip {
+        display: none;
+      }
+
+      .header-nav {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--white);
+        flex-direction: column;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-light);
+        gap: 0.25rem;
+        z-index: 100;
+        box-shadow: var(--shadow);
+      }
+
+      .header-nav.nav-open {
+        display: flex;
+      }
+
+      .header-nav a {
+        padding: 0.75rem 0;
+        width: 100%;
+      }
+
+      .header-cta {
+        margin-top: 0.5rem;
+        justify-content: center;
+      }
+
+      .nav-toggle {
+        display: block;
+        position: absolute;
+        right: 1.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 101;
+      }
+
+      .site-header {
+        position: relative;
+      }
+
+      .services-grid {
+        padding: 1rem 0 0.5rem;
+        gap: 0.75rem;
+      }
+
+      .service-card {
+        width: 100%;
+        min-width: 0;
+      }
+
+      .service-card:nth-child(1) { rotate: 0deg; translate: 0 0; }
+      .service-card:nth-child(2) { rotate: 0deg; translate: 0 0; }
+      .service-card:nth-child(3) { rotate: 0deg; translate: 0 0; }
+      .service-card:nth-child(4) { rotate: 0deg; translate: 0 0; }
+      .service-card:nth-child(5) { rotate: 0deg; translate: 0 0; }
+      .service-card:nth-child(6) { rotate: 0deg; translate: 0 0; }
+
+      .initiatives-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+
+      .stat-item + .stat-item::before {
+        display: none;
+      }
+
+      .updates-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-bottom-links {
+        justify-content: center;
+      }
+
+      .how-step {
+        padding: 1rem 0.5rem;
+      }
+
+      .app-badges {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .contact-form-wrap {
+        padding: 1.5rem;
+      }
+
+      .contact-form-header {
+        font-size: 0.9375rem;
+      }
+
+      .contact-submit {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .carousel-track-wrap { min-height: 290px; }
+      .update-card { width: 260px; height: 270px; }
+      .updates-grid { height: 300px; }
+      .update-thumb { height: 155px; }
+      .update-body { padding: 0.7rem 0.85rem 0.85rem; }
+      .update-title { font-size: 0.8125rem; }
+      .update-date { font-size: 0.65rem; }
+      .update-link { font-size: 0.7rem; }
+
+      .carousel-wrap { padding: 0.5rem 0 0.75rem; }
+
+      .carousel-arrow { display: none; }
+
+      .chat-panel {
+        width: calc(100vw - 2rem);
+        right: -0.5rem;
+        max-height: 60vh;
+      }
+
+      .toast-container {
+        left: 0.75rem;
+        right: 0.75rem;
+        max-width: none;
+      }
+
+      .scroll-progress {
+        height: 3px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero-content {
+        padding: 2.5rem 0;
+        justify-content: center;
+      }
+
+      .hero-container {
+        text-align: center;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .hero-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    @media (max-width: 1100px) {
+      .carousel-track-wrap { min-height: 370px; }
+      .update-card { width: 340px; height: 345px; }
+      .updates-grid { height: 370px; }
+      .update-thumb { height: 210px; }
+
+      .carousel-wrap { padding: 0.5rem 0.75rem 1rem; }
+    }
+
+    @media (max-width: 900px) {
+      .carousel-track-wrap { min-height: 340px; }
+      .update-card { width: 300px; height: 320px; }
+      .updates-grid { height: 350px; }
+      .update-thumb { height: 190px; }
+
+      .carousel-wrap { padding: 0.5rem 0.5rem 0.75rem; }
+
+      .carousel-arrow { width: 42px; height: 42px; }
+      .carousel-arrow svg { width: 20px; height: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // Error handling
+    window.addEventListener('error', function(e) {
+      console.error('Global error:', e.error);
+    });
+    
+    window.addEventListener('unhandledrejection', function(e) {
+      console.error('Unhandled promise rejection:', e.reason);
+    });
+
+    const { useState, useEffect, useRef } = React;
+
+    // Custom Hooks
+    const useScrollReveal = () => {
+      useEffect(() => {
+        const revealElements = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-up, .reveal-scale');
+        
+        if (revealElements.length === 0) return;
+
+        const revealObserver = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('revealed');
+                revealObserver.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.15 }
+        );
+
+        revealElements.forEach((el) => {
+          revealObserver.observe(el);
+        });
+
+        return () => {
+          revealElements.forEach((el) => {
+            revealObserver.unobserve(el);
+          });
+        };
+      }, []);
+    };
+
+    const useScrollProgress = () => {
+      useEffect(() => {
+        const progressBar = document.getElementById('scrollProgress');
+        if (!progressBar) return;
+
+        const handleScroll = () => {
+          const scrollTop = window.scrollY;
+          const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+          const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+          progressBar.style.width = `${progress}%`;
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+      }, []);
+    };
+
+    // Components
+    const Header = () => {
+      const [isNavOpen, setIsNavOpen] = useState(false);
+      const [fontSize, setFontSize] = useState('medium');
+
+      const toggleNav = () => {
+        setIsNavOpen(!isNavOpen);
+      };
+
+      const handleFontSizeChange = (size) => {
+        setFontSize(size);
+        const root = document.documentElement;
+        switch (size) {
+          case 'small':
+            root.style.fontSize = '14px';
+            break;
+          case 'medium':
+            root.style.fontSize = '16px';
+            break;
+          case 'large':
+            root.style.fontSize = '18px';
+            break;
+        }
+      };
+
+      const scrollToSection = (sectionId) => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+          setIsNavOpen(false);
+        }
+      };
+
+      return (
+        <>
+          {/* Government Utility Bar */}
+          <div className="gov-bar">
+            <div className="container">
+              <div className="gov-bar-inner">
+                <div className="gov-bar-left">
+                  <svg className="gov-emblem" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"/>
+                    <circle cx="12" cy="12" r="4" fill="currentColor" opacity="0.3" stroke="none"/>
+                  </svg>
+                  <span className="gov-text">GOVERNMENT OF THE PHILIPPINES</span>
+                </div>
+                <div className="gov-bar-right">
+                  <a href="#main-content" className="gov-skip">Skip to main content</a>
+                  <span className="gov-sep" aria-hidden="true">|</span>
+                  <span className="gov-font-size">
+                    <button 
+                      type="button" 
+                      className={`gov-font-btn ${fontSize === 'small' ? 'active' : ''}`} 
+                      data-size="small" 
+                      aria-label="Decrease font size"
+                      onClick={() => handleFontSizeChange('small')}
+                    >
+                      A−
+                    </button>
+                    <button 
+                      type="button" 
+                      className={`gov-font-btn ${fontSize === 'medium' ? 'active' : ''}`} 
+                      data-size="medium" 
+                      aria-label="Default font size"
+                      onClick={() => handleFontSizeChange('medium')}
+                    >
+                      A
+                    </button>
+                    <button 
+                      type="button" 
+                      className={`gov-font-btn ${fontSize === 'large' ? 'active' : ''}`} 
+                      data-size="large" 
+                      aria-label="Increase font size"
+                      onClick={() => handleFontSizeChange('large')}
+                    >
+                      A+
+                    </button>
+                  </span>
+                  <span className="gov-sep" aria-hidden="true">|</span>
+                  <span className="gov-lang">English <span aria-hidden="true">▾</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Navigation */}
+          <header className="site-header" role="banner">
+            <div className="container">
+              <div className="header-inner">
+                <a href="#" className="header-brand" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                  <svg className="header-shield" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+                    <rect x="4" y="13" width="28" height="18" rx="4" stroke="currentColor" strokeWidth="1.6" fill="none"/>
+                    <path d="M14 6 L22 6 L24 10 L12 10 Z" stroke="currentColor" strokeWidth="1.4" fill="none"/>
+                    <circle cx="18" cy="22" r="6" stroke="currentColor" strokeWidth="1.4" fill="none"/>
+                    <circle cx="18" cy="22" r="2.5" stroke="currentColor" strokeWidth="1" fill="currentColor" fillOpacity="0.25"/>
+                    <circle cx="26" cy="18" r="1.5" stroke="currentColor" strokeWidth="0.8" fill="currentColor" fillOpacity="0.3"/>
+                  </svg>
+                  <div className="header-wordmark">
+                    <span className="header-wordmark-primary">COMMUNITY POLICING &amp; SURVEILLANCE SYSTEM</span>
+                    <span className="header-wordmark-secondary">CPSS</span>
+                  </div>
+                </a>
+
+                <nav className={`header-nav ${isNavOpen ? 'nav-open' : ''}`} id="headerNav" aria-label="Main navigation">
+                  <a href="#" className="active" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>HOME</a>
+                  <a href="#about" onClick={(e) => { e.preventDefault(); scrollToSection('about'); }}>ABOUT US</a>
+                  <a href="#services" onClick={(e) => { e.preventDefault(); scrollToSection('services'); }}>SERVICES</a>
+                  <a href="#initiatives" onClick={(e) => { e.preventDefault(); scrollToSection('initiatives'); }}>INITIATIVES</a>
+                  <a href="#resources" onClick={(e) => { e.preventDefault(); scrollToSection('resources'); }}>RESOURCES</a>
+                  <a href="#contact" onClick={(e) => { e.preventDefault(); scrollToSection('contact'); }}>CONTACT US</a>
+                  <a href="#" className="header-cta">REPORT AN ISSUE</a>
+                </nav>
+              </div>
+
+              <button 
+                className={`nav-toggle ${isNavOpen ? 'nav-open' : ''}`} 
+                id="navToggle" 
+                aria-label="Open menu" 
+                aria-expanded={isNavOpen}
+                onClick={toggleNav}
+              >
+                <span></span><span></span><span></span>
+              </button>
+            </div>
+          </header>
+        </>
+      );
+    };
+
+    const Footer = () => {
+      const scrollToSection = (sectionId) => {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      };
+
+      return (
+        <footer className="site-footer" role="contentinfo">
+          <div className="container">
+            <div className="footer-grid">
+              <div className="footer-col footer-col--brand">
+                <svg className="footer-shield" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+                  <rect x="4" y="13" width="28" height="18" rx="4" stroke="currentColor" strokeWidth="1.6" fill="none"/>
+                  <path d="M14 6 L22 6 L24 10 L12 10 Z" stroke="currentColor" strokeWidth="1.4" fill="none"/>
+                  <circle cx="18" cy="22" r="6" stroke="currentColor" strokeWidth="1.4" fill="none"/>
+                  <circle cx="18" cy="22" r="2.5" stroke="currentColor" strokeWidth="1" fill="currentColor" fillOpacity="0.25"/>
+                  <circle cx="26" cy="18" r="1.5" stroke="currentColor" strokeWidth="0.8" fill="currentColor" fillOpacity="0.3"/>
+                </svg>
+                <div>
+                  <span className="footer-name">CPSS</span>
+                  <p className="footer-desc">Community Policing &amp; Surveillance System — an integrated platform unifying incident reporting, live surveillance, patrol management, neighborhood watch coordination, and emergency alerts for safer communities.</p>
+                  <div className="footer-social">
+                    <a href="#" aria-label="Facebook">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M16 8h-2a2 2 0 0 0-2 2v10M12 14h4"/>
+                      </svg>
+                    </a>
+                    <a href="#" aria-label="Twitter / X">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M8 8l8 8M16 8l-8 8"/>
+                      </svg>
+                    </a>
+                    <a href="#" aria-label="Instagram">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <rect x="3" y="3" width="18" height="18" rx="4"/>
+                        <circle cx="12" cy="12" r="5"/>
+                        <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+                      </svg>
+                    </a>
+                    <a href="#" aria-label="YouTube">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <polygon points="10 8 16 12 10 16 10 8"/>
+                        <circle cx="12" cy="12" r="10"/>
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div className="footer-col">
+                <h4 className="footer-col-title">Quick Links</h4>
+                <ul className="footer-links">
+                  <li><a href="#" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Home</a></li>
+                  <li><a href="#about" onClick={(e) => { e.preventDefault(); scrollToSection('about'); }}>About Us</a></li>
+                  <li><a href="#how-it-works" onClick={(e) => { e.preventDefault(); scrollToSection('how-it-works'); }}>How It Works</a></li>
+                  <li><a href="#services" onClick={(e) => { e.preventDefault(); scrollToSection('services'); }}>Services</a></li>
+                  <li><a href="#initiatives" onClick={(e) => { e.preventDefault(); scrollToSection('initiatives'); }}>Initiatives</a></li>
+                  <li><a href="#mobile-app" onClick={(e) => { e.preventDefault(); scrollToSection('mobile-app'); }}>Mobile App</a></li>
+                  <li><a href="#resources" onClick={(e) => { e.preventDefault(); scrollToSection('resources'); }}>Resources</a></li>
+                  <li><a href="#contact" onClick={(e) => { e.preventDefault(); scrollToSection('contact'); }}>Contact Us</a></li>
+                </ul>
+              </div>
+
+              <div className="footer-col">
+                <h4 className="footer-col-title">Useful Links</h4>
+                <ul className="footer-links">
+                  <li><a href="#">Incident Reporting</a></li>
+                  <li><a href="#">CCTV Access</a></li>
+                  <li><a href="#">Patrol Schedule</a></li>
+                  <li><a href="#">Neighborhood Watch</a></li>
+                  <li><a href="#">Emergency Alerts</a></li>
+                </ul>
+              </div>
+
+              <div className="footer-col">
+                <h4 className="footer-col-title">Contact Us</h4>
+                <ul className="footer-links footer-contact">
+                  <li><span className="contact-label">Address:</span> City Hall, 2nd Floor, Peace and Order Council Office</li>
+                  <li><span className="contact-label">Phone:</span> (02) 1234-5678</li>
+                  <li><span className="contact-label">Email:</span> cpss@lgu.gov.ph</li>
+                  <li><span className="contact-label">Hours:</span> Mon–Fri, 8:00 AM – 5:00 PM</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="footer-bottom">
+              <p>&copy; 2026 Community Policing &amp; Surveillance System. All rights reserved.</p>
+              <div className="footer-bottom-links">
+                <a href="#privacy">Privacy Policy</a>
+                <a href="#terms">Terms of Use</a>
+                <a href="#accessibility">Accessibility Statement</a>
+              </div>
+            </div>
+          </div>
+        </footer>
+      );
+    };
+
+    const Hero = () => {
+      return (
+        <section className="hero" id="hero" aria-label="Hero section">
+          <div className="hero-inner">
+            <div className="hero-content">
+              <div className="hero-container">
+                <span className="eyebrow">TOGETHER FOR A SAFER COMMUNITY</span>
+                <h1 className="hero-title">Community Policing<br />&amp; Surveillance System</h1>
+                <p className="hero-text">Building a safer tomorrow through community partnership, smart surveillance and responsive policing.</p>
+                <div className="hero-actions">
+                  <a href="#" className="btn btn-primary">
+                    REPORT AN ISSUE 
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <circle cx="8" cy="8" r="3"/>
+                      <line x1="8" y1="1" x2="8" y2="4"/>
+                      <line x1="8" y1="12" x2="8" y2="15"/>
+                      <line x1="1" y1="8" x2="4" y2="8"/>
+                      <line x1="12" y1="8" x2="15" y2="8"/>
+                    </svg>
+                  </a>
+                  <a href="#about" className="btn btn-outline">
+                    KNOW MORE 
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 4.5L6 7.5L9 4.5"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+            <div className="hero-visual" aria-hidden="true" style={{ background: 'linear-gradient(135deg, #4A1515 0%, #6B1F1F 50%, #5C1A1A 100%)' }}></div>
+          </div>
+        </section>
+      );
+    };
+
+
+
+    const Initiatives = () => {
+      const initiatives = [
+        {
+          icon: (
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="24" cy="14" r="6"/>
+              <path d="M6 42 C6 32 12 24 24 24 C36 24 42 32 42 42"/>
+            </svg>
+          ),
+          title: "Community Watch Program",
+          description: "Empowering residents to actively participate in neighborhood safety through organized patrols and reporting networks."
+        },
+        {
+          icon: (
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="8" y="8" width="32" height="32" rx="4"/>
+              <path d="M16 24 L22 30 L32 18"/>
+            </svg>
+          ),
+          title: "School Safety Initiative",
+          description: "Partnering with educational institutions to ensure safe learning environments through surveillance and rapid response."
+        },
+        {
+          icon: (
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 32 L16 40 L40 14"/>
+              <circle cx="12" cy="10" r="4"/>
+              <circle cx="38" cy="38" r="4"/>
+            </svg>
+          ),
+          title: "Emergency Response Network",
+          description: "A coordinated network of first responders, barangay officials, and volunteers for rapid emergency deployment."
+        },
+        {
+          icon: (
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="24" cy="14" r="5"/>
+              <path d="M14 24 C14 18 18 14 24 14 C30 14 34 18 34 24"/>
+              <path d="M10 24 C10 14 16 8 24 8 C32 8 38 14 38 24"/>
+              <line x1="24" y1="28" x2="24" y2="34"/>
+              <line x1="20" y1="40" x2="28" y2="40"/>
+              <rect x="16" y="34" width="16" height="6" rx="1"/>
+              <circle cx="8" cy="24" r="2" fill="currentColor" opacity="0.2" stroke="none"/>
+              <circle cx="40" cy="24" r="2" fill="currentColor" opacity="0.2" stroke="none"/>
+              <path d="M12 26 L14 26" strokeWidth="1.2"/>
+              <path d="M34 26 L36 26" strokeWidth="1.2"/>
+              <path d="M16 42 L32 42"/>
+            </svg>
+          ),
+          title: "IoT Smoke &amp; Noise Detection",
+          description: "Smart sensors detect smoke, excessive noise levels, and environmental hazards — automatically triggering alerts to authorities for rapid response."
+        }
+      ];
+
+      return (
+        <section className="initiatives" id="initiatives" aria-labelledby="initiatives-title">
+          <div className="container reveal">
+            <div className="section-header">
+              <span className="eyebrow">OUR INITIATIVES</span>
+              <h2 className="section-heading" id="initiatives-title">Community Programs for Safety</h2>
+            </div>
+            <div className="initiatives-grid stagger-children">
+              {initiatives.map((initiative, index) => (
+                <article className="initiative-card" key={index}>
+                  <div className="initiative-card-inner">
+                    <div className="initiative-icon">
+                      {initiative.icon}
+                    </div>
+                    <h3 className="initiative-title">{initiative.title}</h3>
+                    <p className="initiative-desc">{initiative.description}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    const Services = () => {
+      const services = [
+        {
+          icon: (
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="8" y="6" width="32" height="36" rx="3"/>
+              <line x1="16" y1="16" x2="32" y2="16"/>
+              <line x1="16" y1="24" x2="28" y2="24"/>
+              <line x1="16" y1="32" x2="24" y2="32"/>
+              <circle cx="34" cy="34" r="8"/>
+              <line x1="34" y1="30" x2="34" y2="38"/>
+              <line x1="31" y1="34" x2="37" y2="34"/>
+            </svg>
+          ),
+          title: "Community Incident Reporting Module",
+          description: "Report crimes, suspicious activity, or safety concerns with photo and video evidence and track status in real time.",
+          link: "REPORT NOW"
+        },
+        {
+          icon: (
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="6" y="12" width="36" height="24" rx="3"/>
+              <circle cx="24" cy="24" r="8"/>
+              <circle cx="24" cy="24" r="3" fill="currentColor" opacity="0.2" stroke="none"/>
+              <path d="M14 36 L18 42 L30 42 L34 36"/>
+              <line x1="24" y1="12" x2="24" y2="4"/>
+            </svg>
+          ),
+          title: "CCTV and Surveillance Integration Module",
+          description: "Access integrated live and recorded surveillance feeds from public cameras for real-time monitoring.",
+          link: "VIEW FEEDS"
+        },
+        {
+          icon: (
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 44 L8 28 L24 16 L40 28 L40 44"/>
+              <rect x="18" y="28" width="12" height="16"/>
+              <circle cx="24" cy="22" r="6"/>
+              <circle cx="24" cy="22" r="2" fill="currentColor" opacity="0.2" stroke="none"/>
+            </svg>
+          ),
+          title: "Patrol Scheduling and Monitoring Module",
+          description: "Manage and track patrol officer schedules, routes, and real-time location data efficiently.",
+          link: "VIEW SCHEDULE"
+        },
+        {
+          icon: (
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="24" cy="14" r="6"/>
+              <path d="M6 42 C6 32 12 24 24 24 C36 24 42 32 42 42"/>
+            </svg>
+          ),
+          title: "Neighborhood Watch Coordination Module",
+          description: "Connect volunteer watch groups with local police for coordinated patrols and alerts.",
+          link: "JOIN WATCH"
+        },
+        {
+          icon: (
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M24 4 L4 40 L44 40 Z"/>
+              <line x1="24" y1="18" x2="24" y2="28"/>
+              <line x1="24" y1="34" x2="24" y2="36"/>
+            </svg>
+          ),
+          title: "Security Alert System Module",
+          description: "Receive instant emergency notifications and broadcast alerts for your area immediately.",
+          link: "VIEW ALERTS"
+        },
+        {
+          icon: (
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="24" cy="10" r="3"/>
+              <path d="M24 16 L24 28"/>
+              <path d="M24 32 L24 34"/>
+              <path d="M10 24 C10 12 16 6 24 6 C32 6 38 12 38 24"/>
+              <path d="M6 24 C6 8 14 2 24 2 C34 2 42 8 42 24"/>
+              <line x1="6" y1="24" x2="4" y2="24"/>
+              <line x1="42" y1="24" x2="44" y2="24"/>
+              <path d="M8 20 L6 18"/>
+              <path d="M40 20 L42 18"/>
+              <circle cx="14" cy="24" r="2" fill="currentColor" opacity="0.2" stroke="none"/>
+              <circle cx="34" cy="24" r="2" fill="currentColor" opacity="0.2" stroke="none"/>
+              <path d="M20 28 L20 30" strokeWidth="1.2"/>
+              <path d="M28 28 L28 30" strokeWidth="1.2"/>
+              <rect x="10" y="34" width="28" height="4" rx="1"/>
+              <rect x="14" y="38" width="20" height="8" rx="1"/>
+              <line x1="18" y1="42" x2="18" y2="46"/>
+              <line x1="30" y1="42" x2="30" y2="46"/>
+              <line x1="14" y1="46" x2="34" y2="46"/>
+            </svg>
+          ),
+          title: "IoT Smoke &amp; Noise Detection and Automated Emergency Alerts",
+          description: "Smart IoT sensors detect smoke, excessive noise, and environmental hazards — triggering automated emergency alerts to authorities and residents in real time.",
+          link: "LEARN MORE"
+        }
+      ];
+
+      return (
+        <section className="services" id="services" aria-labelledby="services-title">
+          <div className="container reveal">
+            <div className="section-header">
+              <span className="eyebrow">OUR SERVICES</span>
+              <h2 className="section-heading" id="services-title">How Can We Help You?</h2>
+            </div>
+            <div className="services-grid stagger-children">
+              {services.map((service, index) => (
+                <article className="service-card" key={index}>
+                  <div className="service-icon">
+                    {service.icon}
+                  </div>
+                  <h3 className="service-title">{service.title}</h3>
+                  <p className="service-desc">{service.description}</p>
+                  <a href="#" className="service-link">{service.link} <span aria-hidden="true">→</span></a>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    const HowItWorks = () => {
+      const steps = [
+        {
+          icon: (
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="8" y="6" width="32" height="36" rx="3"/>
+              <line x1="16" y1="16" x2="32" y2="16"/>
+              <line x1="16" y1="24" x2="28" y2="24"/>
+              <circle cx="34" cy="34" r="8"/>
+              <line x1="34" y1="30" x2="34" y2="38"/>
+              <line x1="31" y1="34" x2="37" y2="34"/>
+            </svg>
+          ),
+          num: "01",
+          title: "Report",
+          description: "Citizens report incidents via the web portal, mobile app, or hotline with photo and video evidence."
+        },
+        {
+          icon: (
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="24" cy="14" r="6"/>
+              <path d="M6 42 C6 32 12 24 24 24 C36 24 42 32 42 42"/>
+            </svg>
+          ),
+          num: "02",
+          title: "Verify",
+          description: "Authorities review and validate the report, cross-referencing with CCTV feeds and sensor data."
+        },
+        {
+          icon: (
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="6" y="12" width="36" height="24" rx="3"/>
+              <circle cx="24" cy="24" r="8"/>
+              <circle cx="24" cy="24" r="3" fill="currentColor" opacity="0.2" stroke="none"/>
+              <path d="M14 36 L18 42 L30 42 L34 36"/>
+              <line x1="24" y1="12" x2="24" y2="4"/>
+            </svg>
+          ),
+          num: "03",
+          title: "Dispatch",
+          description: "The nearest patrol unit or responder is dispatched with real-time route optimization and GPS tracking."
+        },
+        {
+          icon: (
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="16 24 22 30 32 18"/>
+              <path d="M24 4 L6 12 L6 22 C6 34 14 42 24 46 C34 42 42 34 42 22 L42 12 Z"/>
+            </svg>
+          ),
+          num: "04",
+          title: "Resolve",
+          description: "The incident is resolved and the reporter receives a real-time status update and case summary."
+        }
+      ];
+
+      return (
+        <section className="how-it-works" id="how-it-works" aria-labelledby="how-title">
+          <div className="container reveal">
+            <div className="section-header">
+              <span className="eyebrow">HOW IT WORKS</span>
+              <h2 className="section-heading" id="how-title">From Report to Resolution</h2>
+              <p className="how-subtitle">Our streamlined process ensures every concern is handled quickly and transparently.</p>
+            </div>
+            <div className="how-grid stagger-children">
+              {steps.map((step, index) => (
+                <React.Fragment key={index}>
+                  <div className="how-step">
+                    <div className="how-step-icon">
+                      {step.icon}
+                    </div>
+                    <span className="how-step-num">{step.num}</span>
+                    <h3 className="how-step-title">{step.title}</h3>
+                    <p className="how-step-desc">{step.description}</p>
+                  </div>
+                  {index < steps.length - 1 && (
+                    <div className="how-connector" aria-hidden="true">
+                      <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M6 24 L42 24"/>
+                        <polyline points="34 16 42 24 34 32"/>
+                      </svg>
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    const Stats = () => {
+      const statsRef = useRef(null);
+
+      const stats = [
+        { target: 12548, label: "Issues Resolved" },
+        { target: 2345, label: "Active Volunteers" },
+        { target: 1120, label: "CCTV Cameras" },
+        { target: 98, label: "Satisfaction Rate" }
+      ];
+
+      useEffect(() => {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                animateCounters();
+                observer.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.5 }
+        );
+
+        if (statsRef.current) {
+          observer.observe(statsRef.current);
+        }
+
+        return () => {
+          if (statsRef.current) {
+            observer.unobserve(statsRef.current);
+          }
+        };
+      }, []);
+
+      const animateCounters = () => {
+        const counters = document.querySelectorAll('.stat-number');
+        counters.forEach((counter) => {
+          const target = parseInt(counter.getAttribute('data-target') || '0', 10);
+          if (isNaN(target) || target <= 0) {
+            counter.textContent = target.toString();
+            return;
+          }
+          
+          const duration = 2000;
+          const startTime = performance.now();
+
+          const step = (timestamp) => {
+            if (!startTime) return;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const current = Math.floor(eased * target);
+            counter.textContent = current.toLocaleString();
+            
+            if (progress < 1) {
+              requestAnimationFrame(step);
+            } else {
+              counter.textContent = target.toLocaleString();
+            }
+          };
+
+          requestAnimationFrame(step);
+        });
+      };
+
+      return (
+        <section className="stats" aria-label="System statistics">
+          <div className="container reveal" ref={statsRef}>
+            <div className="stats-grid">
+              {stats.map((stat, index) => (
+                <div className="stat-item" key={index}>
+                  <span className="stat-number" data-target={stat.target}>0</span>
+                  <span className="stat-label">{stat.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    const About = () => {
+      return (
+        <section className="about" id="about" aria-labelledby="about-title">
+          <div className="container">
+            <div className="about-grid">
+              <div className="about-content reveal-left">
+                <span className="eyebrow">ABOUT US</span>
+                <h2 className="section-heading" id="about-title">Building a Safer Community Through Partnership</h2>
+                <p className="about-text">Our system unifies incident reporting, live surveillance, patrol management, neighborhood watch coordination, and emergency alerts into a single platform. Designed for local government units, CPSS empowers communities and authorities to work together for a safer environment.</p>
+                <p className="about-text">With real-time data sharing and integrated communication tools, CPSS ensures that every stakeholder has the information they need to respond effectively and keep our community safe.</p>
+                <a href="#services" className="btn btn-outline btn-maroon">LEARN MORE ABOUT US <span aria-hidden="true">→</span></a>
+              </div>
+              <div className="about-visual reveal-right" aria-hidden="true">
+                <div className="about-image-placeholder">
+                  <img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=600&q=80" alt="Police officer engaging with community members" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    const MobileApp = () => {
+      return (
+        <section className="app-download" id="mobile-app" aria-labelledby="app-title">
+          <div className="container">
+            <div className="app-grid">
+              <div className="app-content reveal-left">
+                <span className="eyebrow">GET THE APP</span>
+                <h2 className="section-heading" id="app-title">CPSS Mobile App</h2>
+                <p className="app-text">Report incidents, receive emergency alerts, track patrols, and stay connected with your community — all from the palm of your hand. Available on iOS and Android.</p>
+                <div className="app-badges">
+                  <a href="#" className="app-badge" aria-label="Download on the App Store">
+                    <svg viewBox="0 0 120 40" fill="none">
+                      <rect width="120" height="40" rx="6" fill="#000"/>
+                      <text x="12" y="16" fontSize="4" fill="#fff" fontFamily="sans-serif" fontWeight="600">App Store</text>
+                      <text x="12" y="28" fontSize="7" fill="#fff" fontFamily="sans-serif" fontWeight="700">Download on the</text>
+                    </svg>
+                  </a>
+                  <a href="#" className="app-badge" aria-label="Get it on Google Play">
+                    <svg viewBox="0 0 120 40" fill="none">
+                      <rect width="120" height="40" rx="6" fill="#000"/>
+                      <text x="12" y="16" fontSize="4" fill="#fff" fontFamily="sans-serif" fontWeight="600">Google Play</text>
+                      <text x="12" y="28" fontSize="7" fill="#fff" fontFamily="sans-serif" fontWeight="700">Get it on</text>
+                    </svg>
+                  </a>
+                </div>
+                <ul className="app-features">
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Real-time incident reporting with media
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Push notifications for emergency alerts
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Live patrol tracking and GPS navigation
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    CCTV live view on-the-go
+                  </li>
+                </ul>
+              </div>
+              <div className="app-visual reveal-right" aria-hidden="true">
+                <div className="app-mockup">
+                  <svg viewBox="0 0 240 480" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="8" y="4" width="224" height="472" rx="24" fill="var(--cream)" stroke="var(--border-light)"/>
+                    <rect x="96" y="12" width="48" height="6" rx="3" fill="#aaa"/>
+                    <rect x="20" y="28" width="200" height="44" rx="6" fill="var(--primary)"/>
+                    <text x="34" y="52" fontSize="5" fill="#fff" fontFamily="sans-serif" fontWeight="600">CPSS</text>
+                    <text x="34" y="60" fontSize="3.5" fill="rgba(255,255,255,0.7)" fontFamily="sans-serif">Safe Community</text>
+                    <circle cx="200" cy="50" r="8" fill="rgba(255,255,255,0.2)"/>
+                    <rect x="20" y="84" width="200" height="100" rx="6" fill="#eee"/>
+                    <circle cx="120" cy="134" r="20" fill="rgba(92,26,26,0.1)" stroke="var(--primary)" strokeWidth="1.5"/>
+                    <text x="108" y="138" fontSize="4" fill="var(--primary)" fontFamily="sans-serif" fontWeight="600">CAM</text>
+                    <rect x="20" y="196" width="96" height="48" rx="6" fill="rgba(92,26,26,0.06)" stroke="var(--border-light)" strokeWidth="1"/>
+                    <text x="30" y="214" fontSize="4" fill="var(--primary)" fontFamily="sans-serif" fontWeight="600">Report</text>
+                    <text x="30" y="224" fontSize="3" fill="#888" fontFamily="sans-serif">Submit incident</text>
+                    <rect x="124" y="196" width="96" height="48" rx="6" fill="rgba(92,26,26,0.06)" stroke="var(--border-light)" strokeWidth="1"/>
+                    <text x="134" y="214" fontSize="4" fill="var(--primary)" fontFamily="sans-serif" fontWeight="600">Alerts</text>
+                    <text x="134" y="224" fontSize="3" fill="#888" fontFamily="sans-serif">Emergency</text>
+                    <rect x="20" y="256" width="200" height="120" rx="6" fill="#fafafa" stroke="var(--border-light)" strokeWidth="1"/>
+                    <text x="34" y="276" fontSize="4" fill="var(--primary)" fontFamily="sans-serif" fontWeight="600">Recent Updates</text>
+                    <rect x="34" y="286" width="172" height="20" rx="3" fill="#eee"/>
+                    <rect x="34" y="312" width="172" height="20" rx="3" fill="#eee"/>
+                    <rect x="34" y="338" width="172" height="20" rx="3" fill="#eee"/>
+                    <rect x="20" y="390" width="200" height="40" rx="20" fill="var(--primary)"/>
+                    <text x="80" y="414" fontSize="5" fill="#fff" fontFamily="sans-serif" fontWeight="600">REPORT NOW</text>
+                    <rect x="80" y="440" width="80" height="4" rx="2" fill="#ddd"/>
+                    <rect x="110" y="444" width="20" height="2" rx="1" fill="var(--primary)"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    const Updates = () => {
+      const [currentIndex, setCurrentIndex] = useState(0);
+
+      const updates = [
+        {
+          image: "https://images.unsplash.com/photo-1558002038-1055907df827?auto=format&fit=crop&w=400&q=80",
+          tag: "Module Update",
+          tagClass: "tag-module",
+          date: "June 15, 2026",
+          title: "New CCTV Cameras Added to Surveillance Network"
+        },
+        {
+          image: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=400&q=80",
+          tag: "Feature Update",
+          tagClass: "tag-feature",
+          date: "June 10, 2026",
+          title: "Patrol Scheduling Module Now Supports Real-Time GPS"
+        },
+        {
+          image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80",
+          tag: "Community News",
+          tagClass: "tag-community",
+          date: "June 5, 2026",
+          title: "Neighborhood Watch Program Expands to 12 New Zones"
+        },
+        {
+          image: "https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&w=400&q=80",
+          tag: "Community News",
+          tagClass: "tag-community",
+          date: "May 28, 2026",
+          title: "40 New Officers Complete Community Policing Training"
+        },
+        {
+          image: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=400&q=80",
+          tag: "Module Update",
+          tagClass: "tag-module",
+          date: "May 20, 2026",
+          title: "Emergency Alert System Now Integrated with Barangay Network"
+        },
+        {
+          image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=400&q=80",
+          tag: "Feature Update",
+          tagClass: "tag-feature",
+          date: "May 15, 2026",
+          title: "CPSS Mobile App Launches on iOS and Android"
+        },
+        {
+          image: "https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=400&q=80",
+          tag: "Community News",
+          tagClass: "tag-community",
+          date: "May 8, 2026",
+          title: "Volunteer Registration Surpasses 2,500 Active Members"
+        }
+      ];
+
+      const goToNext = () => {
+        setCurrentIndex((prev) => (prev + 1) % updates.length);
+      };
+
+      const goToPrev = () => {
+        setCurrentIndex((prev) => (prev - 1 + updates.length) % updates.length);
+      };
+
+      const goToIndex = (index) => {
+        setCurrentIndex(index);
+      };
+
+      return (
+        <section className="updates" id="resources" aria-labelledby="updates-title">
+          <div className="container reveal">
+            <div className="updates-header">
+              <div>
+                <span className="eyebrow">LATEST UPDATES</span>
+                <h2 className="section-heading" id="updates-title">Stay Informed, Stay Safe</h2>
+              </div>
+              <a href="#" className="updates-view-all">VIEW ALL UPDATES <span aria-hidden="true">→</span></a>
+            </div>
+            <div className="carousel-wrap">
+              <button className="carousel-arrow carousel-arrow--prev" type="button" aria-label="Previous" onClick={goToPrev}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 18l-6-6 6-6"/>
+                </svg>
+              </button>
+              <button className="carousel-arrow carousel-arrow--next" type="button" aria-label="Next" onClick={goToNext}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+              <div className="carousel-track-wrap">
+                <div className="updates-grid" id="updatesTrack">
+                  {updates.map((update, index) => (
+                    <article 
+                      className="update-card" 
+                      key={index}
+                      style={{ display: index === currentIndex ? 'block' : 'none' }}
+                    >
+                      <div className="update-thumb">
+                        <img src={update.image} alt={update.title} />
+                        <span className={`update-tag ${update.tagClass}`}>{update.tag}</span>
+                      </div>
+                      <div className="update-body">
+                        <span className="update-date">{update.date}</span>
+                        <h3 className="update-title">{update.title}</h3>
+                        <a href="#" className="update-link">Read More <span aria-hidden="true">→</span></a>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+              <div className="carousel-footer">
+                <div className="carousel-dots" id="carouselDots">
+                  {updates.map((_, index) => (
+                    <button
+                      key={index}
+                      className={`carousel-dot ${index === currentIndex ? 'is-active' : ''}`}
+                      aria-label={`Go to card ${index + 1}`}
+                      onClick={() => goToIndex(index)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    const Contact = () => {
+      const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        subject: '',
+        message: ''
+      });
+      const [charCount, setCharCount] = useState(0);
+      const [isSubmitting, setIsSubmitting] = useState(false);
+
+      const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        
+        if (name === 'message') {
+          setCharCount(value.length);
+        }
+      };
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        
+        // Simulate form submission
+        setTimeout(() => {
+          console.log('Form submitted:', formData);
+          setIsSubmitting(false);
+          setFormData({ name: '', email: '', subject: '', message: '' });
+          setCharCount(0);
+          alert('Message sent successfully!');
+        }, 1500);
+      };
+
+      return (
+        <section className="contact-section" id="contact" aria-labelledby="contact-title">
+          <div className="contact-bg-decor" aria-hidden="true"></div>
+          <div className="container reveal">
+            <div className="section-header">
+              <span className="eyebrow">CONTACT US</span>
+              <h2 className="section-heading" id="contact-title">Get In Touch</h2>
+              <p className="contact-subtitle">Have a question, concern, or suggestion? Reach out to us — we're here to help.</p>
+            </div>
+            <div className="contact-grid">
+              <div className="contact-form-wrap">
+                <div className="contact-form-header">
+                  <svg className="contact-form-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  <span>Send us a message</span>
+                </div>
+                <form className="contact-form" id="contactForm" onSubmit={handleSubmit}>
+                  <div className="contact-form-row">
+                    <div className="contact-form-group">
+                      <label htmlFor="contactName" className="contact-label">Full Name</label>
+                      <input 
+                        type="text" 
+                        id="contactName" 
+                        name="name" 
+                        className="contact-input" 
+                        placeholder="Juan dela Cruz" 
+                        required
+                        value={formData.name}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    <div className="contact-form-group">
+                      <label htmlFor="contactEmail" className="contact-label">Email Address</label>
+                      <input 
+                        type="email" 
+                        id="contactEmail" 
+                        name="email" 
+                        className="contact-input" 
+                        placeholder="juan@example.com" 
+                        required
+                        value={formData.email}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
+                  <div className="contact-form-group">
+                    <label htmlFor="contactSubject" className="contact-label">Subject</label>
+                    <select 
+                      id="contactSubject" 
+                      name="subject" 
+                      className="contact-input contact-select" 
+                      required
+                      value={formData.subject}
+                      onChange={handleChange}
+                    >
+                      <option value="">Select a topic...</option>
+                      <option value="report">Report an Incident</option>
+                      <option value="inquiry">General Inquiry</option>
+                      <option value="suggestion">Suggestion</option>
+                      <option value="complaint">Complaint</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div className="contact-form-group">
+                    <label htmlFor="contactMessage" className="contact-label">Message</label>
+                    <textarea 
+                      id="contactMessage" 
+                      name="message" 
+                      className="contact-input contact-textarea" 
+                      rows={5} 
+                      placeholder="Describe your concern in detail..." 
+                      maxLength={500} 
+                      required
+                      value={formData.message}
+                      onChange={handleChange}
+                    />
+                    <span className="contact-charcount" id="charCount">
+                      <span id="charCountNum">{charCount}</span>/500
+                    </span>
+                  </div>
+                  <button type="submit" className="contact-submit" disabled={isSubmitting}>
+                    <span className="btn-text">
+                      SEND MESSAGE <span className="btn-arrow" aria-hidden="true">→</span>
+                    </span>
+                  </button>
+                </form>
+              </div>
+              <div className="contact-side">
+                <div className="contact-info-cards">
+                  <div className="contact-info-card">
+                    <div className="contact-info-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <strong>Address</strong>
+                      <span>City Hall, 2nd Floor<br/>Peace and Order Council Office</span>
+                    </div>
+                  </div>
+                  <div className="contact-info-card">
+                    <div className="contact-info-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <strong>Phone</strong>
+                      <span>(02) 1234-5678</span>
+                    </div>
+                  </div>
+                  <div className="contact-info-card">
+                    <div className="contact-info-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <strong>Email</strong>
+                      <span>cpss@lgu.gov.ph</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="contact-map">
+                  <iframe 
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3859.646237085629!2d121.0437914!3d14.6496857!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397b7a1b7a1b7a1%3A0x123456789abcdef!2sQuezon%20City%20Hall!5e0!3m2!1sen!2sph!4v1" 
+                    width="100%" 
+                    height="100%" 
+                    style={{ border: 0 }} 
+                    allowFullScreen 
+                    loading="lazy" 
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    const ChatBot = () => {
+      const [isOpen, setIsOpen] = useState(false);
+      const [messages, setMessages] = useState([
+        { text: "Hello! How can I help you today?", isBot: true }
+      ]);
+      const [inputValue, setInputValue] = useState('');
+      const messagesEndRef = useRef(null);
+
+      const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      };
+
+      useEffect(() => {
+        scrollToBottom();
+      }, [messages]);
+
+      const toggleChat = () => {
+        setIsOpen(!isOpen);
+      };
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!inputValue.trim()) return;
+
+        const userMessage = { text: inputValue, isBot: false };
+        setMessages(prev => [...prev, userMessage]);
+        setInputValue('');
+
+        // Simulate bot response
+        setTimeout(() => {
+          const botMessage = { 
+            text: "Thank you for your message. Our team will get back to you shortly.", 
+            isBot: true 
+          };
+          setMessages(prev => [...prev, botMessage]);
+        }, 1000);
+      };
+
+      return (
+        <div className={`chat-bot ${isOpen ? 'chat-open' : ''}`} id="chatBot">
+          <button 
+            className="chat-toggle" 
+            id="chatToggle" 
+            aria-label="Open chat"
+            onClick={toggleChat}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </button>
+          <div className="chat-panel" id="chatPanel">
+            <div className="chat-header">
+              <span className="chat-header-title">
+                <span className="chat-header-status" aria-hidden="true"></span> CPSS Assistant
+              </span>
+              <button 
+                className="chat-close" 
+                id="chatClose" 
+                aria-label="Close chat"
+                onClick={toggleChat}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="chat-messages" id="chatMessages">
+              {messages.map((message, index) => (
+                <div 
+                  key={index} 
+                  className={`chat-msg ${message.isBot ? 'chat-msg--bot' : 'chat-msg--user'}`}
+                >
+                  {message.text}
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+            <form className="chat-form" id="chatForm" onSubmit={handleSubmit}>
+              <input 
+                className="chat-input" 
+                id="chatInput" 
+                type="text" 
+                placeholder="Type a message..." 
+                autoComplete="off"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+              />
+              <button className="chat-send" type="submit" aria-label="Send">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"/>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      );
+    };
+
+    const Home = () => {
+      useScrollReveal();
+      useScrollProgress();
+
+      useEffect(() => {
+        // Stagger children animation
+        const staggerGroups = document.querySelectorAll('.stagger-children');
+        staggerGroups.forEach((group) => {
+          const children = group.children;
+          for (let i = 0; i < children.length; i++) {
+            (children[i]).style.setProperty('--stagger-delay', `${i * 0.1}s`);
+          }
+          
+          const staggerObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('revealed');
+                staggerObserver.unobserve(entry.target);
+              }
+            });
+          }, { threshold: 0.15 });
+          
+          staggerObserver.observe(group);
+        });
+      }, []);
+
+      return (
+        <>
+          <a href="#main-content" className="skip-link">Skip to main content</a>
+
+          <div className="scroll-progress" aria-hidden="true">
+            <div className="scroll-progress-bar" id="scrollProgress"></div>
+          </div>
+
+          <Header />
+
+          <main id="main-content">
+            <Hero />
+            <Initiatives />
+            <Services />
+            <HowItWorks />
+            <Stats />
+            <About />
+            <MobileApp />
+            <Updates />
+            <Contact />
+          </main>
+
+          <Footer />
+
+          <div className="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+          <ChatBot />
+        </>
+      );
+    };
+
+    const App = () => {
+      return <Home />;
+    };
+
+    // Simple test to verify React is loaded
+    console.log('React version:', React.version);
+    console.log('ReactDOM available:', typeof ReactDOM !== 'undefined');
+    console.log('Root element:', document.getElementById('root'));
+
+    try {
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+      console.log('React app rendered successfully');
+    } catch (error) {
+      console.error('Error rendering React app:', error);
+      document.getElementById('root').innerHTML = `
+        <div style="padding: 2rem; font-family: Arial, sans-serif; color: red;">
+          <h1>Error Loading CPSS</h1>
+          <p>${error.message}</p>
+          <pre>${error.stack}</pre>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>

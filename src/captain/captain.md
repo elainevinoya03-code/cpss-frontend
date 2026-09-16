@@ -4,9 +4,9 @@ The Captain is the executive over the barangay's Public Safety and Security Syst
 triage individual incidents or dispatch units directly — that belongs to the **Barangay Desk
 Officer**. Instead they oversee: a real-time executive dashboard of sensors, hazards and active
 incidents, per-purok peace-and-order analytics, the mass emergency broadcast engine (they hold the
-1-tap authorization for high-severity community blasts), live patrol/force oversight, and a
-closed-incidents review of resolved / closed – false alarm cases with their update history and
-resident feedback. Everything below
+1-tap authorization for high-severity community blasts), live patrol/force oversight, checkpoint
+plan drafting & approval, and a closed-incidents review of resolved / closed – false alarm cases
+with their update history and resident feedback. Everything below
 sits under one role, `captain`, guarded by `CAPTAIN_NAV` in `App.tsx` / `components/layout/sidebar.tsx`.
 
 ## Navigation (CAPTAIN_NAV in `App.tsx` / `components/layout/sidebar.tsx`)
@@ -17,9 +17,10 @@ sits under one role, `captain`, guarded by `CAPTAIN_NAV` in `App.tsx` / `compone
 | 2 | Purok Analytics & Reports | `analytics` | `purok_analytics.tsx` (rendered inside `dashboard.tsx`) |
 | 3 | Emergency Broadcasts | `broadcasts` | `emergency_broadcast.tsx` |
 | 4 | Patrol Coverage Map | `patrol` | `live_patrol.tsx` |
-| 5 | CCTV Evidence Viewer | `evidence` | `cctv_evidence_viewer.tsx` |
-| 6 | News & Bulletins | `bulletins` | `bulletin_publisher.tsx` |
-| 7 | Closed Incidents | `cases` | `incident_archive.tsx` |
+| 5 | Checkpoint Plans | `checkpoint_plans` | `checkpoint_plans.tsx` |
+| 6 | CCTV Evidence Viewer | `evidence` | `cctv_evidence_viewer.tsx` |
+| 7 | News & Bulletins | `bulletins` | `bulletin_publisher.tsx` |
+| 8 | Closed Incidents | `cases` | `incident_archive.tsx` |
 
 The captain lands on **Executive Safety Dashboard** by default (`defaultNav` in `App.tsx`). Login
 routing in `App.tsx` maps the username `captain` to this role. **Profile and Logout** live in the
@@ -288,8 +289,9 @@ authorization** boundary — high-severity blasts go out only after executive co
 An **executive patrol oversight** screen. The Captain sees coverage and performance summaries, not a
 patrol-control view. Per §6.3.11, continuous individual movement (live GPS positions, per-team
 markers, per-second jitter, heading, speed, battery, telemetry trails) is **not** shown to the
-Captain — that operational view belongs to the Desk Officer. The Captain never creates routes, edits
-checkpoints, assigns Tanods, or directly reroutes teams.
+Captain — that operational view belongs to the Desk Officer. The Captain never assigns Tanods or
+directly reroutes teams from this screen; checkpoint **route drafting** lives on the dedicated
+**Checkpoint Plans** screen (§5).
 
 ### KPIs
 - **ACTIVE UNITS** (`x/y` on patrol) · **CHECKPOINTS CLEARED** (`x/y`) · **ROUTE COVERAGE** (`%` of
@@ -351,7 +353,56 @@ checkpoints, assigns Tanods, or directly reroutes teams.
 
 ---
 
-## 5. `incident_archive.tsx` — Closed Incidents
+## 5. `checkpoint_plans.tsx` — Checkpoint Plans
+
+The Captain's dedicated checkpoint planning screen (previously a tab inside the Chief Tanod's patrol
+module — the plans function is now separate from the analyst's **Map & Analysis**). Here the Captain
+**drafts, schedules, validates, submits, reviews and finalizes checkpoint plans** — the full plan
+lifecycle in one place.
+
+### Plan lifecycle
+- **Create Checkpoint Plan** opens the shared 6-step planner:
+  1. **Basic Information** — checkpoint name, purpose, objective, reason / basis, target area / zone.
+  2. **Checkpoint Type & Location** — **Fixed** (single post) or **Route-based** (Point A → Point B
+     with CP stations). Points are placed directly on the same `BarangayMap` used across the patrol
+     screens; supporting **routes** can be added from **route suggestions** (derived from incident
+     hotspots) or drawn as **custom routes**, then clicking a route line drops intermediate CPs.
+  3. **Overlay & Coverage Validation** — the draft is overlaid against incidents and a coverage score
+     (`x of y` incidents within range, broken down by severity) is computed live.
+  4. **Operational Schedule** — operation / end dates, start / end times, recurrence (daily / specific
+     days / one-time), expected duration.
+  5. **Operational Notes** — general instructions, safety, equipment, coordination, special
+     instructions, other remarks.
+  6. **Review Complete Plan** — full summary with a missing-item checklist, then **Submit for
+     Approval**.
+- **Save as Draft** keeps a half-finished plan as a `draft` (continue editing / delete / duplicate
+  later); **Submit for Approval** moves it to **Pending Approval** and records `submittedBy`.
+
+### Plans list & metrics
+- Five KPI cards — **Approved / Finalized**, **Pending Approval**, **Drafts**, **Revision Required**,
+  **Rejected** — plus **Type** and **Area** filters with a clear/reset.
+- Each plan card shows name/code, **StatusBadge**, **TypeChip**, point A→B or supporting-route detail,
+  target area, coverage %, schedule window and objective, with actions by status:
+  - `pending_approval` — **Review & Decide** (`ApprovalModal`), **View**, **Print / Share w/ PNP**.
+  - `draft` — **Continue Editing**, **Delete**.
+  - `revision_required` — **Revise & Resubmit** (reopens the planner, revision comment visible).
+  - `approved` — **Duplicate**, **Print / Share w/ PNP**, **View** (with approval trail).
+  - `rejected` — **Duplicate** (fresh draft from the rejection), **View** (with rejection reason).
+
+### Approval
+- **Approval Decision** captures the executive ruling: **Approve & Finalize** (records `decidedBy:
+  Punong Barangay` + timestamp + optional remarks), **Request Revision** (required comment → returns
+  to `revision_required`), or **Reject** (required reason → closes the plan).
+- **Plan Detail** renders the complete plan — map overlay, purpose / target area / coverage, objective,
+  rationale, linked incidents, schedule, points & routes, and operational notes, plus the submitted /
+  decided trail.
+
+> Checkpoint plan **creation** and the route builder live on this screen; the Chief Tanod's
+> **Map & Analysis** module is the analysis-only view that informs those plans.
+
+---
+
+## 6. `incident_archive.tsx` — Closed Incidents
 
 **Read-only executive outcome review** of **closed** incidents (Resolved / Closed / Closed – False
 Alarm) per §9.3 and §10.3 — no PIR, debrief, phase pipeline, action-item workflow, or sign-off/archival
@@ -390,7 +441,7 @@ change status**. Each record carries its **IncidentUpdate history**, the **resol
 
 ---
 
-## 6. `cctv_evidence_viewer.tsx` — CCTV Evidence Viewer
+## 7. `cctv_evidence_viewer.tsx` — CCTV Evidence Viewer
 
 **Strictly read-only evidence review.** The captain observes and reviews evidence; the module carries a
 prominent blue **READ-ONLY** badge in the header plus a "Evidence cannot be modified" tag, and clips
@@ -424,7 +475,7 @@ CCTV Operator / Admin responsibilities. There is no export (no authorization mod
 
 ---
 
-## 7. `bulletin_publisher.tsx` — News & Bulletins
+## 8. `bulletin_publisher.tsx` — News & Bulletins
 
 Scheduled community communications — distinct from **Emergency Broadcasts**, which are the urgent,
 high-severity blast channel. Bulletins are durable posts pushed to residents' in-app bulletin board.
@@ -458,10 +509,10 @@ high-severity blast channel. Bulletins are durable posts pushed to residents' in
 
 ---
 
-## 8. End-to-end scenario (the Captain's view of one incident)
+## 9. End-to-end scenario (the Captain's view of one incident)
 
-The seven screens are one oversight pipeline: **observe → analyze → alert → direct → review → inform →
-report**. Here is a flash-flood event (`INC-2043`) as the Captain experiences it.
+The eight screens are one oversight pipeline: **observe → analyze → alert → oversee → plan → review →
+inform → report**. Here is a flash-flood event (`INC-2043`) as the Captain experiences it.
 
 ### 1. Observe — Executive Safety Dashboard
 The captain opens the Dashboard. The river-level sensor breach has flagged Purok 3 & 5 as a hazard on
@@ -495,7 +546,15 @@ Desk Officer** confirmation appears and the request lands in the Desk Officer qu
 rail the captain drills into Team Alpha (**Details**) and sends a **Recommend Patrol Adjustment** for
 their zone.
 
-### 5. Preserve — Closed Incidents
+### 5. Plan — Checkpoint Plans
+On **Checkpoint Plans**, the captain opens a route-based plan submitted for the flood hit zones and
+hits **Review & Decide** → **Approve & Finalize**; the plan card flips to Approved with the `Punong
+Barangay` decision trail. Seeing the low-lying river bridge gap from the coverage map, the captain
+then drafts a new **Fixed** checkpoint with the 6-step planner — sets the exact bridge post on the
+map, validates it against the flood incidents (coverage %), schedules it for the recovery window and
+notes the PNP coordination, then **Submits it for Approval** to queue it under Pending Approval.
+
+### 6. Preserve — Closed Incidents
 Days later the captain opens **Closed Incidents**. `INC-2043` (Flash Flood Warning) sits in the
 resolved list with its closure timestamp and reason. The captain opens it and, under the blue
 **READ-ONLY** badge, reviews the **Incident Summary** (description, detection time, closure reason),
@@ -506,7 +565,7 @@ follow-up. Cross-referencing the **CCTV Evidence Viewer**, the captain pulls the
 (`CLIP-2026-*`, `CAM-RIVER-01/02`) linked to the incident and reviews them in the playback station to
 confirm the evacuation timeline.
 
-### 6. Inform — News & Bulletins
+### 7. Inform — News & Bulletins
 As the water recedes the captain posts a **Weather Warning** bulletin on **News & Bulletins**, composing
 headline, message and severity by hand (no external weather API), and pushing it to the **Entire
 Barangay** through **Compose → Review → Publish**, so the community stays informed through the recovery
@@ -514,7 +573,7 @@ period — a durable companion to the one-off emergency blast sent earlier. Sinc
 the whole barangay, no purok targeting is needed; if only the low-lying puroks (Purok 3 & 5) needed it,
 the captain would coordinate that through the **Desk Officer** instead of a bulletin.
 
-### 7. Report — Operational Reports
+### 8. Report — Operational Reports
 On the dashboard's **Operational Reports** tab the captain picks **This Month** and reviews the
 executive summary: **TOTAL / CRITICAL / RESOLVED incidents**, **avg response & resolution time**,
 **SLA breaches**, **IoT device health**, **CCTV availability**, **broadcast delivery rate** and
@@ -530,7 +589,7 @@ the workflow closes the loop: **Monitor → Respond/Authorize → Follow Up → 
 
 ## Cross-cutting conventions
 
-- **UI language** — all seven screens use the shared design system: `#0038A8` accent (hover
+- **UI language** — all eight screens use the shared design system: `#0038A8` accent (hover
   `#002A8C`), `#E9EDFB` panel background, stone/slate text tones, and a navy `#06122B` sidebar;
   `useToast` notifications, and centered confirmation/success modals (`ConfirmModal` pattern) for
   irreversible actions (authorize blast, dismiss draft, advance phase, sign-off, archive bulletin) and
@@ -556,10 +615,11 @@ the workflow closes the loop: **Monitor → Respond/Authorize → Follow Up → 
   (`AuthorizeEmergencyBroadcast`); the Desk Officer can only compose/queue them. Medium/low severity
   pushes go out without executive approval. All Captain dispatch-type actions are requests, not direct
   orders: patrol adjustment recommendations, escalations, and broadcast follow-ups route through the
-  **Desk Officer queue**, which confirms and executes them. Patrol **route creation** stays
-  with the Desk Officer / Admin per spec §2.3 — the Captain's patrol screen is view / recommend only
-  and, per §6.3.11, shows **area-based coverage summaries**, never continuous individual movement
-  tracking (no live GPS markers, jitter or telemetry pings). CCTV evidence is **strictly read-only**
+  **Desk Officer queue**, which confirms and executes them. The **Patrol Coverage Map** remains
+  view / recommend only and, per §6.3.11, shows **area-based coverage summaries**, never continuous
+  individual movement tracking (no live GPS markers, jitter or telemetry pings); checkpoint **route
+  creation, drafting and approval** now live on the Captain's dedicated **Checkpoint Plans** screen
+  (§5), the executive end of the plan lifecycle. CCTV evidence is **strictly read-only**
   for the captain (search / filter / play / seek / view metadata — **no edits, no unblur, no export, no
   camera control**): privacy-blurred clips stay blurred and unblurring remains the CCTV Operator /
   Barangay Admin responsibility, and bulletins are a shared channel with the Purok Leader.

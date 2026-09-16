@@ -1,4 +1,5 @@
 export { default as CaptainDashboard } from "./dashboard";
+export { default as CheckpointPlans } from "./checkpoint_plans";
 export { default as EmergencyBroadcast } from "./emergency_broadcast";
 export { default as IncidentArchive } from "./incident_archive";
 export { default as LivePatrol } from "./live_patrol";

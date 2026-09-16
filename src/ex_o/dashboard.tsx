@@ -150,6 +150,8 @@ function formatElapsed(isoStr?: string) {
 }
 
 export default function ExOfficerDashboard() {
+  console.log("ExOfficerDashboard component called");
+  
   const { incidents } = useIncidentStore();
   const tanods = useTanodStore();
   const [showAlerts, setShowAlerts] = useState(false);

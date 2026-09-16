@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Bell, CheckCircle2, X, XCircle } from "lucide-react";
 
 export type ToastType = "info" | "success" | "warning" | "error";
@@ -99,7 +99,7 @@ export function useToast() {
   }, [toast]);
 
   const ToastPortal = useMemo(() => {
-    if (!toast) return null;
+    if (!toast) return function ToastPortal() { return null; };
     const meta = TYPE_META[toast.type];
     const Icon = meta.icon;
     return function ToastPortal() {

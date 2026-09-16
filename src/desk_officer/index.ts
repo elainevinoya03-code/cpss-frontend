@@ -5,4 +5,3 @@ export { default as DigitalBlotter } from "./digital_blotter";
 export { default as OperationsChatCenter } from "./operations_chat_center";
 export { default as AlertManagement } from "./alert_management";
 export { default as CctvRequests } from "./cctv_requests";
-export { default as PatrolSchedulerRoutes } from "./patrol_operations";

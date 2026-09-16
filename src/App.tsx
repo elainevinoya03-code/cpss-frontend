@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import Login from "./pages/login";
+import LandingPage from "./landing-page/LandingPage";
 import { Sidebar, Header } from "./components/layout";
 import {
   Dashboard,
@@ -18,6 +19,7 @@ import {
   IncidentArchive,
   CCTVEvidenceViewer,
   BulletinPublisher,
+  CheckpointPlans,
 } from "./captain";
 import {
   DeskOfficerDashboard,
@@ -27,11 +29,11 @@ import {
   OperationsChatCenter,
   AlertManagement,
   CctvRequests,
-  PatrolSchedulerRoutes,
 } from "./desk_officer";
 import {
   ChiefTanodDashboard,
   PatrolScheduling,
+  CheckInOut,
   LiveTanodTracking,
   IncidentOversight,
   ReferredCases,
@@ -41,10 +43,8 @@ import {
 } from "./chief_tanod";
 import {
   SurveillanceMatrix,
-  LiveMonitoring,
   RecordedFootageEvidence,
   CctvFootageRequests,
-  CameraMap,
 } from "./cctv_operator";
 import {
   LocalReports,
@@ -52,16 +52,17 @@ import {
   PurokAnnouncements,
   PurokContacts,
 } from "./purok_leader";
-import { ExOfficerDashboard, PatrolConfiguration } from "./ex_o";
+import { ExOfficerDashboard } from "./ex_o";
+import { PatrolConfiguration } from "./chief_tanod";
 import { PurokIncidentsProvider } from "./purok_leader/incidentStore";
 
 
 const ADMIN_NAV = ["dashboard", "users", "iot", "cctv", "boundaries", "logs", "data_requests", "settings"];
-const CAPTAIN_NAV = ["dashboard", "analytics", "broadcasts", "patrol", "evidence", "bulletins", "cases"];
-const DESK_OFFICER_NAV = ["dashboard", "incident_triage", "alert_management", "dispatches", "patrol", "blotter", "chat", "footage_requests"];
-const CCTV_OPERATOR_NAV = ["surveillance", "live_monitoring", "camera_map", "recorded_footage", "footage_requests"];
+const CAPTAIN_NAV = ["dashboard", "analytics", "broadcasts", "patrol", "checkpoint_plans", "evidence", "bulletins", "cases"];
+const DESK_OFFICER_NAV = ["dashboard", "incident_triage", "alert_management", "dispatches", "blotter", "chat", "footage_requests"];
+const CCTV_OPERATOR_NAV = ["surveillance", "recorded_footage", "footage_requests"];
 const PUROK_LEADER_NAV = ["reports", "escalated", "announcements", "contacts"];
-const CHIEF_TANOD_NAV = ["dashboard", "patrol_scheduling", "live_tracking", "incidents", "referred_cases", "team_performance", "neighborhood_watch", "reports_analytics"];
+const CHIEF_TANOD_NAV = ["dashboard", "patrol_scheduling", "check_in_out", "checkpoint_planning", "live_tracking", "incidents", "referred_cases", "team_performance", "neighborhood_watch", "reports_analytics"];
 const TANOD_NAV = ["dashboard", "patrol_scheduling", "live_tracking", "incidents"];
 const EX_O_NAV = ["dashboard", "patrol"];
 
@@ -80,7 +81,11 @@ function canAccess(role, key) {
   if (role === "cctv_operator") return CCTV_OPERATOR_NAV.includes(key);
   if (role === "purok_leader") return PUROK_LEADER_NAV.includes(key);
   if (role === "chief_tanod") return CHIEF_TANOD_NAV.includes(key);
-  if (role === "tanod") return TANOD_NAV.includes(key);
+  if (role === "tanod") {
+    // Tanods cannot access check_in_out feature
+    if (key === "check_in_out") return false;
+    return TANOD_NAV.includes(key);
+  }
   if (role === "ex_o") return EX_O_NAV.includes(key);
   return ADMIN_NAV.includes(key);
 }
@@ -96,6 +101,11 @@ function loadSession() {
         // Guard against stale purok-leader nav keys from before the streamlined prototype.
         if (data.role === "purok_leader" && !PUROK_LEADER_NAV.includes(data.activeNav)) return null;
         if (data.role === "tanod" && !TANOD_NAV.includes(data.activeNav)) return null;
+        // If page is "login", migrate to "landing"
+        if (data.page === "login") {
+          data.page = "landing";
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        }
         return data;
       }
     }
@@ -123,7 +133,7 @@ function clearSession() {
 
 export default function App() {
   const saved = loadSession();
-  const [page, setPage] = useState(saved?.page ?? "login");
+  const [page, setPage] = useState(saved?.page ?? "landing");
   const [role, setRole] = useState(saved?.role ?? "admin");
   const [activeNav, setActiveNav] = useState(saved?.activeNav ?? "dashboard");
   const [operatorName, setOperatorName] = useState(saved?.operatorName ?? "CO-01");
@@ -182,7 +192,7 @@ export default function App() {
   const doLogout = () => {
     clearSession();
     setPendingNav(null);
-    setPage("login");
+    setPage("landing");
     setRole("admin");
     setActiveNav("dashboard");
   };
@@ -204,8 +214,12 @@ export default function App() {
     if (key) doNavigate(key);
   };
 
+  if (page === "landing") {
+    return <LandingPage onNavigateToLogin={() => setPage("login")} />;
+  }
+
   if (page === "login") {
-    return <Login onLogin={handleLogin} />;
+    return <Login onLogin={handleLogin} onNavigateToLanding={() => setPage("landing")} />;
   }
 
   const currentInitials = role === "captain" ? "CA" : role === "desk_officer" ? "DO" : role === "cctv_operator" ? "CO" : role === "purok_leader" ? "PL" : role === "chief_tanod" ? "CT" : role === "tanod" ? "TA" : role === "ex_o" ? "EO" : "BA";
@@ -230,6 +244,7 @@ export default function App() {
               {activeNav === "analytics" && <CaptainDashboard activeKey="analytics" />}
               {activeNav === "broadcasts" && <EmergencyBroadcast />}
               {activeNav === "patrol" && <LivePatrol />}
+              {activeNav === "checkpoint_plans" && <CheckpointPlans />}
               {activeNav === "evidence" && <CCTVEvidenceViewer />}
               {activeNav === "bulletins" && <BulletinPublisher />}
               {activeNav === "cases" && <IncidentArchive />}
@@ -239,7 +254,6 @@ export default function App() {
               {activeNav === "dashboard" && <DeskOfficerDashboard onNavigate={handleNavigate} />}
               {activeNav === "incident_triage" && <IncidentTriage onNavigate={handleNavigate} />}
               {activeNav === "dispatches" && <ActiveDispatches />}
-              {activeNav === "patrol" && <PatrolSchedulerRoutes />}
               {activeNav === "blotter" && <DigitalBlotter />}
               {activeNav === "chat" && <OperationsChatCenter />}
               {activeNav === "footage_requests" && <CctvRequests />}
@@ -248,8 +262,6 @@ export default function App() {
           ) : role === "cctv_operator" ? (
             <>
               {activeNav === "surveillance" && <SurveillanceMatrix operatorName={operatorName} />}
-              {activeNav === "live_monitoring" && <LiveMonitoring />}
-              {activeNav === "camera_map" && <CameraMap />}
               {activeNav === "recorded_footage" && <RecordedFootageEvidence operatorName={operatorName} />}
               {activeNav === "footage_requests" && <CctvFootageRequests operatorName={operatorName} />}
             </>
@@ -263,7 +275,11 @@ export default function App() {
           ) : role === "chief_tanod" ? (
             <>
               {activeNav === "dashboard" && <ChiefTanodDashboard onNavigate={handleNavigate} />}
-              {activeNav === "patrol_scheduling" && <PatrolScheduling onNavigate={handleNavigate} />}
+              {activeNav === "patrol_scheduling" && <PatrolScheduling onNavigate={handleNavigate} role="chief_tanod" />}
+              {activeNav === "check_in_out" && <CheckInOut onNavigate={handleNavigate} role="chief_tanod" />}
+              {activeNav === "checkpoint_planning" && (
+                <PatrolConfiguration onNavigate={handleNavigate} />
+              )}
               {activeNav === "live_tracking" && <LiveTanodTracking onNavigate={handleNavigate} />}
               {activeNav === "incidents" && <IncidentOversight onNavigate={handleNavigate} />}
               {activeNav === "referred_cases" && <ReferredCases onNavigate={handleNavigate} />}
@@ -274,7 +290,7 @@ export default function App() {
           ) : role === "tanod" ? (
             <>
               {activeNav === "dashboard" && <ChiefTanodDashboard onNavigate={handleNavigate} />}
-              {activeNav === "patrol_scheduling" && <PatrolScheduling onNavigate={handleNavigate} />}
+              {activeNav === "patrol_scheduling" && <PatrolScheduling onNavigate={handleNavigate} role="tanod" />}
               {activeNav === "live_tracking" && <LiveTanodTracking onNavigate={handleNavigate} />}
               {activeNav === "incidents" && <IncidentOversight onNavigate={handleNavigate} />}
             </>
@@ -282,7 +298,7 @@ export default function App() {
             <>
               {activeNav === "dashboard" && <ExOfficerDashboard />}
               {activeNav === "patrol" && (
-                <PatrolConfiguration navGuardRef={navGuardRef} onDiscardNavigate={handleDiscardNavigate} />
+                <PatrolConfiguration />
               )}
             </>
           ) : (

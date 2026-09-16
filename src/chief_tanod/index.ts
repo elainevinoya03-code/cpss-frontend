@@ -1,5 +1,7 @@
 export { default as ChiefTanodDashboard } from "./dashboard";
 export { default as PatrolScheduling } from "./patrolScheduling";
+export { default as CheckInOut } from "./checkInOut";
+export { default as PatrolConfiguration } from "./patrol_configuration";
 export { default as LiveTanodTracking } from "./liveTanodTracking";
 export { default as IncidentOversight } from "./incidentOversight";
 export { default as ReferredCases } from "./referredCases";

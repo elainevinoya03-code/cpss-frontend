@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Search, Plus, Pencil, Power, Key, ChevronLeft, ChevronRight, Mail, ShieldCheck, Clock, Eye, Trash2 } from "lucide-react";
 import { PUROK_OPTIONS } from "../constants/purok";
@@ -96,7 +97,7 @@ export default function UserManagement() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
-  const [modal, setModal] = useState<{type: string; user?: any} | null>(null);
+  const [modal, setModal] = useState<{ type: string; user?: any } | null>(null);
   const [filter, setFilter] = useState("All");
   const [page, setPage] = useState(1);
   const [form, setForm] = useState({
@@ -358,7 +359,7 @@ export default function UserManagement() {
         </header>
 
         <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
-          
+
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stone-100 px-6 py-5">
             <div>
               <h2 className="text-base font-semibold text-stone-900">User Directory</h2>
@@ -392,7 +393,7 @@ export default function UserManagement() {
             </div>
           </div>
 
-          
+
           <div className="db-scroll flex items-center gap-2 overflow-x-auto border-b border-stone-100 px-6 py-3">
             {ALL_FILTERS.map((f) => {
               const count =
@@ -410,19 +411,17 @@ export default function UserManagement() {
                     setFilter(f);
                     setPage(1);
                   }}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                    filter === f
+                  className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${filter === f
                       ? "border-[#0038A8] bg-[#0038A8]/5 text-[#0038A8]"
                       : "border-stone-200 text-stone-500 hover:border-stone-300 hover:bg-stone-50"
-                  }`}
+                    }`}
                 >
                   {f}
                   <span
-                    className={`rounded-full px-1.5 py-0.5 text-[10px] ${
-                      filter === f
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] ${filter === f
                         ? "bg-[#0038A8]/10 text-[#0038A8]"
                         : "bg-stone-100 text-stone-400"
-                    }`}
+                      }`}
                   >
                     {count}
                   </span>
@@ -431,191 +430,186 @@ export default function UserManagement() {
             })}
           </div>
 
-          
+
           <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="text-xs uppercase tracking-wide text-stone-400">
-                <th className="px-6 py-3 font-medium whitespace-nowrap">User</th>
-                <th className="px-6 py-3 font-medium whitespace-nowrap">User ID</th>
-                <th className="px-6 py-3 font-medium whitespace-nowrap">Role</th>
-                <th className="px-6 py-3 font-medium whitespace-nowrap">Purok / Zone</th>
-                <th className="px-6 py-3 font-medium whitespace-nowrap">Contact</th>
-                <th className="px-6 py-3 font-medium whitespace-nowrap">Status</th>
-                <th className="px-6 py-3 font-medium whitespace-nowrap">2FA</th>
-                <th className="px-6 py-3 font-medium whitespace-nowrap">Last Login</th>
-                <th className="px-6 py-3 font-medium whitespace-nowrap">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={9} className="px-6 py-10 text-center text-sm text-stone-400">
-                    Loading users...
-                  </td>
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="text-xs uppercase tracking-wide text-stone-400">
+                  <th className="px-6 py-3 font-medium whitespace-nowrap">User</th>
+                  <th className="px-6 py-3 font-medium whitespace-nowrap">User ID</th>
+                  <th className="px-6 py-3 font-medium whitespace-nowrap">Role</th>
+                  <th className="px-6 py-3 font-medium whitespace-nowrap">Purok / Zone</th>
+                  <th className="px-6 py-3 font-medium whitespace-nowrap">Contact</th>
+                  <th className="px-6 py-3 font-medium whitespace-nowrap">Status</th>
+                  <th className="px-6 py-3 font-medium whitespace-nowrap">2FA</th>
+                  <th className="px-6 py-3 font-medium whitespace-nowrap">Last Login</th>
+                  <th className="px-6 py-3 font-medium whitespace-nowrap">Actions</th>
                 </tr>
-              ) : paginated.map((u) => (
-                <tr key={u.id} className="border-t border-stone-100">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold ${
-                          u.active
-                            ? "bg-[#0038A8] text-white"
-                            : "bg-stone-200 text-stone-400"
-                        }`}
-                      >
-                        {initials(u.name)}
-                      </div>
-                      <div>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={9} className="px-6 py-10 text-center text-sm text-stone-400">
+                      Loading users...
+                    </td>
+                  </tr>
+                ) : paginated.map((u) => (
+                  <tr key={u.id} className="border-t border-stone-100">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
                         <div
-                          className={`font-medium ${
-                            u.active ? "text-stone-900" : "text-stone-400"
-                          }`}
+                          className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold ${u.active
+                              ? "bg-[#0038A8] text-white"
+                              : "bg-stone-200 text-stone-400"
+                            }`}
                         >
-                          {u.name}
+                          {initials(u.name)}
                         </div>
-                        <div className="text-xs text-stone-400">{u.email}</div>
+                        <div>
+                          <div
+                            className={`font-medium ${u.active ? "text-stone-900" : "text-stone-400"
+                              }`}
+                          >
+                            {u.name}
+                          </div>
+                          <div className="text-xs text-stone-400">{u.email}</div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="rounded-md bg-stone-100 px-2 py-1 font-mono text-xs font-medium tracking-wide text-stone-600">
-                      {u.userId}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${ROLE_STYLES[u.role] || "bg-stone-100 text-stone-600"}`}
-                    >
-                      {u.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-xs text-stone-500">
-                    {u.purok || <span className="text-stone-300">—</span>}
-                  </td>
-                  <td className="px-6 py-4 text-xs text-stone-500">
-                    {u.phone || <span className="text-stone-300">—</span>}
-                  </td>
-                  <td className="px-6 py-4">
-                    {u.active && isPrivilegedRole(u.role) && u.twoFactor === "pending" ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-amber-50 text-amber-700" title="Mandatory 2FA not yet enrolled">
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                        2FA Setup Required
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="rounded-md bg-stone-100 px-2 py-1 font-mono text-xs font-medium tracking-wide text-stone-600">
+                        {u.userId}
                       </span>
-                    ) : (
+                    </td>
+                    <td className="px-6 py-4">
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                          u.active
-                            ? "bg-emerald-50 text-emerald-600"
-                            : "bg-stone-100 text-stone-400"
-                        }`}
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${ROLE_STYLES[u.role] || "bg-stone-100 text-stone-600"}`}
                       >
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            u.active ? "bg-emerald-500" : "bg-stone-400"
-                          }`}
-                        />
-                        {u.active ? "Active" : "Deactivated"}
+                        {u.role}
                       </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {isPrivilegedRole(u.role) ? (
-                      u.twoFactor === "pending" ? (
-                        <span
-                          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-amber-50 text-amber-700"
-                          title="Account pending two-factor enrollment"
-                        >
-                          <Clock size={11} />
-                          Pending
+                    </td>
+                    <td className="px-6 py-4 text-xs text-stone-500">
+                      {u.purok || <span className="text-stone-300">—</span>}
+                    </td>
+                    <td className="px-6 py-4 text-xs text-stone-500">
+                      {u.phone || <span className="text-stone-300">—</span>}
+                    </td>
+                    <td className="px-6 py-4">
+                      {u.active && isPrivilegedRole(u.role) && u.twoFactor === "pending" ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-amber-50 text-amber-700" title="Mandatory 2FA not yet enrolled">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                          2FA Setup Required
                         </span>
                       ) : (
                         <span
-                          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-emerald-50 text-emerald-600"
-                          title="Two-factor authentication enabled"
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${u.active
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-stone-100 text-stone-400"
+                            }`}
                         >
-                          <ShieldCheck size={11} />
-                          Enabled
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${u.active ? "bg-emerald-500" : "bg-stone-400"
+                              }`}
+                          />
+                          {u.active ? "Active" : "Deactivated"}
                         </span>
-                      )
-                    ) : (
-                      <span className="text-stone-300">—</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-stone-500">{u.lastLogin}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => setDetailUser(u)}
-                        title="View details"
-                        className="flex items-center gap-1 rounded-md border border-stone-200 px-2.5 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50"
-                      >
-                        <Eye size={12} />
-                        Detail
-                      </button>
-                      <button
-                        onClick={() => openEdit(u)}
-                        title="Edit user"
-                        className="flex items-center gap-1 rounded-md border border-stone-200 px-2.5 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50"
-                      >
-                        <Pencil size={12} />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => requestReset(u)}
-                        title="Send password reset"
-                        className="flex items-center gap-1 rounded-md border border-stone-200 px-2.5 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50"
-                      >
-                        <Key size={12} />
-                        Reset
-                      </button>
-                      {isPrivilegedRole(u.role) && u.twoFactor === "pending" && (
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      {isPrivilegedRole(u.role) ? (
+                        u.twoFactor === "pending" ? (
+                          <span
+                            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-amber-50 text-amber-700"
+                            title="Account pending two-factor enrollment"
+                          >
+                            <Clock size={11} />
+                            Pending
+                          </span>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-emerald-50 text-emerald-600"
+                            title="Two-factor authentication enabled"
+                          >
+                            <ShieldCheck size={11} />
+                            Enabled
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-stone-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-stone-500">{u.lastLogin}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1.5">
                         <button
-                          onClick={() => resendTwoFactor(u)}
-                          title="Re-send two-factor enrollment invitation"
+                          onClick={() => setDetailUser(u)}
+                          title="View details"
                           className="flex items-center gap-1 rounded-md border border-stone-200 px-2.5 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50"
                         >
-                          <ShieldCheck size={12} />
-                          2FA
+                          <Eye size={12} />
+                          Detail
                         </button>
-                      )}
-                      <button
-                        onClick={() => requestToggle(u)}
-                        title={u.active ? "Deactivate" : "Activate"}
-                        className={`flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium transition ${
-                          u.active
-                            ? "border-red-200 text-red-500 hover:bg-red-50"
-                            : "border-stone-200 text-stone-600 hover:bg-stone-50"
-                        }`}
-                      >
-                        <Power size={12} />
-                        {u.active ? "Disable" : "Enable"}
-                      </button>
-                      <button
-                        onClick={() => requestDelete(u)}
-                        title="Delete user"
-                        className="flex items-center gap-1 rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50"
-                      >
-                        <Trash2 size={12} />
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {!loading && paginated.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="px-6 py-10 text-center text-sm text-stone-400">
-                    No users match your search or filter.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                        <button
+                          onClick={() => openEdit(u)}
+                          title="Edit user"
+                          className="flex items-center gap-1 rounded-md border border-stone-200 px-2.5 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50"
+                        >
+                          <Pencil size={12} />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => requestReset(u)}
+                          title="Send password reset"
+                          className="flex items-center gap-1 rounded-md border border-stone-200 px-2.5 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50"
+                        >
+                          <Key size={12} />
+                          Reset
+                        </button>
+                        {isPrivilegedRole(u.role) && u.twoFactor === "pending" && (
+                          <button
+                            onClick={() => resendTwoFactor(u)}
+                            title="Re-send two-factor enrollment invitation"
+                            className="flex items-center gap-1 rounded-md border border-stone-200 px-2.5 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50"
+                          >
+                            <ShieldCheck size={12} />
+                            2FA
+                          </button>
+                        )}
+                        <button
+                          onClick={() => requestToggle(u)}
+                          title={u.active ? "Deactivate" : "Activate"}
+                          className={`flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium transition ${u.active
+                              ? "border-red-200 text-red-500 hover:bg-red-50"
+                              : "border-stone-200 text-stone-600 hover:bg-stone-50"
+                            }`}
+                        >
+                          <Power size={12} />
+                          {u.active ? "Disable" : "Enable"}
+                        </button>
+                        <button
+                          onClick={() => requestDelete(u)}
+                          title="Delete user"
+                          className="flex items-center gap-1 rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50"
+                        >
+                          <Trash2 size={12} />
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {!loading && paginated.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="px-6 py-10 text-center text-sm text-stone-400">
+                      No users match your search or filter.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
 
-          
+
           {filtered.length > 0 && (
             <div className="flex items-center justify-between border-t border-stone-100 px-6 py-3">
               <p className="text-xs text-stone-400">
@@ -624,33 +618,32 @@ export default function UserManagement() {
               </p>
               {totalPages > 1 && (
                 <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={safePage <= 1}
-                  className="flex h-8 w-8 items-center justify-center rounded-md border border-stone-200 text-stone-500 transition hover:bg-stone-50 disabled:opacity-40"
-                >
-                  <ChevronLeft size={14} />
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                   <button
-                    key={p}
-                    onClick={() => setPage(p)}
-                    className={`flex h-8 w-8 items-center justify-center rounded-md text-xs font-medium transition ${
-                      p === safePage
-                        ? "bg-[#0038A8] text-white"
-                        : "border border-stone-200 text-stone-600 hover:bg-stone-50"
-                    }`}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={safePage <= 1}
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-stone-200 text-stone-500 transition hover:bg-stone-50 disabled:opacity-40"
                   >
-                    {p}
+                    <ChevronLeft size={14} />
                   </button>
-                ))}
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={safePage >= totalPages}
-                  className="flex h-8 w-8 items-center justify-center rounded-md border border-stone-200 text-stone-500 transition hover:bg-stone-50 disabled:opacity-40"
-                >
-                  <ChevronRight size={14} />
-                </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`flex h-8 w-8 items-center justify-center rounded-md text-xs font-medium transition ${p === safePage
+                          ? "bg-[#0038A8] text-white"
+                          : "border border-stone-200 text-stone-600 hover:bg-stone-50"
+                        }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={safePage >= totalPages}
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-stone-200 text-stone-500 transition hover:bg-stone-50 disabled:opacity-40"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
                 </div>
               )}
             </div>
@@ -658,7 +651,7 @@ export default function UserManagement() {
         </div>
       </main>
 
-      
+
       {modal && (
         <Modal
           title={modal.type === "create" ? "Create New User" : "Update User"}
@@ -868,7 +861,7 @@ export default function UserManagement() {
         </Modal>
       )}
 
-      
+
       {confirmAction && (
         <ConfirmModal
           type="confirm"
@@ -922,11 +915,10 @@ export default function UserManagement() {
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <div
-                className={`flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold ${
-                  detailUser.active
+                className={`flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold ${detailUser.active
                     ? "bg-[#0038A8] text-white"
                     : "bg-stone-200 text-stone-400"
-                }`}
+                  }`}
               >
                 {initials(detailUser.name)}
               </div>

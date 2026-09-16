@@ -20,9 +20,10 @@ interface LoginResponse {
 
 interface LoginProps {
   onLogin?: (e: React.FormEvent, userData: LoginResponse) => void;
+  onNavigateToLanding?: () => void;
 }
 
-export default function Login({ onLogin }: LoginProps) {
+export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -169,7 +170,14 @@ export default function Login({ onLogin }: LoginProps) {
               transition: "all 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.15s",
             }}
           >
-            <img src={logo} alt="Logo" className="mb-5 h-auto w-[120px] object-contain sm:w-[160px]" />
+            <button
+              type="button"
+              onClick={onNavigateToLanding}
+              className="mb-5 cursor-pointer border-none bg-transparent p-0 transition-transform hover:scale-105"
+              disabled={loading || success}
+            >
+              <img src={logo} alt="Logo" className="h-auto w-[120px] object-contain sm:w-[160px]" />
+            </button>
             <h2 className="m-0 text-center text-[clamp(28px,5vw,40px)] font-extrabold text-[#0038A8]">
               Welcome Back!
             </h2>

@@ -1,4 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { MAP_CENTER, toGeoPoint, purokZoneToGeo } from "../utils/geoUtils";
 import {
   Map,
   Users,
@@ -22,6 +25,11 @@ import {
   Target,
   Waypoints,
   UserCheck,
+  Route,
+  CheckCircle2,
+  Circle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { PUROK_ZONES } from "../constants/purok";
 import {
@@ -34,8 +42,82 @@ import {
   type TanodStatus,
   type TanodMessage,
 } from "../desk_officer/tanodStore";
+import {
+  getCheckInOutRecords,
+  getTeams,
+  getRoster,
+  usePatrolScheduleStore,
+} from "./patrolScheduleStore";
+import { getCheckpointPlans } from "./checkpointPlanStore";
 import { Modal } from "../components/ui";
 import { useToast } from "../hooks/useToast";
+
+// ---------------------------------------------------------------------------
+// Mock checkpoint progress seed (simulates "Arrived at CP" taps from Tanod app)
+// ---------------------------------------------------------------------------
+
+interface CpProgressEntry {
+  cpId: string;
+  cpLabel: string;
+  cpName: string;
+  confirmedAt: string | null; // null = not yet confirmed
+}
+
+interface RouteProgress {
+  tanodId: string;
+  tanodName: string;
+  teamName: string;
+  scheduleCode: string;
+  planName: string;
+  status: "on_duty" | "completed";
+  checkInTime: string;
+  checkOutTime?: string;
+  checkpoints: CpProgressEntry[];
+}
+
+// Simulate real-time progress: Team Alpha is mid-route, Team Bravo just started
+const MOCK_ROUTE_PROGRESS: RouteProgress[] = [
+  {
+    tanodId: "tn-01",
+    tanodName: "Sgt. Reyes",
+    teamName: "Team Alpha",
+    scheduleCode: "PS-041",
+    planName: "Public Market Night Interdiction",
+    status: "on_duty",
+    checkInTime: new Date(Date.now() - 2.1 * 3_600_000).toISOString(),
+    checkpoints: [
+      { cpId: "sp-1", cpLabel: "FIXED", cpName: "Market North Gate", confirmedAt: new Date(Date.now() - 110 * 60_000).toISOString() },
+    ],
+  },
+  {
+    tanodId: "tn-02",
+    tanodName: "Cpl. Dela Cruz",
+    teamName: "Team Bravo",
+    scheduleCode: "PS-042",
+    planName: "Riverside ↔ Terminal Through-route",
+    status: "on_duty",
+    checkInTime: new Date(Date.now() - 1.3 * 3_600_000).toISOString(),
+    checkpoints: [
+      { cpId: "sp-2", cpLabel: "A", cpName: "Riverside Arc (Start)", confirmedAt: new Date(Date.now() - 75 * 60_000).toISOString() },
+      { cpId: "sp-3", cpLabel: "CP1", cpName: "Chapel Crossing", confirmedAt: new Date(Date.now() - 38 * 60_000).toISOString() },
+      { cpId: "sp-4", cpLabel: "CP2", cpName: "Market Row", confirmedAt: null },
+      { cpId: "sp-5", cpLabel: "B", cpName: "Terminal (End)", confirmedAt: null },
+    ],
+  },
+  {
+    tanodId: "tn-03",
+    tanodName: "PO1 Mendoza",
+    teamName: "Team Alpha",
+    scheduleCode: "PS-041",
+    planName: "Public Market Night Interdiction",
+    status: "completed",
+    checkInTime: new Date(Date.now() - 5.5 * 3_600_000).toISOString(),
+    checkOutTime: new Date(Date.now() - 0.5 * 3_600_000).toISOString(),
+    checkpoints: [
+      { cpId: "sp-1", cpLabel: "FIXED", cpName: "Market North Gate", confirmedAt: new Date(Date.now() - 5.0 * 3_600_000).toISOString() },
+    ],
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -198,83 +280,216 @@ function LiveTrackingMap({
   onSelectTanod: (t: Tanod) => void;
   selectedTanodId: string | null;
 }) {
-  return (
-    <div className="relative mx-auto max-w-[640px]">
-      <svg viewBox="0 0 440 400" preserveAspectRatio="xMidYMid meet" className="h-auto w-full">
-        {PUROK_ZONES.map((zone) => {
-          const zoneTanods = tanods.filter((t) => t.purok === zone.name && t.status !== "off_duty");
-          const isHovered = hoveredZone === zone.id;
-          return (
-            <g
-              key={zone.id}
-              onMouseEnter={() => setHoveredZone(zone.id)}
-              onMouseLeave={() => setHoveredZone(null)}
-              className="cursor-pointer"
-            >
-              <path
-                d={zone.path}
-                fill={isHovered ? "#dbe3fb" : zoneTanods.length > 0 ? "#ecfdf5" : "#F8FAFC"}
-                stroke={zone.color}
-                strokeWidth={isHovered ? 2 : 1.5}
-                strokeOpacity={isHovered ? 1 : 0.6}
-                className="transition-colors duration-200"
-              />
-              <text
-                x={zone.labelX}
-                y={zone.labelY}
-                textAnchor="middle"
-                className="pointer-events-none select-none"
-                fontSize="10"
-                fontWeight="500"
-                fill={zone.color}
-                opacity={0.85}
-              >
-                {zone.name}
-              </text>
-              {zoneTanods.length > 0 && (
-                <g className="pointer-events-none">
-                  <circle cx={zone.labelX + 32} cy={zone.labelY - 8} r={8} fill="#10b981" opacity={0.9} />
-                  <text x={zone.labelX + 32} y={zone.labelY - 4.5} textAnchor="middle" fontSize="8" fontWeight="700" fill="white">
-                    {zoneTanods.length}
-                  </text>
-                </g>
-              )}
-            </g>
-          );
-        })}
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
 
-        {tanods
-          .filter((t) => t.status !== "off_duty" && t.gps)
-          .map((tanod) => {
-            const zone = zoneByName(tanod.purok);
-            if (!zone || !tanod.gps) return null;
-            const dotColor = tanod.markerColor ?? (tanod.status === "available" ? "#10b981" : tanod.status === "en_route" ? "#f59e0b" : "#0ea5e9");
-            const offsetIdx = Math.abs(tanod.name.charCodeAt(tanod.name.length - 1)) % 5;
-            const ox = offsetIdx === 0 ? 0 : (offsetIdx - 2) * 6;
-            const oy = offsetIdx % 2 === 0 ? -14 : 14;
-            const isSelected = selectedTanodId === tanod.id;
-            return (
-              <g key={tanod.id} onClick={() => onSelectTanod(tanod)} className="cursor-pointer">
-                {isSelected && (
-                  <circle cx={zone.labelX + ox} cy={zone.labelY + 18 + oy} r={14} fill="none" stroke={dotColor} strokeWidth={2} opacity={0.5} className="animate-ping" />
-                )}
-                {tanod.status === "en_route" && (
-                  <circle cx={zone.labelX + ox} cy={zone.labelY + 18 + oy} r={10} fill="none" stroke="#f59e0b" strokeWidth={1} opacity={0.4} className="animate-ping" />
-                )}
-                <circle cx={zone.labelX + ox} cy={zone.labelY + 18 + oy} r={isSelected ? 7 : 5.5} fill={dotColor} stroke="white" strokeWidth={1.5} className="drop-shadow" />
-                <text x={zone.labelX + ox} y={zone.labelY + 18 + oy + 2} textAnchor="middle" fontSize="5" fontWeight="700" fill="white">
-                  {tanod.name.charAt(tanod.name.length - 1)}
-                </text>
-                {tanod.signal === "offline" && (
-                  <text x={zone.labelX + ox + 7} y={zone.labelY + 18 + oy - 5} fontSize="6" fill="#ef4444">
-                    !
-                  </text>
-                )}
-                <title>{`${tanod.name} — ${TANOD_STATUS_META[tanod.status].label} · ${tanod.purok}\nBattery: ${tanod.battery ?? "?"}% · Signal: ${tanod.signal ?? "unknown"}`}</title>
-              </g>
-            );
-          })}
-      </svg>
+  const zonesLayerRef = useRef<L.LayerGroup | null>(null);
+  const tanodsLayerRef = useRef<L.LayerGroup | null>(null);
+  const routesLayerRef = useRef<L.LayerGroup | null>(null);
+
+  const onSelectTanodRef = useRef(onSelectTanod);
+  onSelectTanodRef.current = onSelectTanod;
+  const setHoveredZoneRef = useRef(setHoveredZone);
+  setHoveredZoneRef.current = setHoveredZone;
+
+  // Initialize Map
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+
+    const map = L.map(mapContainerRef.current, {
+      center: MAP_CENTER,
+      zoom: 16,
+      zoomControl: false,
+      attributionControl: false,
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+
+    zonesLayerRef.current = L.layerGroup().addTo(map);
+    routesLayerRef.current = L.layerGroup().addTo(map);
+    tanodsLayerRef.current = L.layerGroup().addTo(map);
+    
+    mapRef.current = map;
+
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    resizeObserver.observe(mapContainerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // Update Zones Layer
+  useEffect(() => {
+    if (!zonesLayerRef.current) return;
+    zonesLayerRef.current.clearLayers();
+
+    PUROK_ZONES.forEach((zone) => {
+      const geoPoints = purokZoneToGeo(zone.path);
+      if (geoPoints.length < 3) return;
+
+      const zoneTanods = tanods.filter((t) => t.purok === zone.name && t.status !== "off_duty");
+      const isHovered = hoveredZone === zone.id;
+
+      const polygon = L.polygon(geoPoints, {
+        color: zone.color,
+        weight: isHovered ? 2.5 : 1.5,
+        opacity: isHovered ? 1 : 0.6,
+        fillColor: isHovered ? "#dbe3fb" : zoneTanods.length > 0 ? "#ecfdf5" : "#F8FAFC",
+        fillOpacity: 0.8,
+      });
+
+      polygon.bindTooltip(`${zone.name}${zoneTanods.length > 0 ? ` — ${zoneTanods.length} tanod(s)` : ''}`, {
+        permanent: true,
+        direction: "center",
+        className: "bg-transparent border-none shadow-none text-[10px] font-bold",
+      });
+      
+      polygon.on('add', function() {
+         const tooltip = polygon.getTooltip();
+         if (tooltip && tooltip.getElement()) {
+             tooltip.getElement()!.style.color = zone.color;
+             tooltip.getElement()!.style.textShadow = "0px 1px 2px rgba(255,255,255,0.8)";
+         }
+      });
+
+      polygon.on("mouseover", () => setHoveredZoneRef.current(zone.id));
+      polygon.on("mouseout", () => setHoveredZoneRef.current(null));
+
+      polygon.addTo(zonesLayerRef.current!);
+    });
+  }, [tanods, hoveredZone]);
+
+  // Update Routes Layer (for selected tanod)
+  useEffect(() => {
+     if (!routesLayerRef.current) return;
+     routesLayerRef.current.clearLayers();
+     
+     if (!selectedTanodId) return;
+     const tanod = tanods.find(t => t.id === selectedTanodId);
+     if (!tanod || !tanod.gps) return;
+     
+     // Look up the simulated progress to draw route and checkpoints
+     const progress = MOCK_ROUTE_PROGRESS.find(r => r.tanodId === tanod.id);
+     if (progress && progress.checkpoints) {
+       // Just as an illustration, we put markers for their checkpoints
+       progress.checkpoints.forEach((cp, idx) => {
+         // In a real app we'd fetch actual plan coordinates. Here we'll generate fake nearby coordinates
+         // based on the tanod's current GPS position to visualize the route tracking.
+         const offsetLat = idx * 0.001;
+         const offsetLng = idx * 0.001;
+         const cpLat = tanod.gps!.lat + offsetLat;
+         const cpLng = tanod.gps!.lng + offsetLng;
+         const [lat, lng] = toGeoPoint(cpLat, cpLng);
+         
+         const isConfirmed = !!cp.confirmedAt;
+         const color = isConfirmed ? "#10b981" : "#94a3b8";
+         const iconHtml = `
+           <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; transform: translate(-50%, -50%);">
+             <div style="width: 16px; height: 16px; background: ${color}; border: 1.5px solid white; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; color: white;">
+               ${isConfirmed ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
+             </div>
+             <div style="font-size: 8px; font-weight: 700; color: #334155; margin-top: 2px; white-space: nowrap; text-shadow: 0 1px 0 white;">${cp.cpLabel}</div>
+           </div>
+         `;
+         const icon = L.divIcon({ html: iconHtml, className: "", iconSize: [0, 0] });
+         L.marker([lat, lng], { icon }).addTo(routesLayerRef.current!);
+       });
+       
+       // And a polyline connecting them
+       const routePts = progress.checkpoints.map((cp, idx) => toGeoPoint(tanod.gps!.lat + idx * 0.001, tanod.gps!.lng + idx * 0.001));
+       if (routePts.length > 1) {
+          L.polyline(routePts, { color: "#3b82f6", weight: 3, dashArray: "5 5" }).addTo(routesLayerRef.current!);
+       }
+     }
+  }, [selectedTanodId, tanods]);
+
+  // Update Tanods Layer
+  useEffect(() => {
+    if (!tanodsLayerRef.current) return;
+    tanodsLayerRef.current.clearLayers();
+
+    tanods
+      .filter((t) => t.status !== "off_duty" && t.gps)
+      .forEach((tanod) => {
+        const [lat, lng] = toGeoPoint(tanod.gps!.lat, tanod.gps!.lng);
+        const dotColor = tanod.markerColor ?? (tanod.status === "available" ? "#10b981" : tanod.status === "en_route" ? "#f59e0b" : "#0ea5e9");
+        const isSelected = selectedTanodId === tanod.id;
+
+        const html = `
+          <div style="position: relative; width: 28px; height: 28px; display: flex; justify-content: center; align-items: center; cursor: pointer;">
+            ${isSelected ? `<div style="position: absolute; inset: -4px; border: 2px solid ${dotColor}; border-radius: 50%; opacity: 0.5; animation: pulse 2s infinite;"></div>` : ''}
+            ${tanod.status === "en_route" ? `<div style="position: absolute; inset: 0; border: 1.5px solid #f59e0b; border-radius: 50%; opacity: 0.5; animation: ping 2s infinite;"></div>` : ''}
+            
+            <div style="width: ${isSelected ? 20 : 16}px; height: ${isSelected ? 20 : 16}px; background: ${dotColor}; border: 1.5px solid white; border-radius: 50%; box-shadow: 0 1px 4px rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center; color: white; font-size: ${isSelected ? 10 : 8}px; font-weight: bold; transition: all 0.2s;">
+              ${tanod.name.charAt(tanod.name.length - 1)}
+            </div>
+            
+            ${tanod.signal === "offline" ? `<div style="position: absolute; top: 0; right: 0; color: #ef4444; font-size: 10px; font-weight: bold; text-shadow: 0 1px 0 white;">!</div>` : ''}
+          </div>
+        `;
+
+        const icon = L.divIcon({ html, className: "", iconSize: [28, 28], iconAnchor: [14, 14] });
+        
+        const marker = L.marker([lat, lng], { icon });
+        marker.bindTooltip(`${tanod.name} — ${TANOD_STATUS_META[tanod.status].label} · ${tanod.purok}<br/>Battery: ${tanod.battery ?? "?"}% · Signal: ${tanod.signal ?? "unknown"}`, {
+          direction: "top",
+          offset: [0, -10],
+          className: "text-[10px] font-medium rounded shadow-sm border border-stone-200"
+        });
+
+        marker.on("click", (e) => {
+          L.DomEvent.stopPropagation(e);
+          onSelectTanodRef.current(tanod);
+          if (mapRef.current) {
+            mapRef.current.panTo([lat, lng], { animate: true });
+          }
+        });
+
+        marker.addTo(tanodsLayerRef.current!);
+      });
+  }, [tanods, selectedTanodId]);
+  
+  // Controls
+  function zoomBy(factor: number) {
+    if (!mapRef.current) return;
+    const currentZoom = mapRef.current.getZoom();
+    const targetZoom = factor > 1 ? currentZoom - 1 : currentZoom + 1;
+    mapRef.current.setZoom(targetZoom);
+  }
+
+  function resetView() {
+    if (!mapRef.current) return;
+    mapRef.current.setView(MAP_CENTER, 16);
+  }
+
+  return (
+    <div className="relative mx-auto w-full h-[400px] rounded-xl overflow-hidden border border-stone-200 shadow-inner z-0">
+      <div ref={mapContainerRef} className="absolute inset-0 w-full h-full" />
+      
+      {/* Zoom controls */}
+      <div className="absolute right-2.5 top-2.5 z-20 flex flex-col gap-1 rounded-lg border border-stone-200 bg-white/95 p-1 shadow-sm backdrop-blur-sm">
+        <button onClick={() => zoomBy(0.72)} title="Zoom in" className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded text-sm font-bold text-stone-600 hover:bg-stone-100">
+          +
+        </button>
+        <button onClick={() => zoomBy(1.38)} title="Zoom out" className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded text-sm font-bold text-stone-600 hover:bg-stone-100">
+          −
+        </button>
+        <button
+          onClick={resetView}
+          title="Reset view"
+          className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded text-stone-500 hover:bg-stone-100"
+        >
+          <Locate size={13} />
+        </button>
+      </div>
     </div>
   );
 }
@@ -716,6 +931,187 @@ function TanodDetailPanel({
 }
 
 // ---------------------------------------------------------------------------
+// Route Progress Panel
+// ---------------------------------------------------------------------------
+
+function RouteProgressPanel() {
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(["tn-01", "tn-02"]));
+
+  function toggleExpand(id: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const onDutyProgress = MOCK_ROUTE_PROGRESS.filter((r) => r.status === "on_duty");
+  const completedProgress = MOCK_ROUTE_PROGRESS.filter((r) => r.status === "completed");
+
+  function ProgressRow({ entry }: { entry: RouteProgress }) {
+    const confirmed = entry.checkpoints.filter((c) => c.confirmedAt !== null).length;
+    const total = entry.checkpoints.length;
+    const pct = total > 0 ? Math.round((confirmed / total) * 100) : 0;
+    const isOpen = expanded.has(entry.tanodId);
+
+    return (
+      <div className="rounded-xl border border-black/5 bg-white shadow-sm overflow-hidden">
+        {/* Row Header */}
+        <button
+          onClick={() => toggleExpand(entry.tanodId)}
+          className="flex w-full items-center gap-3 px-5 py-3.5 text-left hover:bg-stone-50/60 transition"
+        >
+          <div
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white`}
+            style={{ backgroundColor: entry.status === "completed" ? "#10b981" : "#0038A8" }}
+          >
+            {entry.tanodName.charAt(0)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[13px] font-semibold text-stone-800">{entry.tanodName}</span>
+              <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+                entry.status === "completed"
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-sky-100 text-sky-700"
+              }`}>
+                {entry.status === "completed" ? "Completed" : "On Duty"}
+              </span>
+            </div>
+            <p className="text-[10px] text-stone-400">
+              {entry.teamName} · {entry.scheduleCode} · {entry.planName}
+            </p>
+          </div>
+          {/* Progress bar mini */}
+          <div className="hidden sm:flex flex-col items-end gap-1 mr-3">
+            <span className="text-[10px] font-semibold text-stone-600">{confirmed}/{total} CPs</span>
+            <div className="w-24 h-1.5 rounded-full bg-stone-100 overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  entry.status === "completed" ? "bg-emerald-500" : "bg-[#0038A8]"
+                }`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+          {isOpen ? <ChevronUp size={14} className="shrink-0 text-stone-300" /> : <ChevronDown size={14} className="shrink-0 text-stone-300" />}
+        </button>
+
+        {/* Expanded checkpoint list */}
+        {isOpen && (
+          <div className="border-t border-stone-100 bg-stone-50/40 px-5 py-3">
+            {/* Mobile progress bar */}
+            <div className="mb-3 flex items-center gap-2 sm:hidden">
+              <div className="flex-1 h-1.5 rounded-full bg-stone-200 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    entry.status === "completed" ? "bg-emerald-500" : "bg-[#0038A8]"
+                  }`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <span className="text-[10px] font-semibold text-stone-600">{confirmed}/{total}</span>
+            </div>
+
+            {/* Check-in / check-out times */}
+            <div className="mb-3 flex flex-wrap gap-3 text-[10px] text-stone-500">
+              <span className="flex items-center gap-1">
+                <Clock size={10} />
+                Check-in: {new Date(entry.checkInTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })}
+              </span>
+              {entry.checkOutTime && (
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 size={10} className="text-emerald-500" />
+                  Check-out: {new Date(entry.checkOutTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })}
+                </span>
+              )}
+            </div>
+
+            {/* Checkpoint timeline */}
+            <div className="relative pl-4">
+              <div className="absolute left-[7px] top-1 bottom-1 w-px bg-stone-200" />
+              {entry.checkpoints.map((cp, idx) => (
+                <div key={cp.cpId} className="relative flex gap-3 pb-3 last:pb-0">
+                  <div className={`relative z-10 mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full ring-2 ${
+                    cp.confirmedAt
+                      ? "ring-emerald-300 bg-emerald-50"
+                      : "ring-stone-200 bg-white"
+                  }`}>
+                    {cp.confirmedAt
+                      ? <CheckCircle2 size={10} className="text-emerald-500" />
+                      : <Circle size={10} className="text-stone-300" />
+                    }
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2">
+                      <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                        cp.confirmedAt ? "bg-emerald-100 text-emerald-700" : "bg-stone-100 text-stone-500"
+                      }`}>{cp.cpLabel}</span>
+                      <span className="text-[11px] font-medium text-stone-700">{cp.cpName}</span>
+                    </div>
+                    {cp.confirmedAt ? (
+                      <p className="mt-0.5 text-[10px] text-emerald-600 font-medium">
+                        ✓ Arrived · {new Date(cp.confirmedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })}
+                      </p>
+                    ) : (
+                      <p className="mt-0.5 text-[10px] text-stone-400">Pending arrival…</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <section className="mt-6">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Route size={16} className="text-[#0038A8]" />
+          <h2 className="text-[13px] font-semibold uppercase tracking-wider text-[#334155]">
+            Route Progress
+          </h2>
+          <span className="rounded-full bg-[#0038A8]/10 px-2 py-0.5 text-[10px] font-semibold text-[#0038A8]">
+            {onDutyProgress.length} active
+          </span>
+        </div>
+        <p className="text-[10px] text-stone-400">Updates when Tanod taps "Arrived at CP"</p>
+      </div>
+
+      {/* Active routes */}
+      {onDutyProgress.length > 0 ? (
+        <div className="space-y-3">
+          {onDutyProgress.map((entry) => (
+            <ProgressRow key={entry.tanodId} entry={entry} />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-dashed border-stone-200 bg-white px-5 py-10 text-center">
+          <Route size={28} className="mx-auto text-stone-300" />
+          <p className="mt-2 text-[12px] text-stone-400">No active routes at this time</p>
+        </div>
+      )}
+
+      {/* Completed routes (collapsible) */}
+      {completedProgress.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-stone-400">Completed This Shift</p>
+          <div className="space-y-2">
+            {completedProgress.map((entry) => (
+              <ProgressRow key={entry.tanodId} entry={entry} />
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Re-task Modal
 // ---------------------------------------------------------------------------
 
@@ -979,6 +1375,9 @@ export default function LiveTanodTracking({ onNavigate }: { onNavigate?: (page: 
             flash={flash}
           />
         )}
+
+        {/* Route Progress */}
+        <RouteProgressPanel />
 
         {/* Footer note */}
         <div className="mt-6 flex items-center gap-2 rounded-lg border border-stone-200 bg-white/60 px-4 py-2.5">

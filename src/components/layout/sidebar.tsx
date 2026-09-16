@@ -25,6 +25,8 @@ import {
   CalendarClock,
   AlertTriangle,
   Eye,
+  MapPin,
+  UserCheck,
 } from "lucide-react";
 import logo from "../../assets/logo.png";
 
@@ -44,6 +46,7 @@ const CAPTAIN_NAV_ITEMS = [
   { key: "analytics", label: "Purok Analytics & Reports", icon: BarChart3 },
   { key: "broadcasts", label: "Emergency Broadcasts", icon: Radio },
   { key: "patrol", label: "Patrol Coverage Map", icon: Map },
+  { key: "checkpoint_plans", label: "Checkpoint Plans", icon: Route },
   { key: "evidence", label: "CCTV Evidence Viewer", icon: Video },
   { key: "bulletins", label: "News & Bulletins", icon: Megaphone },
   { key: "cases", label: "Closed Incidents", icon: Archive },
@@ -54,7 +57,6 @@ const DESK_OFFICER_NAV_ITEMS = [
   { key: "incident_triage", label: "Incident Triage", icon: ClipboardList },
   { key: "alert_management", label: "Alert Management", icon: BellRing },
   { key: "dispatches", label: "Active Dispatches", icon: Radio },
-  { key: "patrol", label: "Patrol Operations", icon: Map },
   { key: "blotter", label: "Digital Barangay Blotter", icon: FileText },
   { key: "chat", label: "Operations Chat Center", icon: MessageSquare },
   { key: "footage_requests", label: "Video Clip Requests", icon: Video },
@@ -62,8 +64,6 @@ const DESK_OFFICER_NAV_ITEMS = [
 
 const CCTV_OPERATOR_NAV_ITEMS = [
   { key: "surveillance", label: "Surveillance Matrix", icon: LayoutGrid },
-  { key: "live_monitoring", label: "Live Monitoring", icon: Eye },
-  { key: "camera_map", label: "Camera Map", icon: Map },
   { key: "recorded_footage", label: "Recorded Footage & Evidence", icon: Camera },
   { key: "footage_requests", label: "Footage Requests", icon: FileSearch },
 ];
@@ -77,7 +77,9 @@ const PUROK_LEADER_NAV_ITEMS = [
 
 const CHIEF_TANOD_NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutGrid },
+  { key: "checkpoint_planning", label: "Checkpoint Planning", icon: Map },
   { key: "patrol_scheduling", label: "Patrol Scheduling", icon: CalendarClock },
+  { key: "check_in_out", label: "Check-in / Check-out", icon: UserCheck },
   { key: "live_tracking", label: "Live Tanod Tracking", icon: Map },
   { key: "incidents", label: "Incident Oversight", icon: AlertTriangle },
   { key: "referred_cases", label: "Referred Cases", icon: ArrowUpRight },
