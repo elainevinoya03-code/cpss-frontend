@@ -18,6 +18,9 @@
     "noFallthroughCasesInSwitch": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "forceConsistentCasingInFileNames": true
   },
   "include": ["src"]

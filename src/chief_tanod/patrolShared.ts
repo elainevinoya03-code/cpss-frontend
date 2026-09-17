@@ -200,6 +200,9 @@ export const ACTIVE_PATROLS = [
   { id: "PAT-2", name: "Purok 1–2 Perimeter", pts: [{ x: 108, y: 55 }, { x: 225, y: 68 }, { x: 238, y: 150 }] },
 ];
 
+export type ExistingCheckpoint = (typeof EXISTING_CHECKPOINTS)[number];
+export type ActivePatrol = (typeof ACTIVE_PATROLS)[number];
+
 export const LANDMARKS = [
   { name: "Barangay Hall", x: 112, y: 52, code: "H" },
   { name: "Chapel", x: 212, y: 205, code: "C" },
@@ -542,6 +545,99 @@ export function snapToRoad(lat: number, lng: number) {
   return best
     ? { lat: Math.round(best.lat), lng: Math.round(best.lng), snapped: bestD }
     : { lat: Math.round(lat), lng: Math.round(lng), snapped: 0 };
+}
+
+/* --------------------------------------------------------------------- */
+/* Auto address from map location                                        */
+/* --------------------------------------------------------------------- */
+
+export function parseZonePolygon(path: string): { x: number; y: number }[] {
+  const pairs = path.match(/[\d.]+,[\d.]+/g) ?? [];
+  return pairs.map((pt) => {
+    const [x, y] = pt.split(",").map(Number);
+    return { x, y };
+  });
+}
+
+function pointInPolygon(x: number, y: number, poly: { x: number; y: number }[]): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].x;
+    const yi = poly[i].y;
+    const xj = poly[j].x;
+    const yj = poly[j].y;
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/** Purok zone name containing SVG point (x = lat, y = lng), or null if outside. */
+export function zoneAtPoint(x: number, y: number): string | null {
+  for (const z of PUROK_ZONES) {
+    const poly = parseZonePolygon(z.path);
+    if (poly.length >= 3 && pointInPolygon(x, y, poly)) return z.name;
+  }
+  return null;
+}
+
+/** Auto-generated address for a snapped map point. Stays editable in the form. */
+export function autoAddressForPoint(x: number, y: number): string {
+  const zone = zoneAtPoint(x, y);
+  return zone ? `${zone}, Tandang Sora, Quezon City` : "Tandang Sora, Quezon City";
+}
+
+/* --------------------------------------------------------------------- */
+/* True street address via reverse geocoding (OpenStreetMap Nominatim)   */
+/* --------------------------------------------------------------------- */
+
+const reverseCache = new Map<string, string | null>();
+
+function formatTrueAddress(data: any): string | null {
+  const a = data?.address ?? {};
+  const street = [a.house_number, a.road || a.street || a.footway || a.path]
+    .filter(Boolean)
+    .join(" ");
+  const place = a.amenity || a.building || a.shop || a.office || a.leisure;
+  const area =
+    a.neighbourhood || a.subdivision || a.suburb || a.village || a.hamlet || a.quarter;
+  const city = a.city || a.town || a.municipality || a.city_district || a.county;
+  const parts = [
+    street || place || null,
+    area || null,
+    city && city !== area ? city : null,
+    a.postcode || null,
+  ].filter(Boolean) as string[];
+  const out = parts.join(", ");
+  if (out) return out;
+  // Fallback: first segments of the full display name
+  const display: string | undefined = data?.display_name;
+  return display ? display.split(", ").slice(0, 4).join(", ") : null;
+}
+
+/**
+ * Resolve the true street address for a real GPS coordinate.
+ * Results are cached per location. Returns null on failure so callers
+ * can keep the instant purok-based fallback address.
+ */
+export async function reverseGeocode(gpsLat: number, gpsLng: number): Promise<string | null> {
+  const key = `${gpsLat.toFixed(5)},${gpsLng.toFixed(5)}`;
+  if (reverseCache.has(key)) return reverseCache.get(key) ?? null;
+  try {
+    const url =
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2` +
+      `&lat=${encodeURIComponent(gpsLat)}&lon=${encodeURIComponent(gpsLng)}` +
+      `&zoom=18&addressdetails=1`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const addr = formatTrueAddress(data);
+    reverseCache.set(key, addr);
+    return addr;
+  } catch {
+    return null;
+  }
 }
 
 export function coverageOf(points: CpPoint[], incidents: Incident[], threshold = 42): CoverageResult {

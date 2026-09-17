@@ -4,7 +4,6 @@ export { default as CheckInOut } from "./checkInOut";
 export { default as PatrolConfiguration } from "./patrol_configuration";
 export { default as LiveTanodTracking } from "./liveTanodTracking";
 export { default as IncidentOversight } from "./incidentOversight";
-export { default as ReferredCases } from "./referredCases";
 export { default as TeamPerformance } from "./teamPerformance";
 export { default as NeighborhoodWatchCoordination } from "./neighborhoodWatchCoordination";
 export { default as ReportsAnalytics } from "./reportsAnalytics";

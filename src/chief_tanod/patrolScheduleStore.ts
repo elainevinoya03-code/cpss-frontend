@@ -12,7 +12,39 @@ import {
 
 let roster: RosterMember[] = SEED_ROSTER.map((m) => ({ ...m, skills: [...m.skills] }));
 let teams: PatrolTeam[] = SEED_TEAMS.map((t) => ({ ...t, memberIds: [...t.memberIds] }));
+const todayStr = new Date().toISOString().split("T")[0];
+
 let schedules: PatrolSchedule[] = [
+  {
+    id: "PS-2026-043",
+    code: "PS-043",
+    planId: "CP-2026-118",
+    startDate: todayStr,
+    endDate: todayStr,
+    startTime: "18:00",
+    endTime: "23:00",
+    frequency: "one_time",
+    frequencyDays: [],
+    customNotes: "",
+    shiftType: "night",
+    teamId: "team-alpha",
+    assignmentMode: "whole_team",
+    assignments: [],
+    ops: {
+      assemblyPoint: "Barangay Hall Front",
+      equipment: "Two search lights, traffic cones, log sheet, two handheld radios.",
+      instructions: "Full tanod uniform with reflective vest. Briefing 30 min before start.",
+      pulisCoordination: "Coordinate with Purok 3 leader and PNP substation / Pulis sa Barangay on channel 2.",
+      emergencyProcedure: "Radio Desk Officer immediately; log observations on BLOTTER-1; escalate SOS to PNP.",
+    },
+    status: "scheduled",
+    createdBy: "Chief Tanod",
+    createdAt: `${todayStr}T08:10:00`,
+    submittedAt: `${todayStr}T09:00:00`,
+    decidedBy: "Punong Barangay",
+    decidedAt: `${todayStr}T14:20:00`,
+    notifiedAt: `${todayStr}T14:21:00`,
+  },
   {
     id: "PS-2026-041",
     code: "PS-041",
@@ -89,7 +121,46 @@ let dutyLogs: DutyLog[] = [
   },
 ];
 
-let checkInOutRecords: CheckInOutRecord[] = [];
+let checkInOutRecords: CheckInOutRecord[] = [
+  {
+    id: "CIO-001",
+    scheduleId: "PS-2026-043",
+    tanodId: "tn-01",
+    teamId: "team-alpha",
+    checkInTime: `${todayStr}T18:05:00`,
+    confirmedBy: "Chief Tanod",
+    checkInNotes: "On time. Full uniform, radio issued.",
+    checkpointPlanId: "CP-2026-118",
+    status: "checked_in",
+    createdAt: `${todayStr}T18:05:00`,
+  },
+  {
+    id: "CIO-002",
+    scheduleId: "PS-2026-043",
+    tanodId: "tn-02",
+    teamId: "team-alpha",
+    checkInTime: `${todayStr}T18:07:00`,
+    confirmedBy: "Chief Tanod",
+    checkInNotes: "Late by 7 mins, reminded of assembly time.",
+    checkpointPlanId: "CP-2026-118",
+    status: "checked_in",
+    createdAt: `${todayStr}T18:07:00`,
+  },
+  {
+    id: "CIO-003",
+    scheduleId: "PS-2026-041",
+    tanodId: "tn-03",
+    teamId: "team-alpha",
+    checkInTime: "2026-09-16T18:04:00",
+    checkOutTime: "2026-09-16T23:02:00",
+    confirmedBy: "Chief Tanod",
+    checkInNotes: "Night patrol briefing completed.",
+    checkOutNotes: "Duty completed, no incident. Equipment returned.",
+    checkpointPlanId: "CP-2026-118",
+    status: "checked_out",
+    createdAt: "2026-09-16T18:04:00",
+  },
+];
 
 const listeners = new Set<() => void>();
 function emit() {
@@ -176,6 +247,30 @@ export function getTodaySchedules(): PatrolSchedule[] {
 
 export function getOnDutyTanods(): CheckInOutRecord[] {
   return checkInOutRecords.filter(r => r.status === 'checked_in');
+}
+
+// --- Schedule-gated helpers: teams/tanods are only visible/actionable
+// once a non-draft schedule exists for their team. ---
+export function getScheduledTeamIds(): Set<string> {
+  return new Set(
+    schedules.filter((s) => s.status !== "draft").map((s) => s.teamId)
+  );
+}
+
+export function teamHasSchedule(teamId: string): boolean {
+  return schedules.some((s) => s.teamId === teamId && s.status !== "draft");
+}
+
+export function canCheckInToSchedule(scheduleId: string): boolean {
+  const s = schedules.find((x) => x.id === scheduleId);
+  if (!s) return false;
+  if (s.status !== "scheduled" && s.status !== "active") return false;
+  const today = new Date().toISOString().split("T")[0];
+  const end = s.endDate || s.startDate;
+  if (!(today >= s.startDate && today <= end)) return false;
+  const team = teams.find((t) => t.id === s.teamId);
+  if (!team || !team.isActive) return false;
+  return true;
 }
 
 export function usePatrolScheduleStore() {

@@ -1,34 +1,7 @@
 import { useEffect } from 'react';
+import { useRevealOnScroll } from '../hooks/use-reveal';
 
-export const useScrollReveal = () => {
-  useEffect(() => {
-    const revealElements = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-up, .reveal-scale');
-    
-    if (revealElements.length === 0) return;
-
-    const revealObserver = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('revealed');
-            revealObserver.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.15 }
-    );
-
-    revealElements.forEach((el) => {
-      revealObserver.observe(el);
-    });
-
-    return () => {
-      revealElements.forEach((el) => {
-        revealObserver.unobserve(el);
-      });
-    };
-  }, []);
-};
+export const useScrollReveal = useRevealOnScroll;
 
 export const useScrollProgress = () => {
   useEffect(() => {
@@ -43,6 +16,7 @@ export const useScrollProgress = () => {
     };
 
     window.addEventListener('scroll', handleScroll);
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 };
@@ -50,22 +24,19 @@ export const useScrollProgress = () => {
 export const useStaggerAnimation = () => {
   useEffect(() => {
     const staggerGroups = document.querySelectorAll('.stagger-children');
-    staggerGroups.forEach((group) => {
-      const children = group.children;
-      for (let i = 0; i < children.length; i++) {
-        (children[i] as HTMLElement).style.setProperty('--stagger-delay', `${i * 0.1}s`);
-      }
-      
-      const staggerObserver = new IntersectionObserver((entries) => {
+    if (staggerGroups.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add('revealed');
-            staggerObserver.unobserve(entry.target);
+            observer.unobserve(entry.target);
           }
         });
-      }, { threshold: 0.15 });
-      
-      staggerObserver.observe(group);
-    });
+      },
+      { threshold: 0.15 },
+    );
+    staggerGroups.forEach((group) => observer.observe(group));
+    return () => observer.disconnect();
   }, []);
 };

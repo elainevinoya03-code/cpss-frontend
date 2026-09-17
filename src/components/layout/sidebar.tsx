@@ -82,7 +82,6 @@ const CHIEF_TANOD_NAV_ITEMS = [
   { key: "check_in_out", label: "Check-in / Check-out", icon: UserCheck },
   { key: "live_tracking", label: "Live Tanod Tracking", icon: Map },
   { key: "incidents", label: "Incident Oversight", icon: AlertTriangle },
-  { key: "referred_cases", label: "Referred Cases", icon: ArrowUpRight },
   { key: "team_performance", label: "Team Performance", icon: Users },
   { key: "neighborhood_watch", label: "Neighborhood Watch", icon: Shield },
   { key: "reports_analytics", label: "Reports & Analytics", icon: FileText },

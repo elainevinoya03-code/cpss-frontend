@@ -10,8 +10,10 @@ import {
   LAYER_LABELS,
   SEV_COLOR,
   sortRoutePoints,
+  type ActivePatrol,
   type CpPoint,
   type DrawableRoute,
+  type ExistingCheckpoint,
   type LayerState,
   type MapMode,
 } from "./patrolShared";
@@ -21,6 +23,10 @@ interface BarangayMapProps {
   incidents: Incident[];
   selectedIncident: Incident | null;
   onSelectIncident: (inc: Incident | null) => void;
+  selectedCheckpoint?: ExistingCheckpoint | null;
+  onSelectCheckpoint?: (cp: ExistingCheckpoint | null) => void;
+  selectedPatrol?: ActivePatrol | null;
+  onSelectPatrol?: (patrol: ActivePatrol | null) => void;
   draftPoints: CpPoint[];
   mapMode: MapMode;
   interactive: boolean;
@@ -47,6 +53,10 @@ export function BarangayMap({
   incidents,
   selectedIncident,
   onSelectIncident,
+  selectedCheckpoint = null,
+  onSelectCheckpoint,
+  selectedPatrol = null,
+  onSelectPatrol,
   draftPoints,
   mapMode,
   interactive,
@@ -80,6 +90,12 @@ export function BarangayMap({
 
   const onMapClickRef = useRef(onMapClick);
   onMapClickRef.current = onMapClick;
+
+  const onSelectCheckpointRef = useRef(onSelectCheckpoint);
+  onSelectCheckpointRef.current = onSelectCheckpoint;
+
+  const onSelectPatrolRef = useRef(onSelectPatrol);
+  onSelectPatrolRef.current = onSelectPatrol;
 
   const maxHeat = Math.max(1, ...Object.values(heatCounts));
 
@@ -219,17 +235,26 @@ export function BarangayMap({
     if (!layers.checkpoints) return;
 
     EXISTING_CHECKPOINTS.forEach((cp) => {
+      const isSel = selectedCheckpoint?.id === cp.id;
       const [lat, lng] = toGeoPoint(cp.lat, cp.lng);
+      const box = isSel ? 20 : 14;
       const iconHtml = `
         <div style="opacity: ${cp.active ? 1 : 0.45}; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center;">
-          <div style="width: 14px; height: 14px; background: #0038A8; border: 1.5px solid white; border-radius: 3px; display: flex; justify-content: center; align-items: center; color: white; font-size: 8px; font-weight: bold;">S</div>
+          <div style="width: ${box}px; height: ${box}px; background: ${isSel ? "#0ea5e9" : "#0038A8"}; border: ${isSel ? "2.5px solid #0ea5e9" : "1.5px solid white"}; border-radius: 3px; display: flex; justify-content: center; align-items: center; color: white; font-size: 8px; font-weight: bold; box-shadow: ${isSel ? "0 0 0 3px rgba(14,165,233,0.35)" : "none"};">S</div>
           <div style="font-size: 8px; font-weight: 700; color: #334155; white-space: nowrap; margin-top: 2px; text-shadow: 0 1px 0 white;">${cp.name}</div>
+          ${isSel ? `<div style="background: #0f172a; color: white; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; white-space: nowrap; margin-top: 2px;">${cp.id}</div>` : ""}
         </div>
       `;
       const icon = L.divIcon({ html: iconHtml, className: "", iconSize: [0, 0] });
-      L.marker([lat, lng], { icon }).addTo(checkpointsLayerRef.current!);
+      const marker = L.marker([lat, lng], { icon });
+      marker.on("click", (e) => {
+        if (!interactiveRef.current || mapModeRef.current !== "view") return;
+        L.DomEvent.stopPropagation(e);
+        onSelectCheckpointRef.current?.(isSel ? null : cp);
+      });
+      marker.addTo(checkpointsLayerRef.current!);
     });
-  }, [layers.checkpoints]);
+  }, [layers.checkpoints, selectedCheckpoint?.id]);
 
   // Update Active Patrols Layer
   useEffect(() => {
@@ -239,13 +264,28 @@ export function BarangayMap({
     if (!layers.patrols) return;
 
     ACTIVE_PATROLS.forEach((pat) => {
+      const isSel = selectedPatrol?.id === pat.id;
       const geoPts = pat.pts.map(p => toGeoPoint(p.x, p.y));
       const pl = L.polyline(geoPts, {
-        color: "#0d9488",
-        weight: 2.5,
+        color: isSel ? "#0ea5e9" : "#0d9488",
+        weight: isSel ? 5 : 2.5,
         dashArray: "6 4",
-        opacity: 0.85,
+        opacity: isSel ? 1 : 0.85,
       }).addTo(patrolsLayerRef.current!);
+
+      // Wide invisible hit line so the thin route is easy to click
+      const hit = L.polyline(geoPts, {
+        color: "#0d9488",
+        weight: 14,
+        opacity: 0,
+      }).addTo(patrolsLayerRef.current!);
+      const handlePatrolClick = (e: L.LeafletMouseEvent) => {
+        if (!interactiveRef.current || mapModeRef.current !== "view") return;
+        L.DomEvent.stopPropagation(e);
+        onSelectPatrolRef.current?.(isSel ? null : pat);
+      };
+      pl.on("click", handlePatrolClick);
+      hit.on("click", handlePatrolClick);
 
       if (geoPts.length > 0) {
          pl.bindTooltip(pat.name, {
@@ -255,7 +295,7 @@ export function BarangayMap({
          });
       }
     });
-  }, [layers.patrols]);
+  }, [layers.patrols, selectedPatrol?.id]);
 
   // Update Incidents Layer
   useEffect(() => {
@@ -435,7 +475,7 @@ export function BarangayMap({
 
       {/* Map mode banner */}
       {mapMode !== "view" && (
-        <div className="absolute left-1/2 top-14 z-20 -translate-x-1/2 rounded-lg bg-[#0038A8] px-4 py-2 text-[11px] sm:text-xs font-bold text-white shadow-lg whitespace-nowrap">
+        <div className="absolute left-1/2 top-14 z-20 -translate-x-1/2 rounded-lg bg-[#0038A8] px-4 py-2 text-[11px] sm:text-xs font-bold text-white shadow-lg whitespace-nowrap pointer-events-none">
           {mapMode === "set_fixed" && "Click on the map to set the checkpoint location"}
           {mapMode === "set_start" && "Click on the map to set Point A (start)"}
           {mapMode === "set_end" && "Click on the map to set Point B (end)"}

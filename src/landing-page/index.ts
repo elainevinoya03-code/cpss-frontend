@@ -8,7 +8,6 @@ export { default as HowItWorks } from './HowItWorks';
 export { default as Stats } from './Stats';
 export { default as About } from './About';
 export { default as MobileApp } from './MobileApp';
-export { default as Updates } from './Updates';
 export { default as Contact } from './Contact';
 export { default as ChatBot } from './ChatBot';
 export { useScrollReveal, useScrollProgress, useStaggerAnimation } from './hooks';

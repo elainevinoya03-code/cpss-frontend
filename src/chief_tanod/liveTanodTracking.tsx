@@ -935,6 +935,7 @@ function TanodDetailPanel({
 // ---------------------------------------------------------------------------
 
 function RouteProgressPanel() {
+  const { schedules } = usePatrolScheduleStore();
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(["tn-01", "tn-02"]));
 
   function toggleExpand(id: string) {
@@ -946,8 +947,17 @@ function RouteProgressPanel() {
     });
   }
 
-  const onDutyProgress = MOCK_ROUTE_PROGRESS.filter((r) => r.status === "on_duty");
-  const completedProgress = MOCK_ROUTE_PROGRESS.filter((r) => r.status === "completed");
+  // Only show route progress for schedules that were actually created (no drafts, no deleted).
+  const scheduledCodes = useMemo(
+    () => new Set(schedules.filter((s) => s.status !== "draft").map((s) => s.code)),
+    [schedules]
+  );
+  const gatedProgress = useMemo(
+    () => MOCK_ROUTE_PROGRESS.filter((r) => scheduledCodes.has(r.scheduleCode)),
+    [scheduledCodes]
+  );
+  const onDutyProgress = gatedProgress.filter((r) => r.status === "on_duty");
+  const completedProgress = gatedProgress.filter((r) => r.status === "completed");
 
   function ProgressRow({ entry }: { entry: RouteProgress }) {
     const confirmed = entry.checkpoints.filter((c) => c.confirmedAt !== null).length;
@@ -1221,6 +1231,7 @@ export default function LiveTanodTracking({ onNavigate }: { onNavigate?: (page: 
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [hoveredZone, setHoveredZone] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState(() => new Date());
+  const { teams: patrolTeams, schedules } = usePatrolScheduleStore();
 
   // Subscribe to store updates
   useEffect(() => {
@@ -1252,15 +1263,38 @@ export default function LiveTanodTracking({ onNavigate }: { onNavigate?: (page: 
     return () => clearInterval(t);
   }, []);
 
-  const onDuty = useMemo(() => tanods.filter((t) => t.status !== "off_duty"), [tanods]);
+  // Gate: a team only appears on the map once a (non-draft) schedule has been
+  // created for it. Teams without a schedule are hidden entirely.
+  const scheduledTeamNames = useMemo(
+    () =>
+      new Set(
+        patrolTeams
+          .filter((pt) => schedules.some((s) => s.teamId === pt.id && s.status !== "draft"))
+          .map((pt) => pt.name)
+      ),
+    [patrolTeams, schedules]
+  );
+  const visibleTanods = useMemo(
+    () => tanods.filter((t) => scheduledTeamNames.has(t.name)),
+    [tanods, scheduledTeamNames]
+  );
+
+  // Drop selection if its team no longer has a schedule.
+  useEffect(() => {
+    setSelectedTanod((prev) =>
+      prev && !scheduledTeamNames.has(prev.name) ? null : prev
+    );
+  }, [scheduledTeamNames]);
+
+  const onDuty = useMemo(() => visibleTanods.filter((t) => t.status !== "off_duty"), [visibleTanods]);
   const availableCount = onDuty.filter((t) => t.status === "available").length;
   const deployedCount = onDuty.filter((t) => t.status === "en_route" || t.status === "on_scene").length;
-  const offlineCount = tanods.filter((t) => t.status === "off_duty").length;
+  const offlineCount = visibleTanods.filter((t) => t.status === "off_duty").length;
   const avgBattery = useMemo(() => {
-    const active = tanods.filter((t) => t.status !== "off_duty" && t.battery != null);
+    const active = visibleTanods.filter((t) => t.status !== "off_duty" && t.battery != null);
     if (active.length === 0) return 0;
     return Math.round(active.reduce((sum, t) => sum + (t.battery ?? 0), 0) / active.length);
-  }, [tanods]);
+  }, [visibleTanods]);
 
   function handleRefresh() {
     setTanods([...getTanods()]);
@@ -1342,16 +1376,35 @@ export default function LiveTanodTracking({ onNavigate }: { onNavigate?: (page: 
               </div>
             </div>
             <div className="p-4">
-              <LiveTrackingMap
-                tanods={tanods}
-                hoveredZone={hoveredZone}
-                setHoveredZone={setHoveredZone}
-                onSelectTanod={handleSelectTanod}
-                selectedTanodId={selectedTanod?.id ?? null}
-              />
-              {hoveredZone && (
+              {visibleTanods.length === 0 ? (
+                <div className="flex h-[400px] flex-col items-center justify-center rounded-xl border border-dashed border-stone-200 bg-stone-50 px-6 text-center">
+                  <Map size={28} className="text-stone-300" />
+                  <p className="mt-2 text-[13px] font-semibold text-stone-600">No teams on map yet</p>
+                  <p className="mt-1 max-w-sm text-[11px] text-stone-400">
+                    Teams appear here only after a patrol schedule has been created for them.
+                    Create a schedule in Patrol Scheduling, then check in the team.
+                  </p>
+                  {onNavigate && (
+                    <button
+                      onClick={() => onNavigate("patrol_scheduling")}
+                      className="mt-3 rounded-lg bg-[#0038A8] px-3 py-2 text-[11px] font-semibold text-white hover:bg-[#002A8C]"
+                    >
+                      Go to Patrol Scheduling
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <LiveTrackingMap
+                  tanods={visibleTanods}
+                  hoveredZone={hoveredZone}
+                  setHoveredZone={setHoveredZone}
+                  onSelectTanod={handleSelectTanod}
+                  selectedTanodId={selectedTanod?.id ?? null}
+                />
+              )}
+              {hoveredZone && visibleTanods.length > 0 && (
                 <p className="mt-3 text-center text-[11px] text-[#94A3B8]">
-                  {PUROK_ZONES.find((z) => z.id === hoveredZone)?.name} — {tanods.filter((t) => t.purok === PUROK_ZONES.find((z) => z.id === hoveredZone)?.name && t.status !== "off_duty").length} on-duty tanods
+                  {PUROK_ZONES.find((z) => z.id === hoveredZone)?.name} — {visibleTanods.filter((t) => t.purok === PUROK_ZONES.find((z) => z.id === hoveredZone)?.name && t.status !== "off_duty").length} on-duty tanods
                 </p>
               )}
             </div>
@@ -1359,7 +1412,7 @@ export default function LiveTanodTracking({ onNavigate }: { onNavigate?: (page: 
 
           {/* Roster */}
           <TanodRoster
-            tanods={tanods}
+            tanods={visibleTanods}
             filterStatus={filterStatus}
             setFilterStatus={setFilterStatus}
             selectedTanodId={selectedTanod?.id ?? null}

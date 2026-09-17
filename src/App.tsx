@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import Login from "./pages/login";
+import OtpVerification from "./pages/otp";
 import LandingPage from "./landing-page/LandingPage";
 import { Sidebar, Header } from "./components/layout";
 import {
@@ -36,7 +37,6 @@ import {
   CheckInOut,
   LiveTanodTracking,
   IncidentOversight,
-  ReferredCases,
   TeamPerformance,
   NeighborhoodWatchCoordination,
   ReportsAnalytics,
@@ -62,7 +62,7 @@ const CAPTAIN_NAV = ["dashboard", "analytics", "broadcasts", "patrol", "checkpoi
 const DESK_OFFICER_NAV = ["dashboard", "incident_triage", "alert_management", "dispatches", "blotter", "chat", "footage_requests"];
 const CCTV_OPERATOR_NAV = ["surveillance", "recorded_footage", "footage_requests"];
 const PUROK_LEADER_NAV = ["reports", "escalated", "announcements", "contacts"];
-const CHIEF_TANOD_NAV = ["dashboard", "patrol_scheduling", "check_in_out", "checkpoint_planning", "live_tracking", "incidents", "referred_cases", "team_performance", "neighborhood_watch", "reports_analytics"];
+const CHIEF_TANOD_NAV = ["dashboard", "patrol_scheduling", "check_in_out", "checkpoint_planning", "live_tracking", "incidents", "team_performance", "neighborhood_watch", "reports_analytics"];
 const TANOD_NAV = ["dashboard", "patrol_scheduling", "live_tracking", "incidents"];
 const EX_O_NAV = ["dashboard", "patrol"];
 
@@ -91,6 +91,7 @@ function canAccess(role, key) {
 }
 
 const STORAGE_KEY = "bgyauth";
+const SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 function loadSession() {
   try {
@@ -98,6 +99,10 @@ function loadSession() {
     if (raw) {
       const data = JSON.parse(raw);
       if (data.page && data.role) {
+        // Check if session has expired
+        if (data.lastActivity && Date.now() - data.lastActivity > SESSION_TIMEOUT) {
+          return null;
+        }
         // Guard against stale purok-leader nav keys from before the streamlined prototype.
         if (data.role === "purok_leader" && !PUROK_LEADER_NAV.includes(data.activeNav)) return null;
         if (data.role === "tanod" && !TANOD_NAV.includes(data.activeNav)) return null;
@@ -114,7 +119,7 @@ function loadSession() {
 }
 
 function saveSession(page, role, activeNav, operatorName) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ page, role, activeNav, operatorName }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ page, role, activeNav, operatorName, lastActivity: Date.now() }));
 }
 
 function displayName(username, role) {
@@ -140,6 +145,8 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
   const [pendingNav, setPendingNav] = useState<string | null>(null);
   const navGuardRef = useRef<(() => boolean) | null>(null);
+  const activityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pendingUserData, setPendingUserData] = useState<any>(null);
 
   useEffect(() => {
     const onResize = () => {
@@ -149,8 +156,68 @@ export default function App() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // Session timeout logic
+  useEffect(() => {
+    if (page === "landing" || page === "login") return;
+
+    const handleSessionTimeout = () => {
+      clearSession();
+      setPage("landing");
+      setRole("admin");
+      setActiveNav("dashboard");
+      setPendingNav(null);
+      setPendingUserData(null);
+    };
+
+    const resetActivityTimer = () => {
+      if (activityTimeoutRef.current) {
+        clearTimeout(activityTimeoutRef.current);
+      }
+      activityTimeoutRef.current = setTimeout(() => {
+        handleSessionTimeout();
+      }, SESSION_TIMEOUT);
+      
+      // Update last activity in session storage
+      const session = loadSession();
+      if (session) {
+        saveSession(session.page, session.role, session.activeNav, session.operatorName);
+      }
+    };
+
+    const handleActivity = () => {
+      resetActivityTimer();
+    };
+
+    // Track user activity
+    window.addEventListener("mousemove", handleActivity);
+    window.addEventListener("keydown", handleActivity);
+    window.addEventListener("click", handleActivity);
+    window.addEventListener("scroll", handleActivity);
+
+    // Initial timer setup
+    resetActivityTimer();
+
+    return () => {
+      if (activityTimeoutRef.current) {
+        clearTimeout(activityTimeoutRef.current);
+      }
+      window.removeEventListener("mousemove", handleActivity);
+      window.removeEventListener("keydown", handleActivity);
+      window.removeEventListener("click", handleActivity);
+      window.removeEventListener("scroll", handleActivity);
+    };
+  }, [page]);
+
   const handleLogin = (e, userData) => {
     e.preventDefault();
+    // Store user data and redirect to OTP verification
+    setPendingUserData(userData);
+    setPage("otp");
+  };
+
+  const handleOtpVerify = (otp: string) => {
+    // OTP verification successful, proceed with login
+    const userData = pendingUserData;
     const backendRole = userData.role || "Resident";
     const roleMap = {
       "Admin": "admin",
@@ -170,7 +237,14 @@ export default function App() {
     setActiveNav(nav);
     setOperatorName(name);
     setPage("admin");
+    setPendingUserData(null);
     saveSession("admin", validRole, nav, name);
+  };
+
+  const handleOtpBack = () => {
+    // Go back to login page
+    setPendingUserData(null);
+    setPage("login");
   };
 
   const doNavigate = (key) => {
@@ -192,6 +266,7 @@ export default function App() {
   const doLogout = () => {
     clearSession();
     setPendingNav(null);
+    setPendingUserData(null);
     setPage("landing");
     setRole("admin");
     setActiveNav("dashboard");
@@ -220,6 +295,16 @@ export default function App() {
 
   if (page === "login") {
     return <Login onLogin={handleLogin} onNavigateToLanding={() => setPage("landing")} />;
+  }
+
+  if (page === "otp") {
+    return (
+      <OtpVerification
+        onVerify={handleOtpVerify}
+        onBack={handleOtpBack}
+        userData={pendingUserData}
+      />
+    );
   }
 
   const currentInitials = role === "captain" ? "CA" : role === "desk_officer" ? "DO" : role === "cctv_operator" ? "CO" : role === "purok_leader" ? "PL" : role === "chief_tanod" ? "CT" : role === "tanod" ? "TA" : role === "ex_o" ? "EO" : "BA";
@@ -282,7 +367,6 @@ export default function App() {
               )}
               {activeNav === "live_tracking" && <LiveTanodTracking onNavigate={handleNavigate} />}
               {activeNav === "incidents" && <IncidentOversight onNavigate={handleNavigate} />}
-              {activeNav === "referred_cases" && <ReferredCases onNavigate={handleNavigate} />}
               {activeNav === "team_performance" && <TeamPerformance onNavigate={handleNavigate} />}
               {activeNav === "neighborhood_watch" && <NeighborhoodWatchCoordination onNavigate={handleNavigate} />}
               {activeNav === "reports_analytics" && <ReportsAnalytics onNavigate={handleNavigate} />}

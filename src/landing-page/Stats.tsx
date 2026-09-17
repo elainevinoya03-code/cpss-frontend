@@ -5,15 +5,15 @@ interface Stat {
   label: string;
 }
 
+const stats: Stat[] = [
+  { target: 12548, label: 'Issues Resolved' },
+  { target: 2345, label: 'Active Volunteers' },
+  { target: 1120, label: 'CCTV Cameras' },
+  { target: 98, label: 'Satisfaction Rate' },
+];
+
 const Stats: React.FC = () => {
   const statsRef = useRef<HTMLDivElement>(null);
-
-  const stats: Stat[] = [
-    { target: 12548, label: "Issues Resolved" },
-    { target: 2345, label: "Active Volunteers" },
-    { target: 1120, label: "CCTV Cameras" },
-    { target: 98, label: "Satisfaction Rate" }
-  ];
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -25,7 +25,7 @@ const Stats: React.FC = () => {
           }
         });
       },
-      { threshold: 0.5 }
+      { threshold: 0.5 },
     );
 
     if (statsRef.current) {
@@ -33,13 +33,12 @@ const Stats: React.FC = () => {
     }
 
     return () => {
-      if (statsRef.current) {
-        observer.unobserve(statsRef.current);
-      }
+      observer.disconnect();
     };
   }, []);
 
   const animateCounters = () => {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const counters = document.querySelectorAll('.stat-number');
     counters.forEach((counter) => {
       const target = parseInt(counter.getAttribute('data-target') || '0', 10);
@@ -47,7 +46,11 @@ const Stats: React.FC = () => {
         counter.textContent = target.toString();
         return;
       }
-      
+      if (reduced) {
+        counter.textContent = target.toLocaleString();
+        return;
+      }
+
       const duration = 2000;
       const startTime = performance.now();
 
@@ -56,7 +59,7 @@ const Stats: React.FC = () => {
         const eased = 1 - Math.pow(1 - progress, 3);
         const current = Math.floor(eased * target);
         counter.textContent = current.toLocaleString();
-        
+
         if (progress < 1) {
           requestAnimationFrame(step);
         } else {
@@ -69,13 +72,17 @@ const Stats: React.FC = () => {
   };
 
   return (
-    <section className="stats" aria-label="System statistics">
-      <div className="container reveal" ref={statsRef}>
-        <div className="stats-grid">
+    <section className="scroll-mt-28 bg-brand-surface text-brand-surface-foreground lg:scroll-mt-32" aria-label="System statistics">
+      <div className="mx-auto w-full max-w-[100rem] px-5 py-16 sm:px-8 lg:px-12 lg:py-20">
+        <div className="grid grid-cols-2 gap-10 lg:grid-cols-4" ref={statsRef}>
           {stats.map((stat, index) => (
-            <div className="stat-item" key={index}>
-              <span className="stat-number" data-target={stat.target}>0</span>
-              <span className="stat-label">{stat.label}</span>
+            <div key={index} className="text-center">
+              <div className="font-display text-4xl font-black text-brand-surface-foreground sm:text-5xl">
+                <span className="stat-number" data-target={stat.target}>0</span>
+              </div>
+              <div className="mt-2 text-[0.7rem] font-bold uppercase tracking-[0.1em] text-brand-surface-foreground/70">
+                {stat.label}
+              </div>
             </div>
           ))}
         </div>

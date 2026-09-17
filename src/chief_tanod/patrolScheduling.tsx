@@ -7,13 +7,9 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
-  Clock,
-  FileText,
   Pencil,
   Plus,
   Power,
-  Radio,
-  Shield,
   Sparkles,
   Trash2,
   Users,
@@ -29,11 +25,8 @@ import { Field, StatusBadge as PlanStatusBadge, TypeChip, inputCls, selectCls, t
 import { getApprovedCheckpointPlans, useCheckpointPlans } from "./checkpointPlanStore";
 import { consumePatrolScheduleTarget } from "./patrolScheduleTarget";
 import {
-  addDutyLog,
   deleteTeam,
-  getDutyLogs,
   getSchedules,
-  updateDutyLog,
   upsertSchedule,
   upsertTeam,
   usePatrolScheduleStore,
@@ -57,7 +50,6 @@ import {
   suggestTeamMembers,
   validateSchedule,
   type AssignmentMode,
-  type DutyLog,
   type PatrolFrequency,
   type PatrolSchedule,
   type PatrolTeam,
@@ -545,10 +537,6 @@ export default function PatrolSchedulerRoutes({
   const [creatingTeam, setCreatingTeam] = useState(false);
   const [newTeamName, setNewTeamName] = useState("");
   const [leaveOpen, setLeaveOpen] = useState(false);
-  const [logTarget, setLogTarget] = useState<PatrolSchedule | null>(null);
-  const [logTanodId, setLogTanodId] = useState("");
-  const [logNote, setLogNote] = useState("");
-  const [approveTarget, setApproveTarget] = useState<PatrolSchedule | null>(null);
 
   const approvedPlans = useMemo(() => getApprovedCheckpointPlans(), [plans]);
   const draftPlan = useMemo(() => plans.find((p) => p.id === draft?.planId), [plans, draft?.planId]);
@@ -686,108 +674,41 @@ export default function PatrolSchedulerRoutes({
     flash(`Schedule ${identity.code} saved as Draft`);
   }
 
-  function submitForApproval() {
+  function finishSchedule() {
     if (!draft) return;
     if (blocking.length) {
       flash(blocking.map((b) => b.message).join(" · "), { type: "warning" });
       return;
     }
     const identity = draft.id ? { id: draft.id, code: draft.code } : nextScheduleIdentity(getSchedules());
+    const now = new Date().toISOString();
     upsertSchedule({
       ...draft,
       ...identity,
-      status: "pending_approval",
-      submittedAt: new Date().toISOString(),
-    });
-    setWizardOpen(false);
-    setDraft(null);
-    setTab("schedules");
-    flash(`${identity.code} submitted — status Draft → Pending Approval`);
-  }
-
-  function approveSchedule(s: PatrolSchedule) {
-    const now = new Date().toISOString();
-    const start = new Date(`${s.startDate}T${s.startTime || "00:00"}`);
-    const status = !Number.isNaN(start.getTime()) && start.getTime() <= Date.now() ? "active" : "scheduled";
-    upsertSchedule({
-      ...s,
-      status,
+      status: "active",
+      submittedAt: now,
       decidedBy: "Punong Barangay / Chief Tanod",
       decidedAt: now,
       notifiedAt: now,
     });
-    setApproveTarget(null);
-    flash(`${s.code} approved — ${status === "active" ? "Active" : "Scheduled"}. Assigned team notified.`);
-  }
-
-  function logDuty(kind: "start" | "end" | "observe") {
-    if (!logTarget || !logTanodId) {
-      flash("Select the tanod logging this duty", { type: "warning" });
-      return;
-    }
-    const existing = getDutyLogs().find((l) => l.scheduleId === logTarget.id && l.tanodId === logTanodId && !l.endedAt);
-    const now = new Date().toISOString();
-    if (kind === "start") {
-      addDutyLog({
-        id: `DL-${Date.now()}`,
-        scheduleId: logTarget.id,
-        tanodId: logTanodId,
-        startedAt: now,
-        observations: logNote,
-        linkedBlotter: false,
-        linkedBpops: false,
-        status: "on_duty",
-      });
-      flash("Duty start logged");
-    } else if (kind === "end") {
-      if (existing) updateDutyLog(existing.id, { endedAt: now, observations: logNote || existing.observations });
-      else {
-        addDutyLog({
-          id: `DL-${Date.now()}`,
-          scheduleId: logTarget.id,
-          tanodId: logTanodId,
-          startedAt: now,
-          endedAt: now,
-          observations: logNote,
-          linkedBlotter: false,
-          linkedBpops: false,
-          status: "completed",
-        });
-      }
-      flash("Duty end logged");
-    } else if (existing) {
-      updateDutyLog(existing.id, { observations: logNote, linkedBlotter: true, linkedBpops: true });
-      flash("Observation saved and linked to blotter / BPOPS reports");
-    } else {
-      addDutyLog({
-        id: `DL-${Date.now()}`,
-        scheduleId: logTarget.id,
-        tanodId: logTanodId,
-        startedAt: now,
-        observations: logNote,
-        linkedBlotter: true,
-        linkedBpops: true,
-        status: "on_duty",
-      });
-      flash("Observation logged and linked to blotter / BPOPS reports");
-    }
-    setLogNote("");
-    setTab("logs");
-    setLogTarget(null);
+    setWizardOpen(false);
+    setDraft(null);
+    setTab("schedules");
+    flash(`${identity.code} completed — Active. Assigned team notified.`);
   }
 
   const nameOf = (id: string) => roster.find((r) => r.id === id)?.name ?? id;
 
-  /* ---------------- Tanod-focused list (duty only) ---------------- */
+  /* ---------------- Tanod-focused list (view only) ---------------- */
   if (isTanod && !wizardOpen) {
-    const live = schedules.filter((s) => s.status === "active" || s.status === "scheduled");
+    const live = schedules.filter((s) => s.status === "active" || s.status === "scheduled" || s.status === "pending_approval");
     return (
       <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
         {ToastPortal && <ToastPortal />}
         <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
           <header className="mb-6 border-b border-stone-200 pb-5">
             <h1 className="text-3xl font-bold text-stone-900">My Patrol Duty</h1>
-            <p className="mt-1 text-base text-stone-500">Log start/end of duty and observations for assigned schedules</p>
+            <p className="mt-1 text-base text-stone-500">Your assigned patrol schedules</p>
           </header>
           <div className="space-y-3">
             {live.length === 0 && (
@@ -809,32 +730,11 @@ export default function PatrolSchedulerRoutes({
                     </div>
                     <SchedBadge status={s.status} />
                   </div>
-                  <button
-                    onClick={() => {
-                      setLogTarget(s);
-                      setLogTanodId(roster[0]?.id ?? "");
-                    }}
-                    className="mt-3 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[15px] font-semibold text-white"
-                  >
-                    Log duty / observation
-                  </button>
                 </div>
               );
             })}
           </div>
         </main>
-        {logTarget && (
-          <DutyLogSheet
-            schedule={logTarget}
-            roster={roster}
-            tanodId={logTanodId}
-            note={logNote}
-            onTanod={setLogTanodId}
-            onNote={setLogNote}
-            onClose={() => setLogTarget(null)}
-            onAction={logDuty}
-          />
-        )}
       </div>
     );
   }
@@ -1304,8 +1204,8 @@ export default function PatrolSchedulerRoutes({
                 Save draft
               </button>
               {step === 6 && (
-                <button onClick={submitForApproval} className="ml-auto flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-[16px] font-bold text-white hover:bg-emerald-700">
-                  <Shield size={13} /> Submit for Approval
+                <button onClick={finishSchedule} className="ml-auto flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-[16px] font-bold text-white hover:bg-emerald-700">
+                  <Check size={13} /> Done
                 </button>
               )}
             </div>
@@ -1394,29 +1294,13 @@ export default function PatrolSchedulerRoutes({
                         </div>
                         <SchedBadge status={s.status} />
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {s.status === "draft" && (
+                      {s.status === "draft" && (
+                        <div className="mt-3 flex flex-wrap gap-2">
                           <button onClick={() => continueDraft(s)} className="rounded-lg border border-stone-200 px-3 py-1.5 text-[16px] font-semibold text-stone-600">
                             Continue editing
                           </button>
-                        )}
-                        {s.status === "pending_approval" && (
-                          <button onClick={() => setApproveTarget(s)} className="rounded-lg bg-[#0038A8] px-3 py-1.5 text-[16px] font-bold text-white">
-                            Approve &amp; activate
-                          </button>
-                        )}
-                        {(s.status === "scheduled" || s.status === "active") && (
-                          <button
-                            onClick={() => {
-                              setLogTarget(s);
-                              setLogTanodId(team?.leaderId || roster[0]?.id || "");
-                            }}
-                            className="rounded-lg border border-stone-200 px-3 py-1.5 text-[16px] font-semibold text-stone-600"
-                          >
-                            Log duty
-                          </button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1427,7 +1311,7 @@ export default function PatrolSchedulerRoutes({
               <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
                 <div className="border-b border-stone-100 px-4 py-3">
                   <p className="text-[15px] font-semibold text-stone-800">Duty logs</p>
-                  <p className="text-[16px] text-[#94A3B8]">Start/end of duty and observations feed blotter and BPOPS reports</p>
+                  <p className="text-[16px] text-[#94A3B8]">Start/end of duty and observations</p>
                 </div>
                 <table className="w-full text-left text-[16px]">
                   <thead>
@@ -1436,7 +1320,6 @@ export default function PatrolSchedulerRoutes({
                       <th className="px-4 py-2">Schedule</th>
                       <th className="px-4 py-2">Start / End</th>
                       <th className="px-4 py-2">Observation</th>
-                      <th className="px-4 py-2">Links</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-50">
@@ -1450,10 +1333,6 @@ export default function PatrolSchedulerRoutes({
                           {l.endedAt ? formatDateTime(l.endedAt) : "on duty"}
                         </td>
                         <td className="px-4 py-2 text-stone-600">{l.observations || "—"}</td>
-                        <td className="px-4 py-2">
-                          {l.linkedBlotter && <span className="mr-1 rounded-full bg-sky-50 px-2 py-0.5 text-[15px] font-semibold text-sky-700">Blotter</span>}
-                          {l.linkedBpops && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[15px] font-semibold text-violet-700">BPOPS</span>}
-                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1481,94 +1360,6 @@ export default function PatrolSchedulerRoutes({
         />
       )}
 
-      {approveTarget && (
-        <ConfirmModal
-          type="confirm"
-          title={`Approve ${approveTarget.code}?`}
-          message="Approved schedules become Scheduled or Active and the assigned team / tanods are notified."
-          confirmLabel="Approve & notify"
-          tone="primary"
-          onConfirm={() => approveSchedule(approveTarget)}
-          onClose={() => setApproveTarget(null)}
-        />
-      )}
-
-      {logTarget && (
-        <DutyLogSheet
-          schedule={logTarget}
-          roster={roster}
-          tanodId={logTanodId}
-          note={logNote}
-          onTanod={setLogTanodId}
-          onNote={setLogNote}
-          onClose={() => setLogTarget(null)}
-          onAction={logDuty}
-        />
-      )}
-    </div>
-  );
-}
-
-function DutyLogSheet({
-  schedule,
-  roster,
-  tanodId,
-  note,
-  onTanod,
-  onNote,
-  onClose,
-  onAction,
-}: {
-  schedule: PatrolSchedule;
-  roster: RosterMember[];
-  tanodId: string;
-  note: string;
-  onTanod: (id: string) => void;
-  onNote: (v: string) => void;
-  onClose: () => void;
-  onAction: (k: "start" | "end" | "observe") => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/30 p-4 sm:items-center">
-      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
-        <div className="mb-3 flex items-start justify-between">
-          <div>
-            <p className="text-[16px] font-bold text-stone-900">Duty log · {schedule.code}</p>
-            <p className="text-[15px] text-[#94A3B8]">Start/end of duty and observations</p>
-          </div>
-          <button onClick={onClose} className="rounded-full p-1 text-stone-400 hover:bg-stone-100">
-            <X size={16} />
-          </button>
-        </div>
-        <Field label="Tanod">
-          <select className={selectCls} value={tanodId} onChange={(e) => onTanod(e.target.value)}>
-            {roster.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <div className="mt-3">
-          <Field label="Observation">
-            <textarea rows={3} className={textareaCls} value={note} onChange={(e) => onNote(e.target.value)} placeholder="What was observed on post…" />
-          </Field>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button onClick={() => onAction("start")} className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-[15px] font-semibold text-white">
-            <Clock size={12} /> Log start
-          </button>
-          <button onClick={() => onAction("end")} className="flex items-center gap-1 rounded-lg bg-stone-800 px-3 py-2 text-[15px] font-semibold text-white">
-            Log end
-          </button>
-          <button onClick={() => onAction("observe")} className="flex items-center gap-1 rounded-lg border border-stone-200 px-3 py-2 text-[15px] font-semibold text-stone-700">
-            <FileText size={12} /> Link to blotter / BPOPS
-          </button>
-        </div>
-        <p className="mt-2 flex items-center gap-1 text-[11px] text-[#94A3B8]">
-          <Radio size={10} /> Feeds Digital Blotter and BPOPS coverage reports
-        </p>
-      </div>
     </div>
   );
 }

@@ -3,12 +3,10 @@ import {
   CalendarClock,
   UserCheck,
   UserX,
-  Shield,
   Users,
   Clock,
   MapPin,
   CheckCircle2,
-  XCircle,
   FileText,
   AlertTriangle,
   ChevronRight,
@@ -16,10 +14,8 @@ import {
 import { useToast } from "../hooks/useToast.tsx";
 import Modal from "../components/ui/Modal";
 import {
-  getRoster,
-  getTeams,
+  canCheckInToSchedule,
   getTodaySchedules,
-  getOnDutyTanods,
   addCheckInOutRecord,
   updateCheckInOutRecord,
   usePatrolScheduleStore,
@@ -43,6 +39,7 @@ function CheckInModal({
   team,
   roster,
   availableTanods,
+  checkedInIds,
   onClose,
   onConfirm,
 }: {
@@ -50,6 +47,7 @@ function CheckInModal({
   team: PatrolTeam;
   roster: RosterMember[];
   availableTanods: RosterMember[];
+  checkedInIds: string[];
   onClose: () => void;
   onConfirm: (data: {
     tanodId: string;
@@ -107,33 +105,70 @@ function CheckInModal({
           <p className="mt-0.5 text-[12px] font-medium text-stone-800">{team.name}</p>
         </div>
 
-        {/* Tanod Selection */}
+        {/* Tanod Selection — show ALL team members with status, not just available */}
         <div>
-          <p className="mb-2 text-[10px] font-medium tracking-wider text-stone-400">SELECT TANOD</p>
+          <p className="mb-2 text-[10px] font-medium tracking-wider text-stone-400">
+            SELECT TANOD — ALL {team.name.toUpperCase()} MEMBERS
+          </p>
           <div className="grid grid-cols-1 gap-2">
-            {availableTanods.map((tanod) => (
-              <button
-                key={tanod.id}
-                onClick={() => setSelectedTanod(tanod.id)}
-                className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition ${
-                  selectedTanod === tanod.id
-                    ? "border-emerald-400 bg-emerald-50"
-                    : "border-stone-200 bg-white hover:bg-stone-50"
-                }`}
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E9EDFB] text-[#0038A8]">
-                  <Users size={14} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[12px] font-semibold text-stone-800">{tanod.name}</p>
-                  <p className="text-[10px] text-stone-500">{tanod.purok}</p>
-                </div>
-                {selectedTanod === tanod.id && (
-                  <CheckCircle2 size={16} className="text-emerald-600" />
-                )}
-              </button>
-            ))}
+            {roster
+              .filter((r) => [...new Set([team.leaderId, ...team.memberIds])].includes(r.id))
+              .map((tanod) => {
+                const isCheckedIn = checkedInIds.includes(tanod.id);
+                const isSelectable = availableTanods.some((a) => a.id === tanod.id);
+                return (
+                  <button
+                    key={tanod.id}
+                    disabled={!isSelectable}
+                    onClick={() => setSelectedTanod(tanod.id)}
+                    className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition ${
+                      selectedTanod === tanod.id
+                        ? "border-emerald-400 bg-emerald-50"
+                        : isSelectable
+                          ? "border-stone-200 bg-white hover:bg-stone-50"
+                          : "cursor-not-allowed border-stone-100 bg-stone-50 opacity-70"
+                    }`}
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E9EDFB] text-[#0038A8]">
+                      <Users size={14} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-1.5 text-[12px] font-semibold text-stone-800">
+                        {tanod.name}
+                        {team.leaderId === tanod.id && (
+                          <span className="rounded-full bg-[#0038A8] px-1.5 py-px text-[8px] font-bold uppercase text-white">
+                            Leader
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-stone-500">
+                        {tanod.purok}
+                        {!tanod.available && " · Unavailable"}
+                        {isCheckedIn && " · Already on duty"}
+                      </p>
+                    </div>
+                    {isCheckedIn ? (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-semibold text-emerald-700">
+                        On Duty
+                      </span>
+                    ) : !tanod.available ? (
+                      <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[9px] font-semibold text-stone-500">
+                        Unavailable
+                      </span>
+                    ) : (
+                      selectedTanod === tanod.id && (
+                        <CheckCircle2 size={16} className="text-emerald-600" />
+                      )
+                    )}
+                  </button>
+                );
+              })}
           </div>
+          {availableTanods.length === 0 && (
+            <p className="mt-2 text-[11px] text-stone-500">
+              All members are either already checked in or marked unavailable.
+            </p>
+          )}
         </div>
 
         {/* Notes */}
@@ -247,8 +282,31 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
   const [showCheckOutModal, setShowCheckOutModal] = useState(false);
 
   // All hooks must be above any early return (Rules of Hooks)
-  const todaySchedules = useMemo(() => getTodaySchedules(), [schedules]);
-  const onDutyRecords = useMemo(() => checkInOutRecords.filter(r => r.status === 'checked_in'), [checkInOutRecords]);
+  // Only schedules that were actually created (scheduled/active) can be checked into.
+  // Drafts never appear here. No schedule => no check-in possible.
+  const todaySchedules = useMemo(
+    () => getTodaySchedules().filter((s) => canCheckInToSchedule(s.id)),
+    [schedules, teams]
+  );
+  const hasAnySchedulableTeam = useMemo(
+    () =>
+      schedules.some(
+        (s) =>
+          (s.status === "scheduled" || s.status === "active") &&
+          teams.some((t) => t.id === s.teamId && t.isActive)
+      ),
+    [schedules, teams]
+  );
+  // Only show on-duty records whose schedule still exists (prevents orphan check-ins).
+  const onDutyRecords = useMemo(
+    () =>
+      checkInOutRecords.filter(
+        (r) =>
+          r.status === "checked_in" &&
+          schedules.some((s) => s.id === r.scheduleId && s.status !== "draft")
+      ),
+    [checkInOutRecords, schedules]
+  );
   const checkpointPlans = useMemo(() => getApprovedCheckpointPlans(), []);
 
   // Access control - only Chief Tanod can access
@@ -271,22 +329,44 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
   const handleCheckIn = (data: { tanodId: string; photoEvidence?: string; notes?: string }) => {
     if (!selectedSchedule) return;
 
-    const team = teams.find((t) => t.id === selectedSchedule.teamId);
+    // Gate: schedule must still exist and be check-in eligible.
+    const liveSchedule = schedules.find((s) => s.id === selectedSchedule.id);
+    if (!liveSchedule) {
+      flash("This schedule no longer exists. Create a schedule first.", { type: "error" });
+      return;
+    }
+    if (!canCheckInToSchedule(liveSchedule.id)) {
+      flash("Check-in is only allowed once a schedule has been created and is active for today.", { type: "warning" });
+      return;
+    }
+
+    const team = teams.find((t) => t.id === liveSchedule.teamId);
     if (!team) {
       flash("Team not found", { type: "error" });
+      return;
+    }
+    if (!team.isActive) {
+      flash("This team is deactivated and cannot be checked in.", { type: "warning" });
+      return;
+    }
+    const alreadyIn = onDutyRecords.some(
+      (r) => r.scheduleId === liveSchedule.id && r.tanodId === data.tanodId
+    );
+    if (alreadyIn) {
+      flash("This Tanod is already checked in for this schedule.", { type: "warning" });
       return;
     }
 
     const record: CheckInOutRecord = {
       id: `CIO-${Date.now()}`,
-      scheduleId: selectedSchedule.id,
+      scheduleId: liveSchedule.id,
       tanodId: data.tanodId,
       teamId: team.id,
       checkInTime: new Date().toISOString(),
       confirmedBy: "Chief Tanod", // In real app, this would be the actual user ID
       photoEvidence: data.photoEvidence,
       checkInNotes: data.notes,
-      checkpointPlanId: selectedSchedule.planId,
+      checkpointPlanId: liveSchedule.planId,
       status: "checked_in",
       createdAt: new Date().toISOString(),
     };
@@ -313,6 +393,10 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
   };
 
   const openCheckInModal = (schedule: PatrolSchedule) => {
+    if (!canCheckInToSchedule(schedule.id)) {
+      flash("Check-in is only allowed once a schedule has been created for this team.", { type: "warning" });
+      return;
+    }
     setSelectedSchedule(schedule);
     setShowCheckInModal(true);
   };
@@ -322,17 +406,26 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
     setShowCheckOutModal(true);
   };
 
-  const getAvailableTanodsForSchedule = (schedule: PatrolSchedule) => {
-    const team = teams.find((t) => t.id === schedule.teamId);
+  const getTeamMemberIds = (teamId: string) => {
+    const team = teams.find((t) => t.id === teamId);
     if (!team) return [];
+    return [...new Set([team.leaderId, ...team.memberIds])];
+  };
 
-    const teamMemberIds = [team.leaderId, ...team.memberIds];
-    const alreadyCheckedIn = onDutyRecords
-      .filter((r) => r.scheduleId === schedule.id)
-      .map((r) => r.tanodId);
+  const getCheckedInIdsForSchedule = (scheduleId: string) =>
+    onDutyRecords.filter((r) => r.scheduleId === scheduleId).map((r) => r.tanodId);
+
+  const getAllTeamMembersForSchedule = (schedule: PatrolSchedule) => {
+    const ids = getTeamMemberIds(schedule.teamId);
+    return roster.filter((r) => ids.includes(r.id));
+  };
+
+  const getAvailableTanodsForSchedule = (schedule: PatrolSchedule) => {
+    const ids = getTeamMemberIds(schedule.teamId);
+    const alreadyCheckedIn = getCheckedInIdsForSchedule(schedule.id);
 
     return roster
-      .filter((r) => teamMemberIds.includes(r.id))
+      .filter((r) => ids.includes(r.id))
       .filter((r) => !alreadyCheckedIn.includes(r.id))
       .filter((r) => r.available);
   };
@@ -349,12 +442,6 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
               <p className="mt-1 text-sm text-stone-500">
                 Manage Tanod duty starts and completions
               </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2">
-                <Shield size={16} className="text-[#0038A8]" />
-                <span className="text-[12px] font-medium text-stone-700">Chief Tanod Only</span>
-              </div>
             </div>
           </div>
         </header>
@@ -397,6 +484,7 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
                   <p className="text-[12px] font-semibold text-blue-800">Physical Presence Required</p>
                   <p className="text-[11px] text-blue-700">
                     Tanods must personally appear before the Chief Tanod for check-in confirmation.
+                    Check-in is only enabled after a patrol schedule has been created for their team.
                   </p>
                 </div>
               </div>
@@ -405,9 +493,13 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
             {todaySchedules.length === 0 ? (
               <div className="rounded-xl border border-stone-200 bg-white px-6 py-12 text-center">
                 <CalendarClock size={48} className="mx-auto mb-4 text-stone-300" />
-                <h3 className="text-lg font-semibold text-stone-900">No Scheduled Patrols Today</h3>
+                <h3 className="text-lg font-semibold text-stone-900">
+                  {hasAnySchedulableTeam ? "No Scheduled Patrols Today" : "No Schedule Created Yet"}
+                </h3>
                 <p className="mt-2 text-stone-500">
-                  There are no patrol schedules for today. Check the Patrol Scheduling page to create new schedules.
+                  {hasAnySchedulableTeam
+                    ? "There are no patrol schedules for today. Check the Patrol Scheduling page to create new schedules."
+                    : "Check-in is disabled until a patrol schedule is created. Create a schedule first, then return here to check in the assigned team."}
                 </p>
                 {onNavigate && (
                   <button
@@ -424,10 +516,9 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
                 {todaySchedules.map((schedule) => {
                   const team = teams.find((t) => t.id === schedule.teamId);
                   const plan = checkpointPlans.find((p) => p.id === schedule.planId);
+                  const allMembers = getAllTeamMembersForSchedule(schedule);
                   const availableTanods = getAvailableTanodsForSchedule(schedule);
-                  const checkedInCount = onDutyRecords.filter(
-                    (r) => r.scheduleId === schedule.id
-                  ).length;
+                  const checkedInIds = getCheckedInIdsForSchedule(schedule.id);
 
                   return (
                     <div
@@ -455,15 +546,43 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
                               {plan?.targetArea || "Unknown Area"}
                             </span>
                           </div>
+                          {/* Full member list — all Team Alpha members always visible */}
+                          <div className="mt-3 border-t border-stone-100 pt-2">
+                            <p className="mb-1.5 text-[10px] font-medium tracking-wider text-stone-400">
+                              ALL MEMBERS ({allMembers.length})
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {allMembers.map((m) => {
+                                const isIn = checkedInIds.includes(m.id);
+                                return (
+                                  <span
+                                    key={m.id}
+                                    title={!m.available ? "Marked unavailable" : isIn ? "Already checked in" : "Available for check-in"}
+                                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                                      isIn
+                                        ? "bg-emerald-100 text-emerald-700"
+                                        : !m.available
+                                          ? "bg-stone-200 text-stone-500"
+                                          : "bg-stone-100 text-stone-600"
+                                    }`}
+                                  >
+                                    {m.name}
+                                    {team?.leaderId === m.id && " (TL)"}
+                                    {isIn ? " ✓" : !m.available ? " — unavailable" : ""}
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="text-right">
                             <p className="text-[10px] text-stone-400">Checked In</p>
                             <p className="text-[16px] font-bold text-[#0038A8]">
-                              {checkedInCount}/{team?.memberIds.length || 0}
+                              {checkedInIds.length}/{allMembers.length}
                             </p>
                           </div>
-                          {availableTanods.length > 0 && (
+                          {availableTanods.length > 0 ? (
                             <button
                               onClick={() => openCheckInModal(schedule)}
                               className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-[12px] font-medium text-white transition hover:bg-emerald-700"
@@ -471,6 +590,10 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
                               <UserCheck size={14} />
                               Check-in
                             </button>
+                          ) : (
+                            <span className="rounded-lg bg-stone-100 px-3 py-2 text-[11px] font-medium text-stone-500">
+                              All checked in / unavailable
+                            </span>
                           )}
                         </div>
                       </div>
@@ -549,6 +672,7 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
             team={teams.find((t) => t.id === selectedSchedule.teamId)!}
             roster={roster}
             availableTanods={getAvailableTanodsForSchedule(selectedSchedule)}
+            checkedInIds={getCheckedInIdsForSchedule(selectedSchedule.id)}
             onClose={() => {
               setShowCheckInModal(false);
               setSelectedSchedule(null);

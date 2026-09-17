@@ -1,125 +1,109 @@
 import React from 'react';
+import {
+  ArrowUpRight,
+  BellRing,
+  ClipboardList,
+  Flame,
+  Route,
+  Users,
+  Video,
+  type LucideIcon,
+} from 'lucide-react';
+import { Button } from '../components/ui/button';
 
 interface Service {
-  icon: React.ReactNode;
+  icon: LucideIcon;
+  eyebrow: string;
   title: string;
   description: string;
-  link: string;
+  action: string;
 }
 
-const Services: React.FC = () => {
-  const services: Service[] = [
-    {
-      icon: (
-        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="8" y="6" width="32" height="36" rx="3"/>
-          <line x1="16" y1="16" x2="32" y2="16"/>
-          <line x1="16" y1="24" x2="28" y2="24"/>
-          <line x1="16" y1="32" x2="24" y2="32"/>
-          <circle cx="34" cy="34" r="8"/>
-          <line x1="34" y1="30" x2="34" y2="38"/>
-          <line x1="31" y1="34" x2="37" y2="34"/>
-        </svg>
-      ),
-      title: "Community Incident Reporting Module",
-      description: "Report crimes, suspicious activity, or safety concerns with photo and video evidence and track status in real time.",
-      link: "REPORT NOW"
-    },
-    {
-      icon: (
-        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="6" y="12" width="36" height="24" rx="3"/>
-          <circle cx="24" cy="24" r="8"/>
-          <circle cx="24" cy="24" r="3" fill="currentColor" opacity="0.2" stroke="none"/>
-          <path d="M14 36 L18 42 L30 42 L34 36"/>
-          <line x1="24" y1="12" x2="24" y2="4"/>
-        </svg>
-      ),
-      title: "CCTV and Surveillance Integration Module",
-      description: "Access integrated live and recorded surveillance feeds from public cameras for real-time monitoring.",
-      link: "VIEW FEEDS"
-    },
-    {
-      icon: (
-        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 44 L8 28 L24 16 L40 28 L40 44"/>
-          <rect x="18" y="28" width="12" height="16"/>
-          <circle cx="24" cy="22" r="6"/>
-          <circle cx="24" cy="22" r="2" fill="currentColor" opacity="0.2" stroke="none"/>
-        </svg>
-      ),
-      title: "Patrol Scheduling and Monitoring Module",
-      description: "Manage and track patrol officer schedules, routes, and real-time location data efficiently.",
-      link: "VIEW SCHEDULE"
-    },
-    {
-      icon: (
-        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="24" cy="14" r="6"/>
-          <path d="M6 42 C6 32 12 24 24 24 C36 24 42 32 42 42"/>
-        </svg>
-      ),
-      title: "Neighborhood Watch Coordination Module",
-      description: "Connect volunteer watch groups with local police for coordinated patrols and alerts.",
-      link: "JOIN WATCH"
-    },
-    {
-      icon: (
-        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M24 4 L4 40 L44 40 Z"/>
-          <line x1="24" y1="18" x2="24" y2="28"/>
-          <line x1="24" y1="34" x2="24" y2="36"/>
-        </svg>
-      ),
-      title: "Security Alert System Module",
-      description: "Receive instant emergency notifications and broadcast alerts for your area immediately.",
-      link: "VIEW ALERTS"
-    },
-    {
-      icon: (
-        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="24" cy="10" r="3"/>
-          <path d="M24 16 L24 28"/>
-          <path d="M24 32 L24 34"/>
-          <path d="M10 24 C10 12 16 6 24 6 C32 6 38 12 38 24"/>
-          <path d="M6 24 C6 8 14 2 24 2 C34 2 42 8 42 24"/>
-          <line x1="6" y1="24" x2="4" y2="24"/>
-          <line x1="42" y1="24" x2="44" y2="24"/>
-          <path d="M8 20 L6 18"/>
-          <path d="M40 20 L42 18"/>
-          <circle cx="14" cy="24" r="2" fill="currentColor" opacity="0.2" stroke="none"/>
-          <circle cx="34" cy="24" r="2" fill="currentColor" opacity="0.2" stroke="none"/>
-          <path d="M20 28 L20 30" strokeWidth="1.2"/>
-          <path d="M28 28 L28 30" strokeWidth="1.2"/>
-          <rect x="10" y="34" width="28" height="4" rx="1"/>
-          <rect x="14" y="38" width="20" height="8" rx="1"/>
-          <line x1="18" y1="42" x2="18" y2="46"/>
-          <line x1="30" y1="42" x2="30" y2="46"/>
-          <line x1="14" y1="46" x2="34" y2="46"/>
-        </svg>
-      ),
-      title: "IoT Smoke &amp; Noise Detection and Automated Emergency Alerts",
-      description: "Smart IoT sensors detect smoke, excessive noise, and environmental hazards — triggering automated emergency alerts to authorities and residents in real time.",
-      link: "LEARN MORE"
-    }
-  ];
+const services: Service[] = [
+  {
+    icon: ClipboardList,
+    eyebrow: 'Module 01',
+    title: 'Community Incident Reporting',
+    description:
+      'Report crimes, suspicious activity, or safety concerns with photo and video evidence and track status in real time.',
+    action: 'Report Now',
+  },
+  {
+    icon: Video,
+    eyebrow: 'Module 02',
+    title: 'CCTV & Surveillance Integration',
+    description:
+      'Access integrated live and recorded surveillance feeds from public cameras for real-time monitoring.',
+    action: 'View Feeds',
+  },
+  {
+    icon: Route,
+    eyebrow: 'Module 03',
+    title: 'Patrol Scheduling & Monitoring',
+    description:
+      'Manage and track patrol officer schedules, routes, and real-time location data efficiently.',
+    action: 'View Schedule',
+  },
+  {
+    icon: Users,
+    eyebrow: 'Module 04',
+    title: 'Neighborhood Watch Coordination',
+    description: 'Connect volunteer watch groups with local police for coordinated patrols and alerts.',
+    action: 'Join Watch',
+  },
+  {
+    icon: BellRing,
+    eyebrow: 'Module 05',
+    title: 'Security Alert System',
+    description: 'Receive instant emergency notifications and broadcast alerts for your area immediately.',
+    action: 'View Alerts',
+  },
+  {
+    icon: Flame,
+    eyebrow: 'Module 06',
+    title: 'IoT Smoke & Noise Detection',
+    description:
+      'Smart IoT sensors detect smoke, excessive noise, and environmental hazards — triggering automated emergency alerts to authorities and residents in real time.',
+    action: 'Learn More',
+  },
+];
 
+const Services: React.FC = () => {
   return (
-    <section className="services" id="services" aria-labelledby="services-title">
-      <div className="container reveal">
-        <div className="section-header">
-          <span className="eyebrow">OUR SERVICES</span>
-          <h2 className="section-heading" id="services-title">How Can We Help You?</h2>
+    <section id="services" className="scroll-mt-28 border-y border-border bg-muted/35 lg:scroll-mt-32" aria-labelledby="services-title">
+      <div className="mx-auto w-full max-w-[100rem] px-5 py-20 sm:px-8 lg:px-12 lg:py-28">
+        <div data-reveal className="mx-auto max-w-2xl text-center">
+          <span className="section-label">Our Services</span>
+          <h2 id="services-title" className="mt-3 font-display text-4xl font-black leading-tight sm:text-5xl">
+            How Can We <span className="text-primary">Help You?</span>
+          </h2>
         </div>
-        <div className="services-grid stagger-children">
+
+        <div className="mt-14 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {services.map((service, index) => (
-            <article className="service-card" key={index}>
-              <div className="service-icon">
-                {service.icon}
+            <article
+              key={index}
+              data-reveal
+              className="system-card group flex min-h-80 flex-col rounded-3xl border border-border bg-card/95 p-6 shadow-2xl backdrop-blur-xl"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <span className="grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary transition-all duration-500 group-hover:rotate-3 group-hover:bg-primary group-hover:text-primary-foreground">
+                  <service.icon className="size-6" aria-hidden="true" />
+                </span>
+                <ArrowUpRight
+                  className="size-5 text-muted-foreground transition-all duration-300 group-hover:-translate-y-1 group-hover:translate-x-1 group-hover:text-primary"
+                  aria-hidden="true"
+                />
               </div>
-              <h3 className="service-title">{service.title}</h3>
-              <p className="service-desc">{service.description}</p>
-              <a href="#" className="service-link">{service.link} <span aria-hidden="true">→</span></a>
+              <p className="mt-8 text-xs font-extrabold uppercase tracking-[0.16em] text-primary">{service.eyebrow}</p>
+              <h3 className="mt-2 font-display text-xl font-extrabold leading-snug">{service.title}</h3>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">{service.description}</p>
+              <div className="mt-auto flex items-center justify-between gap-3 border-t border-border pt-4">
+                <span className="text-xs font-semibold text-muted-foreground">Live module</span>
+                <Button size="sm" variant="outline">
+                  {service.action}
+                </Button>
+              </div>
             </article>
           ))}
         </div>

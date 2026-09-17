@@ -9,26 +9,25 @@ import {
   ClipboardList,
   Crosshair,
   FileText,
-  Info,
   Lightbulb,
   MapPin,
   MessageSquare,
-  Pencil,
   Plus,
   Radar,
   Route,
   Send,
-  Sparkles,
-  Trash2, 
+  Trash2,
   X,
 } from "lucide-react";
 import { ConfirmModal } from "../components/ui";
 import { useToast } from "../hooks/useToast";
 import { useIncidentStore, type Incident } from "../desk_officer/incidentStore";
 import { PUROK_ZONES } from "../constants/purok";
+import { fromGeoPoint } from "../utils/geoUtils";
 import {
   ALL_LAYERS,
-  BUCKET_LABEL,
+  autoAddressForPoint,
+  reverseGeocode,
   DAY_LABELS,
   DEFAULT_FILTERS,
   PURPOSES,
@@ -53,9 +52,11 @@ import {
   suggestRoutes,
   validateStep,
   windowDesc,
+  type ActivePatrol,
   type CheckpointPlan,
   type CpPoint,
   type CpRoute,
+  type ExistingCheckpoint,
   type IncidentFilters,
   type LayerState,
   type MapMode,
@@ -75,239 +76,16 @@ import {
   textareaCls,
 } from "./patrolUi";
 import {
+  CheckpointDetailsModal,
   IncidentDetailsModal,
   MapAnalysisView,
+  PatrolDetailsModal,
   type AreaStat,
   type BucketStat,
 } from "./patrolAnalysisView";
 import { CheckpointPlansView, PlanDetailModal } from "./patrolPlansView";
 import { removeCheckpointPlan, upsertCheckpointPlan, useCheckpointPlans } from "./checkpointPlanStore";
 import { setPatrolScheduleTarget } from "./patrolScheduleTarget";
-
-/* --------------------------------------------------------------------- */
-/* System recommendation (optional) — step 4                              */
-/* --------------------------------------------------------------------- */
-
-interface SystemRecommendation {
-  key: string;
-  type: PlanType;
-  kindLabel: string;
-  targetArea: string;
-  secondArea: string | null;
-  name: string;
-  purpose: string;
-  objective: string;
-  rationale: string;
-  dominantType: string;
-  peakBucket: string;
-  startTime: string;
-  endTime: string;
-  lat: number;
-  lng: number;
-  latB: number;
-  lngB: number;
-  landmark: string;
-  pct: number;
-  covered: number;
-  total: number;
-  linkedIncidentIds: string[];
-}
-
-function buildRecommendation(
-  filtered: Incident[],
-  areaStats: AreaStat[],
-  bucketStats: BucketStat[]
-): SystemRecommendation | null {
-  if (filtered.length === 0 || areaStats.length === 0) return null;
-  const top = areaStats[0];
-  const zone = PUROK_ZONES.find((z) => z.name === top.name);
-  if (!zone) return null;
-
-  const dominantType = top.dominant !== "—" ? top.dominant : filtered[0].category || "Incident";
-  const spread = top.count / filtered.length;
-  const type: PlanType = spread >= 0.55 ? "fixed" : "route";
-  const peak = bucketStats.length > 0 && bucketStats[0].count > 0 ? bucketStats[0].key : "evening";
-  const hours: Record<string, { start: string; end: string }> = {
-    morning: { start: "06:00", end: "12:00" },
-    afternoon: { start: "12:00", end: "17:00" },
-    evening: { start: "17:00", end: "21:00" },
-    night: { start: "21:00", end: "05:00" },
-  };
-  const h = hours[peak] ?? hours.evening;
-
-  const lat = Math.round(zone.labelX);
-  const lng = Math.round(zone.labelY);
-  const second = areaStats[1];
-  const secondZone = second ? PUROK_ZONES.find((z) => z.name === second.name) : null;
-  const latB = Math.round(secondZone?.labelX ?? Math.min(440, lat + 90));
-  const lngB = Math.round(secondZone?.labelY ?? Math.min(400, lng + 60));
-
-  const points: CpPoint[] =
-    type === "fixed"
-      ? [
-        {
-          id: "rec-p",
-          kind: "fixed",
-          label: "FIXED",
-          name: `${top.name} priority post`,
-          address: "",
-          landmark: `${zone.name} hotspot center`,
-          description: "System-suggested location (hotspot center)",
-          remarks: "",
-          lat,
-          lng,
-        },
-      ]
-      : [
-        {
-          id: "rec-a",
-          kind: "start",
-          label: "A",
-          name: `Point A — ${top.name}`,
-          address: "",
-          landmark: `${zone.name} hotspot center`,
-          description: "System-suggested start",
-          remarks: "",
-          lat,
-          lng,
-        },
-        {
-          id: "rec-b",
-          kind: "end",
-          label: "B",
-          name: `Point B — ${second?.name ?? "Secondary coverage area"}`,
-          address: "",
-          landmark: "",
-          description: "System-suggested end",
-          remarks: "",
-          lat: latB,
-          lng: lngB,
-        },
-      ];
-
-  const cov = coverageOf(points, filtered);
-  const linked = filtered
-    .filter((i) => {
-      const z = PUROK_ZONES.find((zz) => zz.name === i.purok || i.purok?.startsWith(zz.name));
-      return z?.name === top.name;
-    })
-    .slice(0, 6)
-    .map((i) => i.id);
-
-  const peakLabel = (BUCKET_LABEL[peak] ?? peak).split(" ")[0];
-
-  return {
-    key: `${type}|${top.name}|${peak}|${h.start}-${h.end}`,
-    type,
-    kindLabel: type === "fixed" ? "Fixed checkpoint" : "Route-based sweep",
-    targetArea: top.name,
-    secondArea: second?.name ?? null,
-    name: `${top.name} ${type === "fixed" ? "Interdiction Post" : "Response Sweep"}`,
-    purpose: "Crime Prevention",
-    objective: `Deter recurring ${dominantType.toLowerCase()} incidents in ${top.name} during the ${peakLabel} peak window (${h.start}–${h.end}).`,
-    rationale: `${top.name} logged ${top.count} incident${top.count === 1 ? "" : "s"} in the current window — the highest concentration in the barangay (${Math.round(spread * 100)}% of reports).`,
-    dominantType,
-    peakBucket: peak,
-    startTime: h.start,
-    endTime: h.end,
-    lat,
-    lng,
-    latB,
-    lngB,
-    landmark: zone.name,
-    pct: cov.pct,
-    covered: cov.covered,
-    total: cov.total,
-    linkedIncidentIds: linked,
-  };
-}
-
-function RecommendationCard({
-  rec,
-  onUse,
-  onModify,
-  onIgnore,
-}: {
-  rec: SystemRecommendation;
-  onUse: () => void;
-  onModify: () => void;
-  onIgnore: () => void;
-}) {
-  return (
-    <div className="mt-5 rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-white p-4 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
-            <Sparkles size={14} />
-          </span>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-[13px] font-bold text-stone-800">System Recommendation</h3>
-              <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[9px] font-semibold text-indigo-700">Optional</span>
-            </div>
-            <p className="text-[10px] text-[#94A3B8]">Auto-generated from filtered incident distribution — use it, modify it, or ignore it.</p>
-          </div>
-        </div>
-        <button
-          onClick={onIgnore}
-          className="flex items-center gap-1 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-[10px] font-semibold text-stone-500 transition hover:bg-stone-50"
-        >
-          <X size={11} /> Ignore
-        </button>
-      </div>
-
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <div className="rounded-lg border border-stone-100 bg-white px-3 py-2">
-          <p className="text-[9px] font-semibold tracking-wider text-[#94A3B8]">SUGGESTED TYPE / MODE</p>
-          <p className="mt-0.5 flex items-center gap-1 text-[11px] font-bold text-stone-800">
-            {rec.type === "fixed" ? <MapPin size={11} className="text-violet-600" /> : <Route size={11} className="text-teal-600" />}
-            {rec.kindLabel}
-          </p>
-        </div>
-        <div className="rounded-lg border border-stone-100 bg-white px-3 py-2">
-          <p className="text-[9px] font-semibold tracking-wider text-[#94A3B8]">PRIMARY AREA</p>
-          <p className="mt-0.5 text-[11px] font-bold text-stone-800">{rec.targetArea}</p>
-          {rec.secondArea && <p className="text-[9px] text-[#94A3B8]">→ {rec.secondArea}</p>}
-        </div>
-        <div className="rounded-lg border border-stone-100 bg-white px-3 py-2">
-          <p className="text-[9px] font-semibold tracking-wider text-[#94A3B8]">SUGGESTED HOURS</p>
-          <p className="mt-0.5 text-[11px] font-bold text-stone-800">{rec.startTime}–{rec.endTime}</p>
-          <p className="text-[9px] text-[#94A3B8]">Peak: {rec.peakBucket}</p>
-        </div>
-        <div className="rounded-lg border border-stone-100 bg-white px-3 py-2">
-          <p className="text-[9px] font-semibold tracking-wider text-[#94A3B8]">PREDICTED COVERAGE</p>
-          <p className="mt-0.5 text-[11px] font-bold text-[#0038A8]">{rec.pct}%</p>
-          <p className="text-[9px] text-[#94A3B8]">
-            {rec.covered} of {rec.total} incidents
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-3 rounded-lg border border-indigo-100 bg-white px-3 py-2.5">
-        <p className="text-[9px] font-semibold uppercase tracking-wider text-[#94A3B8]">Why this suggestion</p>
-        <p className="mt-1 text-[10px] leading-relaxed text-stone-600">{rec.rationale}</p>
-        <p className="mt-1 text-[10px] text-[#334155]">
-          <span className="font-semibold">Objective:</span> {rec.objective}
-        </p>
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        <button
-          onClick={onUse}
-          className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3.5 py-2 text-[10px] font-bold text-white shadow-sm transition hover:bg-[#002A8C]"
-        >
-          <Check size={12} /> Use Suggestion
-        </button>
-        <button
-          onClick={onModify}
-          className="flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3.5 py-2 text-[10px] font-bold text-stone-600 transition hover:bg-stone-50"
-        >
-          <Pencil size={12} /> Modify
-        </button>
-      </div>
-    </div>
-  );
-}
 
 /* --------------------------------------------------------------------- */
 /* Checkpoint Planning — Chief Tanod                                      */
@@ -329,11 +107,11 @@ export default function PatrolConfiguration({
   const [customTargetId, setCustomTargetId] = useState<string | null>(null);
   const [layers, setLayers] = useState<LayerState>(ALL_LAYERS);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
-  const [dismissedRec, setDismissedRec] = useState<string | null>(null);
+  const [selectedCheckpoint, setSelectedCheckpoint] = useState<ExistingCheckpoint | null>(null);
+  const [selectedPatrol, setSelectedPatrol] = useState<ActivePatrol | null>(null);
   const [detailTarget, setDetailTarget] = useState<CheckpointPlan | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CheckpointPlan | null>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
-  const [submitted, setSubmitted] = useState<CheckpointPlan | null>(null);
   const [planTypeFilter, setPlanTypeFilter] = useState<"all" | PlanType>("all");
   const [planAreaFilter, setPlanAreaFilter] = useState<string>("all");
 
@@ -417,11 +195,6 @@ export default function PatrolConfiguration({
   const maxBucketCount = Math.max(1, ...bucketStats.map((b) => b.count));
   const maxDayCount = Math.max(1, ...dayStats.map((d) => d.count));
 
-  const recommendation = useMemo(
-    () => buildRecommendation(filtered, areaStats, bucketStats),
-    [filtered, areaStats, bucketStats]
-  );
-
   const allDraftPoints = useMemo(() => (draft ? planMarkers(draft) : []), [draft]);
 
   const routeSuggestions = useMemo(
@@ -471,116 +244,6 @@ export default function PatrolConfiguration({
     setDirty(true);
   }
 
-  function toggleLinkedIncident(id: string) {
-    if (!draft) return;
-    const on = draft.linkedIncidentIds.includes(id);
-    updateDraft({
-      linkedIncidentIds: on
-        ? draft.linkedIncidentIds.filter((x) => x !== id)
-        : [...draft.linkedIncidentIds, id],
-    });
-  }
-
-  function linkTopAreaIncidents() {
-    if (!draft) return;
-    const target = draft.targetArea;
-    const ids = filtered
-      .filter((i) => {
-        const z = PUROK_ZONES.find((zz) => zz.name === i.purok || i.purok?.startsWith(zz.name));
-        return z?.name === target || i.purok === target;
-      })
-      .map((i) => i.id);
-    if (ids.length === 0) {
-      flash("No incidents match the target area — widen the incident filters first", { type: "warning" });
-      return;
-    }
-    updateDraft({ linkedIncidentIds: [...new Set([...draft.linkedIncidentIds, ...ids])] });
-    flash(`Linked ${ids.length} incident${ids.length === 1 ? "" : "s"} in ${target}`);
-  }
-
-  function suggestionDraft(rec: SystemRecommendation): CheckpointPlan {
-    const base = emptyPlan(rec.type);
-    const identity = nextPlanIdentity(plans);
-    const today = new Date().toISOString().slice(0, 10);
-    let points: CpPoint[] = [];
-    if (rec.type === "fixed") {
-      points = [
-        {
-          id: nextPointId(),
-          kind: "fixed",
-          label: "FIXED",
-          name: `${rec.targetArea} priority post`,
-          address: "",
-          landmark: rec.landmark,
-          description: "System-suggested location (hotspot center)",
-          remarks: "",
-          lat: rec.lat,
-          lng: rec.lng,
-        },
-      ];
-    } else {
-      points = [
-        {
-          id: nextPointId(),
-          kind: "start",
-          label: "A",
-          name: `Point A — ${rec.targetArea}`,
-          address: "",
-          landmark: rec.landmark,
-          description: "System-suggested start (hotspot center)",
-          remarks: "",
-          lat: rec.lat,
-          lng: rec.lng,
-        },
-        {
-          id: nextPointId(),
-          kind: "end",
-          label: "B",
-          name: `Point B — ${rec.secondArea ?? "Secondary coverage area"}`,
-          address: "",
-          landmark: "",
-          description: "System-suggested end",
-          remarks: "",
-          lat: rec.latB,
-          lng: rec.lngB,
-        },
-      ];
-    }
-    return {
-      ...base,
-      ...identity,
-      name: rec.name,
-      purpose: rec.purpose,
-      objective: rec.objective,
-      rationale: rec.rationale,
-      targetArea: rec.targetArea,
-      type: rec.type,
-      points,
-      linkedIncidentIds: [...rec.linkedIncidentIds],
-      schedule: { ...base.schedule, operationDate: today, startTime: rec.startTime, endTime: rec.endTime },
-      coverage: rec.total > 0 ? { pct: rec.pct, covered: rec.covered, total: rec.total, window: windowDesc(filters) } : base.coverage,
-    };
-  }
-
-  function applySuggestion(mode: "use" | "modify") {
-    if (!recommendation) return;
-    const d = suggestionDraft(recommendation);
-    setDismissedRec(recommendation.key);
-    if (mode === "use") {
-      openPlanner(d, 3);
-      flash(`Suggestion applied as ${d.code} — review its coverage, then continue`);
-    } else {
-      openPlanner(d, 1);
-      flash(`${d.code} loaded into the planner — adjust the details as needed`);
-    }
-  }
-
-  function ignoreSuggestion() {
-    if (!recommendation) return;
-    setDismissedRec(recommendation.key);
-    flash("Recommendation ignored — you can still create the plan manually");
-  }
-
   function openPlanner(d: CheckpointPlan | null, targetStep = 1) {
     setDraft(d);
     setStep(targetStep);
@@ -594,58 +257,93 @@ export default function PatrolConfiguration({
     flash("Created a new checkpoint plan — fill in the basic details to continue");
   }
 
+  function applyTrueAddress(pointId: string, fallback: string, gpsLat: number, gpsLng: number) {
+    // Fire-and-forget: replace the instant purok fallback with the true
+    // street address once Nominatim resolves — unless the user edited it.
+    reverseGeocode(gpsLat, gpsLng)
+      .then((addr) => {
+        if (!addr || addr === fallback) return;
+        setDirty(true);
+        setDraft((d) => {
+          if (!d) return d;
+          const patch = (p: CpPoint) =>
+            p.id === pointId && p.address === fallback ? { ...p, address: addr } : p;
+          return {
+            ...d,
+            points: d.points.map(patch),
+            routes: (d.routes ?? []).map((r) => ({ ...r, points: r.points.map(patch) })),
+          };
+        });
+      })
+      .catch(() => {});
+  }
+
   function commitMapPoint(lat: number, lng: number) {
     if (!draft) return;
-    const snapped = snapToRoad(lat, lng);
+    // Leaflet reports real GPS coords, but plans/snapping live in legacy
+    // SVG pixel space — convert back first so the point lands where clicked.
+    const [svgX, svgY] = fromGeoPoint(lat, lng);
+    const snapped = snapToRoad(svgX, svgY);
     const slat = snapped.lat;
     const slng = snapped.lng;
     const road = snapped.snapped > 0.5;
     const at = `(${slat}, ${slng})${road ? " · snapped to nearest road" : ""}`;
+    const autoAddress = autoAddressForPoint(slat, slng);
     let next = [...draft.points];
     let msg = "";
+    let createdId: string | null = null;
     if (mapMode === "set_fixed") {
+      createdId = nextPointId();
       next = [
-        { id: nextPointId(), kind: "fixed", label: "FIXED", name: `${draft.targetArea || "Checkpoint"} post`, address: "", landmark: "", description: "", remarks: "", lat: slat, lng: slng },
+        { id: createdId, kind: "fixed", label: "FIXED", name: `${draft.targetArea || "Checkpoint"} post`, address: autoAddress, landmark: "", description: "", remarks: "", lat: slat, lng: slng },
       ];
-      msg = `Fixed location set at ${at}`;
+      msg = `Fixed location set at ${at} · ${autoAddress}`;
     } else if (mapMode === "set_start") {
+      createdId = nextPointId();
       next = next.filter((p) => p.kind !== "start");
-      next.push({ id: nextPointId(), kind: "start", label: "A", name: "Point A", address: "", landmark: "", description: "Starting point of route", remarks: "", lat: slat, lng: slng });
-      msg = `Point A set at ${at}`;
+      next.push({ id: createdId, kind: "start", label: "A", name: "Point A", address: autoAddress, landmark: "", description: "Starting point of route", remarks: "", lat: slat, lng: slng });
+      msg = `Point A set at ${at} · ${autoAddress}`;
     } else if (mapMode === "set_end") {
+      createdId = nextPointId();
       next = next.filter((p) => p.kind !== "end");
-      next.push({ id: nextPointId(), kind: "end", label: "B", name: "Point B", address: "", landmark: "", description: "End point of route", remarks: "", lat: slat, lng: slng });
-      msg = `Point B set at ${at}`;
+      next.push({ id: createdId, kind: "end", label: "B", name: "Point B", address: autoAddress, landmark: "", description: "End point of route", remarks: "", lat: slat, lng: slng });
+      msg = `Point B set at ${at} · ${autoAddress}`;
     } else if (mapMode === "set_intermediate") {
       const near = nearestRouteInfo(slat, slng);
       if (near) {
         if (near.rid === "primary") {
-          const updated = insertSeriesPoint(sortRoutePoints(draft.points), near.anchorId, slat, slng);
+          createdId = nextPointId();
+          const updated = insertSeriesPoint(sortRoutePoints(draft.points), near.anchorId, slat, slng, autoAddress, createdId);
           updateDraft({ points: relabelIntermediates(updated) });
-          msg = `Checkpoint added to Route 1 at ${at}`;
+          msg = `Checkpoint added to Route 1 at ${at} · ${autoAddress}`;
         } else {
+          createdId = nextPointId();
+          const newId = createdId;
           updateDraft({
             routes: (draft.routes ?? []).map((r) => {
               if (r.id !== near.rid) return r;
               const start = draft.points.find((p) => p.kind === "start");
               const end = draft.points.find((p) => p.kind === "end");
               if (!start || !end) return r;
-              const series = insertSeriesPoint([start, ...r.points, end], near.anchorId, slat, slng);
+              const series = insertSeriesPoint([start, ...r.points, end], near.anchorId, slat, slng, autoAddress, newId);
               return { ...r, points: relabelIntermediates(series.slice(1, -1)) };
             }),
           });
           const rl = (draft.routes ?? []).find((r) => r.id === near.rid)?.label ?? "route";
-          msg = `Checkpoint added to ${rl} at ${at}`;
+          msg = `Checkpoint added to ${rl} at ${at} · ${autoAddress}`;
         }
         setMapMode("view");
         flash(msg);
+        if (createdId) applyTrueAddress(createdId, autoAddress, lat, lng);
         return;
       }
       const cnt = next.filter((p) => p.kind === "intermediate").length + 1;
-      next.push({ id: nextPointId(), kind: "intermediate", label: `CP${cnt}`, name: `Checkpoint ${cnt}`, address: "", landmark: "", description: "", remarks: "", lat: slat, lng: slng });
-      msg = `Checkpoint ${cnt} added at ${at}`;
+      createdId = nextPointId();
+      next.push({ id: createdId, kind: "intermediate", label: `CP${cnt}`, name: `Checkpoint ${cnt}`, address: autoAddress, landmark: "", description: "", remarks: "", lat: slat, lng: slng });
+      msg = `Checkpoint ${cnt} added at ${at} · ${autoAddress}`;
     } else if (mapMode === "set_custom") {
-      const pt: CpPoint = { id: nextPointId(), kind: "intermediate", label: "CP", name: "", address: "", landmark: "", description: "", remarks: "", lat: slat, lng: slng };
+      const pt: CpPoint = { id: nextPointId(), kind: "intermediate", label: "CP", name: "", address: autoAddress, landmark: "", description: "", remarks: "", lat: slat, lng: slng };
+      createdId = pt.id;
       if (!customTargetId) {
         const existing = draft.routes ?? [];
         const idx = existing.length + 2;
@@ -667,12 +365,14 @@ export default function PatrolConfiguration({
         msg = `Waypoint added to ${(draft.routes ?? []).find((r) => r.id === customTargetId)?.label ?? "custom route"}`;
       }
       flash(msg);
+      if (createdId) applyTrueAddress(createdId, autoAddress, lat, lng);
       return;
     }
     const fresh = next[next.length - 1];
     updateDraft({ points: next });
     setMapMode("view");
     flash(msg || (fresh ? `Point ${fresh.label} set at (${fresh.lat}, ${fresh.lng})` : "Point set on map"));
+    if (createdId) applyTrueAddress(createdId, autoAddress, lat, lng);
   }
 
   function nearestRouteInfo(lat: number, lng: number): { rid: string; anchorId: string } | null {
@@ -699,16 +399,16 @@ export default function PatrolConfiguration({
     return { rid: min.rid, anchorId: min.anchorId };
   }
 
-  function insertSeriesPoint(series: CpPoint[], anchorId: string, lat: number, lng: number): CpPoint[] {
+  function insertSeriesPoint(series: CpPoint[], anchorId: string, lat: number, lng: number, address = "", id = nextPointId()): CpPoint[] {
     const idx = series.findIndex((p) => p.id === anchorId);
     const at = idx >= 0 ? idx + 1 : series.length;
     const out = [...series];
     out.splice(at, 0, {
-      id: nextPointId(),
+      id,
       kind: "intermediate",
       label: "CP",
       name: "Checkpoint",
-      address: "",
+      address,
       landmark: "",
       description: "",
       remarks: "",
@@ -861,12 +561,7 @@ export default function PatrolConfiguration({
     setPlannerOpen(false);
     setDraft(null);
     setDirty(false);
-    setSubmitted(submittedPlan);
     flash(`Plan ${submittedPlan.code} saved — status set to Pending; the Captain can now Approve or Reject it`);
-  }
-
-  function closeSubmitted() {
-    setSubmitted(null);
   }
 
   function revisePlan(id: string) {
@@ -1009,6 +704,10 @@ export default function PatrolConfiguration({
                   incidents={filtered}
                   selectedIncident={selectedIncident}
                   onSelectIncident={setSelectedIncident}
+                  selectedCheckpoint={selectedCheckpoint}
+                  onSelectCheckpoint={setSelectedCheckpoint}
+                  selectedPatrol={selectedPatrol}
+                  onSelectPatrol={setSelectedPatrol}
                   draftPoints={planMarkers(draft)}
                   draftPolylines={planPolylines(draft)}
                   mapMode={mapMode}
@@ -1022,14 +721,6 @@ export default function PatrolConfiguration({
                   nowLabel={`Planner — Step ${step}${step === 2 ? " · click the map to set points" : ""}`}
                   />
                 </div>
-                {step === 2 && (
-                  <div className="mt-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[10px] leading-relaxed text-sky-800">
-                    <Info size={11} className="mr-1 inline" />
-                    {draft.type === "fixed"
-                      ? "Fix a single location: click “Set Location” then click anywhere on the map. The exact coordinates are captured automatically."
-                      : "Set Point A and Point B on the map — Route 1 (primary) is drawn automatically. Add supporting routes (Route 2, 3…) from suggestions or draw custom ones, then click on a route line to place CP1, CP2, CP3…"}
-                  </div>
-                )}
               </div>
 
               {/* Form panel */}
@@ -1111,56 +802,6 @@ export default function PatrolConfiguration({
                           placeholder="Optional additional justification…"
                           className={textareaCls}
                         />
-                      </Field>
-                      <Field label="Link Incidents (Basis)">
-                        <div className="rounded-lg border border-stone-200 bg-stone-50/60 p-2">
-                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-[9px] text-[#94A3B8]">
-                              {draft.linkedIncidentIds.length} linked · showing incidents in the current filter window
-                            </p>
-                            <div className="flex gap-1">
-                              <button
-                                onClick={linkTopAreaIncidents}
-                                className="rounded-lg border border-rose-200 bg-white px-2 py-1 text-[9px] font-semibold text-rose-700 transition hover:bg-rose-50"
-                              >
-                                Link target-area incidents
-                              </button>
-                              <button
-                                onClick={() => updateDraft({ linkedIncidentIds: [] })}
-                                className="rounded-lg border border-stone-200 bg-white px-2 py-1 text-[9px] font-semibold text-stone-500 transition hover:bg-stone-50"
-                              >
-                                Clear
-                              </button>
-                            </div>
-                          </div>
-                          <div className="max-h-40 space-y-1 overflow-y-auto">
-                            {filtered.slice(0, 10).map((inc) => {
-                              const on = draft.linkedIncidentIds.includes(inc.id);
-                              return (
-                                <button
-                                  key={inc.id}
-                                  onClick={() => toggleLinkedIncident(inc.id)}
-                                  className={`flex w-full items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition ${on
-                                      ? "border-rose-200 bg-rose-50"
-                                      : "border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50"
-                                    }`}
-                                >
-                                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: SEV_COLOR[inc.severity] ?? "#94a3b8" }} />
-                                  <span className="font-mono text-[9px] font-bold text-stone-700">{inc.id}</span>
-                                  <span className="flex-1 truncate text-[9px] text-stone-600">
-                                    {inc.category} · {inc.purok}
-                                  </span>
-                                  {on && <Check size={11} className="shrink-0 text-rose-600" />}
-                                </button>
-                              );
-                            })}
-                            {filtered.length === 0 && (
-                              <p className="px-2 py-3 text-center text-[9px] text-[#94A3B8]">
-                                No incidents match the current filters — widen them on the map to link incidents.
-                              </p>
-                            )}
-                          </div>
-                        </div>
                       </Field>
                     </div>
                   </div>
@@ -1461,12 +1102,6 @@ export default function PatrolConfiguration({
 
                         <div className="mt-3 flex gap-3">
                           <button
-                            onClick={() => setStep(2)}
-                            className="flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-[10px] font-semibold text-stone-600 hover:bg-stone-50"
-                          >
-                            <Pencil size={11} /> Adjust location / route
-                          </button>
-                          <button
                             onClick={() => setStep(4)}
                             className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-2 text-[10px] font-semibold text-white hover:bg-[#002A8C]"
                           >
@@ -1740,23 +1375,6 @@ export default function PatrolConfiguration({
                         </div>
                       ) : null}
 
-                      {draft.linkedIncidentIds.length > 0 && (
-                        <div className="rounded-lg border border-stone-100 p-3">
-                          <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wider text-[#94A3B8]">
-                            Linked incidents ({draft.linkedIncidentIds.length})
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {filtered
-                              .filter((i) => draft.linkedIncidentIds.includes(i.id))
-                              .map((inc) => (
-                                <span key={inc.id} className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[9px] font-semibold text-rose-700">
-                                  <MapPin size={8} />
-                                  {inc.id} · {inc.category}
-                                </span>
-                              ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     {atStep(6).length > 0 && (
@@ -1820,7 +1438,7 @@ export default function PatrolConfiguration({
             </div>
           </div>
         ) : (
-          /* ================= ANALYSIS + RECOMMENDATION + PLANS ================= */
+          /* ================= ANALYSIS + PLANS ================= */
           <>
             <MapAnalysisView
               incidents={incidents}
@@ -1835,21 +1453,16 @@ export default function PatrolConfiguration({
               heatCounts={heatCounts}
               selectedIncident={selectedIncident}
               onSelectIncident={setSelectedIncident}
+              selectedCheckpoint={selectedCheckpoint}
+              onSelectCheckpoint={setSelectedCheckpoint}
+              selectedPatrol={selectedPatrol}
+              onSelectPatrol={setSelectedPatrol}
               areaStats={areaStats}
               bucketStats={bucketStats}
               dayStats={dayStats}
               maxBucketCount={maxBucketCount}
               maxDayCount={maxDayCount}
             />
-
-            {recommendation && recommendation.key !== dismissedRec && (
-              <RecommendationCard
-                rec={recommendation}
-                onUse={() => applySuggestion("use")}
-                onModify={() => applySuggestion("modify")}
-                onIgnore={ignoreSuggestion}
-              />
-            )}
 
             <div className="mt-6">
               <div className="mb-3 flex items-center gap-2">
@@ -1885,6 +1498,10 @@ export default function PatrolConfiguration({
       {/* ---------------- Modals ---------------- */}
       {selectedIncident && <IncidentDetailsModal incident={selectedIncident} onClose={() => setSelectedIncident(null)} />}
 
+      {selectedCheckpoint && <CheckpointDetailsModal checkpoint={selectedCheckpoint} onClose={() => setSelectedCheckpoint(null)} />}
+
+      {selectedPatrol && <PatrolDetailsModal patrol={selectedPatrol} onClose={() => setSelectedPatrol(null)} />}
+
       {detailTarget && <PlanDetailModal plan={detailTarget} onClose={() => setDetailTarget(null)} allIncidents={incidents} />}
 
       {deleteTarget && (
@@ -1908,15 +1525,6 @@ export default function PatrolConfiguration({
           tone="primary"
           onConfirm={() => leavePlanner(true)}
           onClose={() => setLeaveOpen(false)}
-        />
-      )}
-
-      {submitted && (
-        <ConfirmModal
-          type="success"
-          title="Checkpoint plan saved"
-          message={`${submitted.code} — ${submitted.name} has been saved with status Pending. Only Approved plans can proceed to scheduling.`}
-          onClose={closeSubmitted}
         />
       )}
 

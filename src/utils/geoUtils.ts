@@ -40,6 +40,21 @@ export function toGeoPoint(lat: number, lng: number): [number, number] {
 }
 
 /**
+ * Inverse of toGeoPoint: convert a real WGS84 GPS coordinate back into
+ * legacy SVG pixel space (returned as [x, y] where x = lat, y = lng per
+ * the codebase convention). Result is clamped to the 440x400 box so
+ * clicks outside the barangay bounds still land on the map.
+ */
+export function fromGeoPoint(lat: number, lng: number): [number, number] {
+  const x = ((lng - MIN_LNG) / (MAX_LNG - MIN_LNG)) * 440;
+  const y = ((MAX_LAT - lat) / (MAX_LAT - MIN_LAT)) * 400;
+  return [
+    Math.min(440, Math.max(0, x)),
+    Math.min(400, Math.max(0, y)),
+  ];
+}
+
+/**
  * Calculate distance in meters between two [lat, lng] points using the Haversine formula.
  */
 export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

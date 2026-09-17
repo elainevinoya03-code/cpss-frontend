@@ -1,7 +1,6 @@
 ﻿import React, { useState, useEffect, useRef } from "react";
 import {
-  Video,
-  Camera,
+    Video,
   Eye,
   Users,
   TrafficCone,
@@ -9,7 +8,6 @@ import {
   Clock,
   MapPin,
   CheckCircle2,
-  Database,
   HardDrive,
   Info,
   Flag,
@@ -190,111 +188,6 @@ function resizeCellIds(prev: (string | null)[], nextCells: number): (string | nu
   return next;
 }
 
-type CamError = "none" | "denied" | "unavailable" | "error";
-
-function useCameraStream(enabled: boolean) {
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [error, setError] = useState<CamError>("none");
-
-  useEffect(() => {
-    if (!enabled) return;
-    let cancelled = false;
-    let acquired: MediaStream | null = null;
-
-    async function start() {
-      try {
-        acquired = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false,
-        });
-        if (cancelled) {
-          acquired.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        setStream(acquired);
-        setError("none");
-      } catch (e) {
-        if (cancelled) return;
-        const err = e as { name?: string };
-        if (err?.name === "NotAllowedError" || err?.name === "SecurityError") setError("denied");
-        else if (err?.name === "NotFoundError" || err?.name === "OverconstrainedError") setError("unavailable");
-        else setError("error");
-      }
-    }
-
-    start();
-
-    return () => {
-      cancelled = true;
-      if (acquired) acquired.getTracks().forEach((t) => t.stop());
-      setStream(null);
-      setError("none");
-    };
-  }, [enabled]);
-
-  return { stream, error };
-}
-
-function CameraAccessNotice({ error, onRetry }: { error: CamError; onRetry: () => void }) {
-  const copy: Record<CamError, { icon: typeof Camera; title: string; hint: string }> = {
-    none: { icon: Camera, title: "Opening live camera…", hint: "Waiting for camera access" },
-    denied: { icon: WifiOff, title: "Camera access denied", hint: "Allow camera permission, then retry" },
-    unavailable: { icon: WifiOff, title: "No camera detected", hint: "Connect a camera to this device" },
-    error: { icon: WifiOff, title: "Camera error", hint: "Could not start the camera stream" },
-  };
-  const c = copy[error];
-  const Icon = c.icon;
-  return (
-    <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900">
-      <Icon size={28} className="mb-2 text-stone-500" />
-      <p className="px-4 text-center text-[11px] font-semibold text-stone-300">{c.title}</p>
-      <p className="mt-0.5 px-4 text-center text-[9px] text-stone-500">{c.hint}</p>
-      {error !== "none" && (
-        <button
-          onClick={onRetry}
-          className="mt-2.5 flex items-center gap-1 rounded-md border border-stone-600 bg-stone-800 px-2.5 py-1 text-[9px] font-semibold text-stone-200 transition hover:bg-stone-700"
-        >
-          <RefreshCw size={9} />
-          Retry
-        </button>
-      )}
-    </div>
-  );
-}
-
-function RealCameraFeed({ enabled, onRetry }: { enabled: boolean; onRetry: () => void }) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const { stream, error } = useCameraStream(enabled);
-
-  useEffect(() => {
-    const el = videoRef.current;
-    if (!el) return;
-    if (stream && el.srcObject !== stream) el.srcObject = stream;
-  }, [stream]);
-
-  useEffect(() => {
-    const el = videoRef.current;
-    if (!el) return;
-    if (stream) el.play().catch(() => undefined);
-  }, [stream]);
-
-  return (
-    <div className="relative h-full w-full overflow-hidden bg-black">
-      {stream ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <CameraAccessNotice error={error} onRetry={onRetry} />
-      )}
-    </div>
-  );
-}
-
 function ReconnectOverlay() {
   return (
     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-stone-950/70 backdrop-blur-[2px]">
@@ -325,11 +218,8 @@ interface CameraCellProps {
 function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feedRef, onOpen, onTag, onReportFault, onToggleFullscreen }: CameraCellProps) {
   const q = effectiveQuality(cam, mode);
   const isDowngraded = mode === "auto" && cam.signalPct < 50;
-  const feedHeight = gridSize === 1 ? "h-72" : gridSize === 2 ? "h-52" : "h-40";
+  const feedHeight = gridSize === 1 ? "h-96" : gridSize === 2 ? "h-80" : "h-64";
   const isOffline = cam.status === "offline";
-  const [camAttempt, setCamAttempt] = useState(0);
-
-  const camRetry = () => setCamAttempt((a) => a + 1);
 
   return (
     <div className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
@@ -346,9 +236,17 @@ function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feed
           </div>
         ) : (
           <>
-            {cam.id === "CAM-GATE-01"
-              ? <RealCameraFeed key={camAttempt} enabled={!isOffline && !reconnecting && !isFullscreen} onRetry={camRetry} />
-              : <LiveFeedFrame />}
+            <div className="absolute inset-0">
+              {cam.id === "CAM-GATE-01" ? (
+                <img
+                  src="http://localhost:8000/video_feed"
+                  alt="Main Gate Cam"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <LiveFeedFrame />
+              )}
+            </div>
             {reconnecting && <ReconnectOverlay />}
 
             {isFullscreen ? (
@@ -843,15 +741,13 @@ function TagModal({
 function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: { camera: CameraFeed; mode: QualityMode; now: Date; onTag: () => void; onReportFault: () => void; onClose: () => void }) {
   const q = effectiveQuality(camera, mode);
   const isOffline = camera.status === "offline";
-  const [camAttempt, setCamAttempt] = useState(0);
-  const camRetry = () => setCamAttempt((a) => a + 1);
 
   return (
     <Modal
       onClose={onClose}
       title={`Stream Focus — ${camera.name}`}
       subtitle={`${camera.id} · ${camera.location} · ${camera.purok}`}
-      icon={<Camera size={18} />}
+            icon={<Eye size={18} />}
       iconClass="bg-[#0038A8]/10 text-[#0038A8]"
       size="2xl"
       footer={
@@ -877,7 +773,7 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
         </div>
       }
     >
-      <div className="relative mb-4 h-52 w-full overflow-hidden rounded-xl border border-black/20 bg-black sm:h-64">
+      <div className="relative mb-4 h-80 w-full overflow-hidden rounded-xl border border-black/20 bg-black sm:h-96">
         {isOffline ? (
           <div className="flex h-full flex-col items-center justify-center bg-stone-900">
             <WifiOff size={24} className="mb-2 text-stone-600" />
@@ -885,9 +781,15 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
           </div>
         ) : (
           <>
-            {camera.id === "CAM-GATE-01"
-              ? <RealCameraFeed key={camAttempt} enabled={!isOffline} onRetry={camRetry} />
-              : <LiveFeedFrame />}
+            {camera.id === "CAM-GATE-01" ? (
+              <img
+                src="http://localhost:8000/video_feed"
+                alt="Main Gate Cam"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <LiveFeedFrame />
+            )}
             <div className="absolute left-3 top-3 flex items-center gap-2">
               <span className="flex items-center gap-1.5 rounded-md bg-black/60 px-2 py-1 text-[10px] font-semibold text-white">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-rose-500" />
@@ -1219,10 +1121,10 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
 
   const cells = gridSize * gridSize;
   const assignedCount = cellIds.filter(Boolean).length;
-  const feedHeight = gridSize === 1 ? "h-72" : gridSize === 2 ? "h-52" : "h-40";
+  const feedHeight = gridSize === 1 ? "h-96" : gridSize === 2 ? "h-80" : "h-64";
 
   const kpis = [
-    { label: "CAMERAS MONITORED", value: `${onlineCount}/${cameras.length}`, sub: "online feeds in matrix", icon: Camera },
+    { label: "CAMERAS MONITORED", value: `${onlineCount}/${cameras.length}`, sub: "online feeds in matrix", icon: Eye },
     { label: "HLS STREAMS ACTIVE", value: hlsStreams, sub: "browser-ready playback", icon: Video },
     { label: "FFMPEG TRANSCODING", value: transcodingCount, sub: "RTSP → HLS conversion", icon: Settings2 },
     { label: "DEGRADED / OFFLINE", value: `${degradedCount} / ${offlineCount}`, sub: "signal issues", icon: Signal },
@@ -1344,7 +1246,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
   /* ---- Render ---- */
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
-      <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
+      <main className="flex-1 overflow-y-auto px-2 py-4 sm:px-4 sm:py-6">
         {/* Header */}
         <header className="mb-6 border-b border-stone-200 pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1496,7 +1398,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
             </button>
           </div>
         ) : (
-          <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` }}>
+          <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` }}>
             {cellIds.map((id, i) => {
               const cam = id ? cameras.find((c) => c.id === id) : undefined;
               return cam ? (
@@ -1518,7 +1420,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
                 <div key={i} className="overflow-hidden rounded-xl border border-dashed border-stone-300 bg-white shadow-sm">
                   <div className={`relative ${feedHeight} w-full overflow-hidden bg-stone-100`}>
                     <div className="flex h-full flex-col items-center justify-center px-4 text-center">
-                      <Camera size={18} className="mb-1.5 text-stone-300" />
+                                            <Eye size={18} className="mb-1.5 text-stone-300" />
                       <p className="text-[10px] font-medium text-stone-400">No camera assigned</p>
                       <button
                         onClick={() => setConfigureOpen(true)}

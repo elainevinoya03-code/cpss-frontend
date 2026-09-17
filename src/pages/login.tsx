@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { User, Lock, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
+import { User, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import culiatBg from "../assets/culiat.jpg";
 import logo from "../assets/logo.png";
 
@@ -31,10 +31,8 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
   const [errors, setErrors] = useState<{ email: string | null; password: string | null; general: string | null }>({ email: null, password: null, general: null });
   const [shakeField, setShakeField] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [leftVisible, setLeftVisible] = useState(false);
-  const [userData, setUserData] = useState<LoginResponse | null>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
@@ -108,12 +106,8 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
       }
 
       const data: LoginResponse = await res.json();
-      setUserData(data);
       setLoading(false);
-      setSuccess(true);
-      setTimeout(() => {
-        if (onLogin) onLogin(e, data);
-      }, 1200);
+      if (onLogin) onLogin(e, data);
     } catch (err) {
       setErrors({ email: null, password: null, general: "Cannot connect to server. Please try again." });
       setLoading(false);
@@ -174,7 +168,7 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
               type="button"
               onClick={onNavigateToLanding}
               className="mb-5 cursor-pointer border-none bg-transparent p-0 transition-transform hover:scale-105"
-              disabled={loading || success}
+              disabled={loading}
             >
               <img src={logo} alt="Logo" className="h-auto w-[120px] object-contain sm:w-[160px]" />
             </button>
@@ -191,14 +185,6 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
             <div className="mb-6 flex animate-[fadeIn_0.4s_ease] items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-[15px] font-semibold text-red-600">
               <AlertCircle size={20} />
               {errors.general}
-            </div>
-          )}
-
-          {/* Success message */}
-          {success && (
-            <div className="mb-6 flex animate-[fadeIn_0.4s_ease] items-center justify-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-3.5 text-[15px] font-semibold text-green-600">
-              <CheckCircle size={20} />
-              Login successful! Redirecting...
             </div>
           )}
 
@@ -223,9 +209,9 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
                     ? "#0038A8"
                     : "#E2E8F0",
                 boxShadow: errors.email
-                  ? "0 0 0 3px rgba(220,38,38,0.12)"
+                  ? "inset 0 0 0 1px rgba(220,38,38,0.1)"
                   : focusedField === "email"
-                    ? "0 0 0 3px rgba(0,56,168,0.12)"
+                    ? "inset 0 0 0 1px rgba(0,56,168,0.1)"
                     : "none",
                 animation:
                   shakeField === "email" ? "shake 0.4s ease-in-out" : "none",
@@ -237,14 +223,14 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
                 type="email"
                 placeholder="Enter your email"
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
+                onChange={(e) => setEmail(e.target.value)}
+                onFocus={() => setFocusedField("email")}
+                onBlur={() => {
+                  setFocusedField(null);
                   if (errors.email) setErrors((p) => ({ ...p, email: null, general: null }));
                 }}
-                onFocus={() => setFocusedField("email")}
-                onBlur={() => setFocusedField(null)}
                 className="w-full border-none bg-transparent px-5 py-4 text-[clamp(15px,2vw,18px)] text-[#33437A] outline-none sm:px-[22px] sm:py-5"
-                disabled={loading || success}
+                disabled={loading}
               />
             </div>
             {errors.email && (
@@ -277,9 +263,9 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
                     ? "#0038A8"
                     : "#E2E8F0",
                 boxShadow: errors.password
-                  ? "0 0 0 3px rgba(220,38,38,0.12)"
+                  ? "inset 0 0 0 1px rgba(220,38,38,0.1)"
                   : focusedField === "password"
-                    ? "0 0 0 3px rgba(0,56,168,0.12)"
+                    ? "inset 0 0 0 1px rgba(0,56,168,0.1)"
                     : "none",
                 animation:
                   shakeField === "password" ? "shake 0.4s ease-in-out" : "none",
@@ -291,21 +277,21 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
                 value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
+                onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setFocusedField("password")}
+                onBlur={() => {
+                  setFocusedField(null);
                   if (errors.password) setErrors((p) => ({ ...p, password: null, general: null }));
                 }}
-                onFocus={() => setFocusedField("password")}
-                onBlur={() => setFocusedField(null)}
                 className="w-full border-none bg-transparent px-5 py-4 pr-[52px] text-[clamp(15px,2vw,18px)] text-[#33437A] outline-none sm:px-[22px] sm:py-5"
-                disabled={loading || success}
+                disabled={loading}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((s) => !s)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer border-none bg-none p-1 text-[#64748B]"
                 aria-label={showPassword ? "Hide password" : "Show password"}
-                disabled={loading || success}
+                disabled={loading}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
@@ -333,17 +319,12 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
                 background: "#0038A8",
                 transform: loading ? "scale(0.98)" : "scale(1)",
               }}
-              disabled={loading || success}
+              disabled={loading}
             >
               {loading ? (
                 <span className="inline-flex items-center justify-center gap-2.5">
-                  <span className="inline-block h-5 w-5 animate-[spin_0.7s_linear_infinite] rounded-full border-[2.5px] border-white/30 border-t-white" />
+                  <span className="spinner inline-block h-5 w-5 rounded-full border-[2.5px] border-white/30 border-t-white" />
                   Signing in...
-                </span>
-              ) : success ? (
-                <span className="inline-flex items-center justify-center gap-2.5">
-                  <CheckCircle size={20} />
-                  Success!
                 </span>
               ) : (
                 "Sign In"
@@ -368,6 +349,10 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-4px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        .spinner {
+          animation: spin 1s linear infinite;
+          will-change: transform;
         }
       `}</style>
     </div>

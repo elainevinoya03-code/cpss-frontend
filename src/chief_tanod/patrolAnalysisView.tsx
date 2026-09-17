@@ -3,8 +3,11 @@ import {
   ChevronRight,
   Filter,
   Flame,
+  MapPin,
   RefreshCw,
+  Route,
   Search,
+  ShieldCheck,
   TrendingUp,
 } from "lucide-react";
 import { Modal } from "../components/ui";
@@ -14,11 +17,15 @@ import {
   INC_STATUS_HEALTH,
   SEV_COLOR,
   formatDateTime,
+  zoneAtPoint,
+  type ActivePatrol,
+  type ExistingCheckpoint,
   type IncidentFilters,
   type LayerState,
 } from "./patrolShared";
 import { BarangayMap } from "./patrolMap";
 import { selectCls } from "./patrolUi";
+import { haversineDistance, toGeoPoint } from "../utils/geoUtils";
 
 /* --------------------------------------------------------------------- */
 /* Incident details modal                                                */
@@ -115,6 +122,144 @@ export function IncidentDetailsModal({ incident, onClose }: { incident: Incident
 }
 
 /* --------------------------------------------------------------------- */
+/* Checkpoint details modal                                              */
+/* --------------------------------------------------------------------- */
+
+export function CheckpointDetailsModal({ checkpoint, onClose }: { checkpoint: ExistingCheckpoint; onClose: () => void }) {
+  const zone = zoneAtPoint(checkpoint.lat, checkpoint.lng);
+  const [gpsLat, gpsLng] = toGeoPoint(checkpoint.lat, checkpoint.lng);
+  return (
+    <Modal
+      onClose={onClose}
+      title={`Checkpoint ${checkpoint.id}`}
+      subtitle={checkpoint.name}
+      icon={<ShieldCheck size={18} />}
+      iconClass="bg-blue-100 text-[#0038A8]"
+      size="md"
+      footer={
+        <div className="flex justify-end">
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-stone-200 bg-white px-4 py-2 text-[12px] font-medium text-stone-600 hover:bg-stone-50"
+          >
+            Close
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${checkpoint.active ? "bg-emerald-50 text-emerald-700" : "bg-stone-100 text-stone-500"}`}>
+            {checkpoint.active ? "Active" : "Inactive"}
+          </span>
+          {zone && (
+            <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-[#0038A8]">
+              {zone}
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 rounded-lg border border-stone-100 bg-stone-50/60 p-3 text-[11px]">
+          <div>
+            <p className="text-[10px] font-medium tracking-wider text-[#94A3B8]">CHECKPOINT NAME</p>
+            <p className="mt-0.5 font-medium text-[#334155]">{checkpoint.name}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-medium tracking-wider text-[#94A3B8]">REFERENCE NO.</p>
+            <p className="mt-0.5 font-mono font-medium text-[#334155]">{checkpoint.id}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-medium tracking-wider text-[#94A3B8]">LOCATION</p>
+            <p className="mt-0.5 font-medium text-[#334155]">
+              {zone ?? "Tandang Sora"} · {checkpoint.lat.toFixed(0)}, {checkpoint.lng.toFixed(0)}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] font-medium tracking-wider text-[#94A3B8]">GPS COORDINATES</p>
+            <p className="mt-0.5 font-mono font-medium text-[#334155]">
+              {gpsLat.toFixed(5)}, {gpsLng.toFixed(5)}
+            </p>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* --------------------------------------------------------------------- */
+/* Patrol details modal                                                  */
+/* --------------------------------------------------------------------- */
+
+export function PatrolDetailsModal({ patrol, onClose }: { patrol: ActivePatrol; onClose: () => void }) {
+  const gpsPts = patrol.pts.map((p) => toGeoPoint(p.x, p.y));
+  let meters = 0;
+  for (let i = 0; i + 1 < gpsPts.length; i += 1) {
+    meters += haversineDistance(gpsPts[i][0], gpsPts[i][1], gpsPts[i + 1][0], gpsPts[i + 1][1]);
+  }
+  const zones = [...new Set(patrol.pts.map((p) => zoneAtPoint(p.x, p.y)).filter(Boolean))];
+  return (
+    <Modal
+      onClose={onClose}
+      title={`Patrol ${patrol.id}`}
+      subtitle={patrol.name}
+      icon={<Route size={18} />}
+      iconClass="bg-teal-100 text-teal-700"
+      size="md"
+      footer={
+        <div className="flex justify-end">
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-stone-200 bg-white px-4 py-2 text-[12px] font-medium text-stone-600 hover:bg-stone-50"
+          >
+            Close
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-semibold text-teal-700">
+            On Patrol
+          </span>
+          {zones.map((z) => (
+            <span key={z} className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-[#0038A8]">
+              <MapPin size={10} /> {z}
+            </span>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 rounded-lg border border-stone-100 bg-stone-50/60 p-3 text-[11px]">
+          <div>
+            <p className="text-[10px] font-medium tracking-wider text-[#94A3B8]">PATROL NAME</p>
+            <p className="mt-0.5 font-medium text-[#334155]">{patrol.name}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-medium tracking-wider text-[#94A3B8]">REFERENCE NO.</p>
+            <p className="mt-0.5 font-mono font-medium text-[#334155]">{patrol.id}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-medium tracking-wider text-[#94A3B8]">WAYPOINTS</p>
+            <p className="mt-0.5 font-medium text-[#334155]">{patrol.pts.length} stops</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-medium tracking-wider text-[#94A3B8]">ROUTE LENGTH</p>
+            <p className="mt-0.5 font-medium text-[#334155]">
+              {meters >= 1000 ? `${(meters / 1000).toFixed(2)} km` : `${Math.round(meters)} m`}
+            </p>
+          </div>
+          <div className="col-span-2">
+            <p className="text-[10px] font-medium tracking-wider text-[#94A3B8]">COVERAGE AREAS</p>
+            <p className="mt-0.5 font-medium text-[#334155]">
+              {zones.length > 0 ? zones.join(" · ") : "Tandang Sora"}
+            </p>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* --------------------------------------------------------------------- */
 /* Map & analysis view                                                   */
 /* --------------------------------------------------------------------- */
 
@@ -147,6 +292,10 @@ interface MapAnalysisViewProps {
   heatCounts: Record<string, number>;
   selectedIncident: Incident | null;
   onSelectIncident: (incident: Incident | null) => void;
+  selectedCheckpoint?: ExistingCheckpoint | null;
+  onSelectCheckpoint?: (cp: ExistingCheckpoint | null) => void;
+  selectedPatrol?: ActivePatrol | null;
+  onSelectPatrol?: (patrol: ActivePatrol | null) => void;
   areaStats: AreaStat[];
   bucketStats: BucketStat[];
   dayStats: DayStat[];
@@ -167,6 +316,10 @@ export function MapAnalysisView({
   heatCounts,
   selectedIncident,
   onSelectIncident,
+  selectedCheckpoint = null,
+  onSelectCheckpoint,
+  selectedPatrol = null,
+  onSelectPatrol,
   areaStats,
   bucketStats,
   dayStats,
@@ -281,6 +434,10 @@ export function MapAnalysisView({
             incidents={filtered}
             selectedIncident={selectedIncident}
             onSelectIncident={onSelectIncident}
+            selectedCheckpoint={selectedCheckpoint}
+            onSelectCheckpoint={onSelectCheckpoint}
+            selectedPatrol={selectedPatrol}
+            onSelectPatrol={onSelectPatrol}
             draftPoints={[]}
             mapMode="view"
             interactive
