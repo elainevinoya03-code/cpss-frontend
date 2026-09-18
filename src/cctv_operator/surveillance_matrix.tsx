@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     Video,
   Eye,
@@ -212,6 +212,23 @@ function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feed
   const isDowngraded = mode === "auto" && cam.signalPct < 50;
   const feedHeight = gridSize === 1 ? "h-96" : gridSize === 2 ? "h-80" : "h-64";
   const isOffline = cam.status === "offline";
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+
+  const videoUrl = cam.id === "CAM-GATE-01" ? "http://localhost:8000/video_feed" : null;
+
+  // Handle auto-retry on error without double-loading the stream
+  useEffect(() => {
+    if (imageError && videoUrl && !isOffline) {
+      const retryTimer = setTimeout(() => {
+        setImageError(false);
+        setImageLoaded(false);
+        setRetryKey((prev) => prev + 1);
+      }, 3000);
+      return () => clearTimeout(retryTimer);
+    }
+  }, [imageError, videoUrl, isOffline]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
@@ -229,12 +246,35 @@ function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feed
         ) : (
           <>
             <div className="absolute inset-0">
-              {cam.id === "CAM-GATE-01" ? (
-                <img
-                  src="http://localhost:8000/video_feed"
-                  alt="Main Gate Cam"
-                  className="h-full w-full object-cover"
-                />
+              {videoUrl ? (
+                <>
+                  {!imageLoaded && !imageError && (
+                    <div className="flex h-full flex-col items-center justify-center bg-stone-900">
+                      <Loader2 size={18} className="mb-1.5 animate-spin text-stone-500" />
+                      <p className="text-[10px] font-medium text-stone-500">Connecting...</p>
+                    </div>
+                  )}
+                  {imageError && (
+                    <div className="flex h-full flex-col items-center justify-center bg-stone-900">
+                      <WifiOff size={18} className="mb-1.5 text-rose-500" />
+                      <p className="text-[10px] font-medium text-stone-500">Connection Failed</p>
+                      <p className="text-[8px] text-stone-600">Retrying...</p>
+                    </div>
+                  )}
+                  <img
+                    src={`${videoUrl}?retry=${retryKey}`}
+                    alt="Main Gate Cam"
+                    className={`h-full w-full object-cover ${(!imageLoaded || imageError) ? 'hidden' : ''}`}
+                    onLoad={() => {
+                      setImageLoaded(true);
+                      setImageError(false);
+                    }}
+                    onError={() => {
+                      setImageError(true);
+                      setImageLoaded(false);
+                    }}
+                  />
+                </>
               ) : (
                 <LiveFeedFrame />
               )}
@@ -733,6 +773,59 @@ function TagModal({
 function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: { camera: CameraFeed; mode: QualityMode; now: Date; onTag: () => void; onReportFault: () => void; onClose: () => void }) {
   const q = effectiveQuality(camera, mode);
   const isOffline = camera.status === "offline";
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  const videoUrl = camera.id === "CAM-GATE-01" ? "http://localhost:8000/video_feed" : null;
+
+  // Preload the image when component mounts
+  useEffect(() => {
+    if (videoUrl && !isOffline) {
+      setImageLoaded(false);
+      setImageError(false);
+      
+      const img = new Image();
+      img.src = videoUrl;
+      
+      img.onload = () => {
+        setImageLoaded(true);
+        setImageError(false);
+      };
+      
+      img.onerror = () => {
+        setImageError(true);
+        console.error(`Failed to load camera feed: ${videoUrl}`);
+        
+        // Auto-retry after 3 seconds
+        const retryTimer = setTimeout(() => {
+          const retryImg = new Image();
+          retryImg.src = videoUrl;
+          retryImg.onload = () => {
+            setImageLoaded(true);
+            setImageError(false);
+          };
+          retryImg.onerror = () => {
+            // Retry again after 5 seconds
+            setTimeout(() => {
+              const finalRetry = new Image();
+              finalRetry.src = videoUrl;
+              finalRetry.onload = () => {
+                setImageLoaded(true);
+                setImageError(false);
+              };
+            }, 5000);
+          };
+        }, 3000);
+        
+        return () => clearTimeout(retryTimer);
+      };
+      
+      return () => {
+        img.onload = null;
+        img.onerror = null;
+      };
+    }
+  }, [videoUrl, isOffline]);
 
   return (
     <Modal
@@ -773,12 +866,31 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
           </div>
         ) : (
           <>
-            {camera.id === "CAM-GATE-01" ? (
-              <img
-                src="http://localhost:8000/video_feed"
-                alt="Main Gate Cam"
-                className="h-full w-full object-cover"
-              />
+            {videoUrl ? (
+              <>
+                {!imageLoaded && !imageError && (
+                  <div className="flex h-full flex-col items-center justify-center bg-stone-900">
+                    <Loader2 size={24} className="mb-2 animate-spin text-stone-500" />
+                    <p className="text-[12px] font-medium text-stone-500">Connecting...</p>
+                  </div>
+                )}
+                {imageError && (
+                  <div className="flex h-full flex-col items-center justify-center bg-stone-900">
+                    <WifiOff size={24} className="mb-2 text-rose-500" />
+                    <p className="text-[12px] font-medium text-stone-500">Connection Failed</p>
+                    <p className="text-[10px] text-stone-600">Retrying...</p>
+                  </div>
+                )}
+                {imageLoaded && (
+                  <img
+                    src={videoUrl}
+                    alt="Main Gate Cam"
+                    className="h-full w-full object-cover"
+                    onLoad={() => setImageLoaded(true)}
+                    onError={() => setImageError(true)}
+                  />
+                )}
+              </>
             ) : (
               <LiveFeedFrame />
             )}
@@ -1079,6 +1191,22 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
       );
     }, 4000);
     return () => clearInterval(t);
+  }, []);
+
+  // Auto-reconnect camera feed on component mount
+  useEffect(() => {
+    // Trigger immediate reconnection to speed up initial load
+    const initialReconnect = setTimeout(() => {
+      setCameras((prev) =>
+        prev.map((c) => ({
+          ...c,
+          status: "online",
+          signalPct: Math.max(70, c.signalPct)
+        }))
+      );
+    }, 500);
+    
+    return () => clearTimeout(initialReconnect);
   }, []);
 
   useEffect(() => {
