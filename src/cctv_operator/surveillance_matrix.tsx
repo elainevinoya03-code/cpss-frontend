@@ -99,14 +99,6 @@ interface CameraFault {
 
 const INITIAL_CAMERAS: CameraFeed[] = [
   { id: "CAM-GATE-01", name: "Main Gate", location: "Entrance Gate", purok: "Purok 1", ip: "192.168.1.101", nativeProtocol: "RTSP", status: "online", signalPct: 94, rtspUrl: "rtsp://admin:brgy@192.168.1.101:554/stream", hlsUrl: "http://192.168.1.101:8080/hls/CAM-GATE-01/index.m3u8" },
-  { id: "CAM-PLAZA-02", name: "Plaza & Court", location: "Barangay Plaza", purok: "Purok 2", ip: "192.168.1.102", nativeProtocol: "HLS", status: "online", signalPct: 88, rtspUrl: "rtsp://admin:brgy@192.168.1.102:554/stream", hlsUrl: "http://192.168.1.102:8080/hls/CAM-PLAZA-02/index.m3u8" },
-  { id: "CAM-MARKET-03", name: "Public Market", location: "Market Strip", purok: "Purok 6", ip: "192.168.1.103", nativeProtocol: "RTSP", status: "degraded", signalPct: 46, rtspUrl: "rtsp://admin:brgy@192.168.1.103:554/stream", hlsUrl: "http://192.168.1.103:8080/hls/CAM-MARKET-03/index.m3u8" },
-  { id: "CAM-CHAPEL-04", name: "Chapel Area", location: "Chapel Approach", purok: "Purok 5", ip: "192.168.1.104", nativeProtocol: "HLS", status: "online", signalPct: 91, rtspUrl: "rtsp://admin:brgy@192.168.1.104:554/stream", hlsUrl: "http://192.168.1.104:8080/hls/CAM-CHAPEL-04/index.m3u8" },
-  { id: "CAM-ROAD-05", name: "Crossing Road", location: "Purok Crossing", purok: "Purok 3", ip: "192.168.1.105", nativeProtocol: "RTSP", status: "online", signalPct: 79, rtspUrl: "rtsp://admin:brgy@192.168.1.105:554/stream", hlsUrl: "http://192.168.1.105:8080/hls/CAM-ROAD-05/index.m3u8" },
-  { id: "CAM-HALL-06", name: "Barangay Hall", location: "Hall Entrance", purok: "HQ", ip: "192.168.1.106", nativeProtocol: "RTSP", status: "offline", signalPct: 0, rtspUrl: "rtsp://admin:brgy@192.168.1.106:554/stream", hlsUrl: "http://192.168.1.106:8080/hls/CAM-HALL-06/index.m3u8" },
-  { id: "CAM-PARK-07", name: "Mini Park", location: "Playground", purok: "Purok 4", ip: "192.168.1.107", nativeProtocol: "HLS", status: "online", signalPct: 84, rtspUrl: "rtsp://admin:brgy@192.168.1.107:554/stream", hlsUrl: "http://192.168.1.107:8080/hls/CAM-PARK-07/index.m3u8" },
-  { id: "CAM-RIVER-08", name: "River Bank", location: "Low-lying area", purok: "Purok 5", ip: "192.168.1.108", nativeProtocol: "RTSP", status: "online", signalPct: 71, rtspUrl: "rtsp://admin:brgy@192.168.1.108:554/stream", hlsUrl: "http://192.168.1.108:8080/hls/CAM-RIVER-08/index.m3u8" },
-  { id: "CAM-TERMINAL-09", name: "Terminal", location: "Jeep Terminal", purok: "Purok 6", ip: "192.168.1.109", nativeProtocol: "HLS", status: "online", signalPct: 82, rtspUrl: "rtsp://admin:brgy@192.168.1.109:554/stream", hlsUrl: "http://192.168.1.109:8080/hls/CAM-TERMINAL-09/index.m3u8" },
 ];
 
 const MOCK_INCIDENTS: ExistingIncident[] = [
@@ -1046,9 +1038,9 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
   const { muted, setMuted, beep } = useAlertSound();
 
   const [cameras, setCameras] = useState<CameraFeed[]>(INITIAL_CAMERAS);
-  const [gridSize, setGridSize] = useState<1 | 2 | 3>(3);
+  const [gridSize, setGridSize] = useState<1 | 2 | 3>(1);
   const [qualityMode, setQualityMode] = useState<QualityMode>("auto");
-  const [cellIds, setCellIds] = useState<(string | null)[]>(() => resizeCellIds(INITIAL_CAMERAS.map((c) => c.id), 9));
+  const [cellIds, setCellIds] = useState<(string | null)[]>(() => resizeCellIds(INITIAL_CAMERAS.map((c) => c.id), 1));
   const [configureOpen, setConfigureOpen] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
@@ -1061,19 +1053,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
   const [faultOpen, setFaultOpen] = useState(false);
   const [faultTargetCamera, setFaultTargetCamera] = useState<string | undefined>(undefined);
   const [faultReported, setFaultReported] = useState<CameraFault | null>(null);
-  const [faults, setFaults] = useState<CameraFault[]>([
-    {
-      id: "FLT-01",
-      cameraId: "CAM-HALL-06",
-      cameraName: "Barangay Hall",
-      severity: "Power supply",
-      description: "No feed since morning shift — power supply failure suspected at hall entrance.",
-      reportedAt: new Date(Date.now() - 42 * 60000).toISOString(),
-      operator: "CO-01",
-      status: "open",
-      ticket: "MT-2051",
-    },
-  ]);
+  const [faults, setFaults] = useState<CameraFault[]>([]);
 
   const [recentEvents, setRecentEvents] = useState<CctvEvent[]>([]);
   const [storageUsedGB] = useState(STORAGE_START_GB);
