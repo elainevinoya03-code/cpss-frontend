@@ -7,3 +7,4 @@ export { default as IncidentOversight } from "./incidentOversight";
 export { default as TeamPerformance } from "./teamPerformance";
 export { default as NeighborhoodWatchCoordination } from "./neighborhoodWatchCoordination";
 export { default as ReportsAnalytics } from "./reportsAnalytics";
+export { default as SkillsInventory } from "./skillsInventory";

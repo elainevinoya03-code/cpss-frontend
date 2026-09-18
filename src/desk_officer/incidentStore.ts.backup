@@ -8,7 +8,6 @@ import {
 import {
   fetchIncidents,
   createIncident,
-  createIncidentFromReport,
   updateIncident,
   deleteIncident,
   fetchDispatches,
@@ -18,6 +17,9 @@ import {
   fetchBlotters,
   createBlotter,
   deleteBlotter,
+  type Incident,
+  type DispatchItem,
+  type Blotter,
 } from "./incidentsApi";
 
 // ---------------------------------------------------------------------------
@@ -96,8 +98,6 @@ export interface ClosureHistoryEntry {
 // §15.3 — Incident as maintained by the Desk Officer's operational dashboard.
 export interface Incident {
   id: string;
-  /** Real FK to the source resident report (reports.id). Nullable. */
-  reportId?: number;
   category: string;
   severity: string;
   purok: string;
@@ -138,7 +138,6 @@ export interface Incident {
   }[];
   assignedTeam?: string;
   dispatchId?: string;
-  dispatches?: DispatchItem[];
   closureHistory?: ClosureHistoryEntry[];
   resolvedAt?: string;
   iotData?: {
@@ -269,44 +268,6 @@ function isoAgo(minutes: number) {
   return new Date(Date.now() - minutes * 60_000).toISOString();
 }
 
-// Map a backend incident row (snake_case) into the frontend camelCase shape.
-// report_id is the real FK to the source resident report (reports.id).
-function fromApiIncident(api: import("./incidentsApi").Incident): Incident {
-  return {
-    ...api,
-    reportId: api.report_id ?? undefined,
-    trackingToken: api.tracking_token,
-    acknowledgedAt: api.acknowledged_at,
-    slaBreached: api.sla_breached,
-    duplicateResolved: api.duplicate_resolved,
-    relatedTo: api.related_to,
-    escalatedToCaptain: api.escalated_to_captain,
-    escalatedReason: api.escalated_reason,
-    escalatedAt: api.escalated_at,
-    reporterSafe: api.reporter_safe,
-    reporterSafeAt: api.reporter_safe_at,
-    validationLabel: api.validation_label,
-    relatedAlertId: api.related_alert_id,
-    closedReason: api.closed_reason,
-    verificationStatus: api.verification_status,
-    verifiedBy: api.verified_by,
-    verifiedAt: api.verified_at,
-    unverifiedReason: api.unverified_reason,
-    categoryHistory: api.category_history,
-    assignedTeam: api.assigned_team,
-    dispatchId: api.dispatch_id,
-    closureHistory: api.closure_history,
-    resolvedAt: api.resolved_at,
-    iotData: api.iot_data,
-    dispatches: api.dispatches?.map((d) => ({
-      ...d,
-      assigneeType: d.assigneeType,
-      dispatchedAt: d.dispatchedAt,
-      onSceneAt: d.onSceneAt,
-    })),
-  };
-}
-
 export function nextBlotterId(blotters: { id: string }[]) {
   const max = blotters.reduce((acc, b) => {
     const n = parseInt(b.id.replace(/^B-\d+-/, ""), 10);
@@ -344,6 +305,241 @@ const SOURCE_LABELS: Record<IncidentSource, string> = {
 // ---------------------------------------------------------------------------
 // §15.7 — Seed data removed - now loading from backend API
 // ---------------------------------------------------------------------------
+    category: "Fire or Smoke",
+    severity: "critical",
+    purok: "Purok 3",
+    description:
+      "Heavy smoke column spotted near market residential row — SM-PUROK3-01 offline, unverified",
+    source: "resident",
+    reporter: "Maria Santos",
+    time: isoAgo(26),
+    status: "new",
+    photos: 2,
+    lat: 100,
+    lng: 200,
+    priority: "High",
+    notes: [],
+    verificationStatus: "new",
+  },
+  {
+    id: "INC-2072",
+    category: "Fire or Smoke",
+    severity: "warning",
+    purok: "Purok 3",
+    description:
+      "Grey smoke drifting above market row — identical area to an earlier report this hour",
+    source: "resident",
+    reporter: "Anonymous",
+    time: isoAgo(19),
+    status: "new",
+    photos: 1,
+    lat: 103,
+    lng: 198,
+    priority: "High",
+    notes: [],
+    anonymous: true,
+    trackingToken: "TK-4823",
+    verificationStatus: "new",
+  },
+  {
+    id: "INC-2070",
+    category: "Public Disturbance",
+    severity: "critical",
+    purok: "Purok 6",
+    description:
+      "SOS held for 3 seconds — live GPS locked at commercial strip, possible altercation",
+    source: "sos",
+    reporter: "Ana Lim",
+    time: isoAgo(6),
+    status: "new",
+    photos: 0,
+    lat: 330,
+    lng: 240,
+    priority: "High",
+    notes: [],
+    verificationStatus: "new",
+  },
+  {
+    id: "INC-2069",
+    category: "Noise Disturbance",
+    severity: "warning",
+    purok: "Purok 4",
+    description:
+      "Manual clip escalated — sustained loud disturbance at hall, DB-HALL-01 at 78 dB",
+    source: "cctv",
+    reporter: "CCTV Op. Santos",
+    time: isoAgo(68),
+    status: "acknowledged",
+    acknowledgedAt: isoAgo(52),
+    photos: 1,
+    lat: 210,
+    lng: 170,
+    priority: "Medium",
+    notes: [],
+    verificationStatus: "verified",
+    verifiedBy: "Desk Officer",
+    verifiedAt: isoAgo(60),
+  },
+  {
+    id: "INC-2068",
+    category: "Fire or Smoke",
+    severity: "warning",
+    purok: "Purok 1",
+    description:
+      "IoT threshold breach — smoke density 512/500 ppm at gate sensor",
+    source: "iot",
+    reporter: "SM-GATE-01",
+    time: isoAgo(150),
+    status: "in_progress",
+    acknowledgedAt: isoAgo(140),
+    photos: 0,
+    lat: 110,
+    lng: 65,
+    priority: "High",
+    notes: [],
+    relatedAlertId: "ALT-118",
+    verificationStatus: "verified",
+    verifiedBy: "Desk Officer",
+    verifiedAt: isoAgo(145),
+  },
+  {
+    id: "INC-2067",
+    category: "Noise Disturbance",
+    severity: "low",
+    purok: "Purok 2",
+    description:
+      "Tanod field report — group gathered near the basketball court, advised and dispersed",
+    source: "tanod",
+    reporter: "Tanod B. Cruz",
+    time: isoAgo(220),
+    status: "acknowledged",
+    acknowledgedAt: isoAgo(40),
+    photos: 1,
+    lat: 225,
+    lng: 60,
+    priority: "Low",
+    notes: [],
+    assignedTeam: "Team Charlie",
+    dispatchId: "DP-1182",
+    verificationStatus: "verified",
+    verifiedBy: "Desk Officer",
+    verifiedAt: isoAgo(200),
+  },
+  {
+    id: "INC-2066",
+    category: "Hazard or Obstruction",
+    severity: "warning",
+    purok: "Purok 2",
+    description:
+      "CCTV operator flagged IoT alert — motion sensor triggered at restricted alley near court, possible unauthorized entry after hours",
+    source: "iot_cctv",
+    reporter: "CCTV Op. Santos",
+    time: isoAgo(45),
+    status: "new",
+    photos: 0,
+    lat: 230,
+    lng: 75,
+    priority: "Medium",
+    notes: [],
+    iotData: {
+      sensorType: "Motion Detector",
+      sensorId: "MD-COURT-02",
+      reading: "Triggered",
+      unit: "",
+      thresholdState: "elevated",
+      threshold: "No activity expected after 10 PM",
+      timestamp: isoAgo(44),
+      location: "Purok 2 — Restricted Alley",
+    },
+    verificationStatus: "new",
+  },
+  {
+    id: "INC-2065",
+    category: "Fire or Smoke",
+    severity: "low",
+    purok: "Purok 5",
+    description:
+      "Cooking smoke false alarm — verified within acceptable limits",
+    source: "resident",
+    reporter: "Rosa Garcia",
+    time: "2026-07-19T20:30:00",
+    status: "resolved",
+    resolvedAt: "2026-07-19T21:05:00",
+    photos: 3,
+    lat: 85,
+    lng: 310,
+    rating: 5,
+    priority: "Low",
+    notes: [
+      "Smoke source verified at residential kitchen",
+      "Sensor readings within acceptable limits",
+    ],
+    assignedTeam: "Team Delta",
+    dispatchId: "DP-1178",
+    verificationStatus: "verified",
+    verifiedBy: "Desk Officer",
+    verifiedAt: "2026-07-19T20:35:00",
+    feedback: "Mabilis at malinaw ang pagtugon ng mga tanod. Salamat po!",
+    closedReason: "Normal Resolution",
+  },
+  {
+    id: "INC-2064",
+    category: "Noise Disturbance",
+    severity: "low",
+    purok: "Purok 2",
+    description: "Event noise verified within limits",
+    source: "resident",
+    reporter: "Juan Dela Cruz",
+    time: "2026-07-19T18:40:00",
+    status: "resolved",
+    resolvedAt: "2026-07-19T19:15:00",
+    photos: 2,
+    lat: 225,
+    lng: 60,
+    rating: 4,
+    priority: "Low",
+    notes: [
+      "Sound check at chapel area",
+      "Decibel levels confirmed within allowable",
+    ],
+    assignedTeam: "Team Charlie",
+    dispatchId: "DP-1179",
+    verificationStatus: "verified",
+    verifiedBy: "Desk Officer",
+    verifiedAt: "2026-07-19T18:50:00",
+    feedback: "Na-address agad ang concern. Salamat sa mabilis na aksyon.",
+    closedReason: "Normal Resolution",
+  },
+  {
+    id: "INC-2063",
+    category: "Public Disturbance",
+    severity: "warning",
+    purok: "Purok 6",
+    description: "Street altercation mediated",
+    source: "resident",
+    reporter: "Ana Lim",
+    time: "2026-07-19T16:20:00",
+    status: "resolved",
+    resolvedAt: "2026-07-19T17:30:00",
+    photos: 4,
+    lat: 330,
+    lng: 240,
+    rating: 3,
+    priority: "Medium",
+    notes: [
+      "Parties identified and separated",
+      "Ammicable settlement reached on scene",
+    ],
+    assignedTeam: "Team Bravo",
+    dispatchId: "DP-1177",
+    verificationStatus: "verified",
+    verifiedBy: "Desk Officer",
+    verifiedAt: "2026-07-19T16:30:00",
+    feedback:
+      "Naresolba naman pero sana mas mabilis ang response next time.",
+    closedReason: "Normal Resolution",
+  },
+];
 
 // SEED_DISPATCHES removed - now loading from backend API
 // SEED_BLOTTERS removed - now loading from backend API
@@ -391,25 +587,43 @@ async function loadIncidents() {
   try {
     const apiIncidents = await fetchIncidents();
     // Convert from backend snake_case to frontend camelCase
-    incidents = apiIncidents.map(fromApiIncident);
+    incidents = apiIncidents.map((incident) => ({
+      ...incident,
+      acknowledgedAt: incident.acknowledged_at,
+      slaBreached: incident.sla_breached,
+      duplicateResolved: incident.duplicate_resolved,
+      relatedTo: incident.related_to,
+      escalatedToCaptain: incident.escalated_to_captain,
+      escalatedReason: incident.escalated_reason,
+      escalatedAt: incident.escalated_at,
+      reporterSafe: incident.reporter_safe,
+      reporterSafeAt: incident.reporter_safe_at,
+      validationLabel: incident.validation_label,
+      relatedAlertId: incident.related_alert_id,
+      closedReason: incident.closed_reason,
+      verificationStatus: incident.verification_status,
+      verifiedBy: incident.verified_by,
+      verifiedAt: incident.verified_at,
+      unverifiedReason: incident.unverified_reason,
+      categoryHistory: incident.category_history,
+      assignedTeam: incident.assigned_team,
+      dispatchId: incident.dispatch_id,
+      closureHistory: incident.closure_history,
+      resolvedAt: incident.resolved_at,
+      iotData: incident.iot_data,
+      dispatches: incident.dispatches?.map((d) => ({
+        ...d,
+        assigneeType: d.assignee_type,
+        dispatchedAt: d.dispatched_at,
+        onSceneAt: d.on_scene_at,
+      })),
+    }));
     incidentsLoaded = true;
     emit();
   } catch (error) {
     console.error("Failed to load incidents:", error);
   } finally {
     incidentsLoading = false;
-  }
-}
-
-// Force a full reload of the persisted incidents from the backend. Used after
-// resident reports are persisted into incidents (via report_id) or refreshed.
-async function refreshIncidents() {
-  try {
-    const apiIncidents = await fetchIncidents();
-    incidents = apiIncidents.map(fromApiIncident);
-    emit();
-  } catch (error) {
-    console.error("Failed to refresh incidents:", error);
   }
 }
 
@@ -561,7 +775,6 @@ export async function addIncident(input: Omit<Incident, "id">): Promise<Incident
     // Transform to backend format
     const apiIncident = {
       ...incident,
-      report_id: incident.reportId,
       acknowledged_at: incident.acknowledgedAt,
       sla_breached: incident.slaBreached,
       duplicate_resolved: incident.duplicateResolved,
@@ -615,9 +828,9 @@ export async function addIncident(input: Omit<Incident, "id">): Promise<Incident
       iotData: saved.iot_data,
       dispatches: saved.dispatches?.map((d) => ({
         ...d,
-        assigneeType: d.assigneeType,
-        dispatchedAt: d.dispatchedAt,
-        onSceneAt: d.onSceneAt,
+        assigneeType: d.assignee_type,
+        dispatchedAt: d.dispatched_at,
+        onSceneAt: d.on_scene_at,
       })),
     };
     
@@ -698,18 +911,13 @@ function purokFromPlace(report: ResidentReport): string {
 }
 
 /**
- * §15.10c — Shape the operational `Incident` that corresponds to a resident
- * report. The report itself is NOT converted in controlled memory anymore: the
- * incident is **persisted** server-side via `POST /api/incidents/from-report`
- * and linked through the real FK `incidents.report_id -> reports.id`. This
- * helper only (a) refreshes the report-derived fields on the persisted record
- * and (b) supplies a client-side mirror for reports that have not yet been
- * persisted.
+ * §15.10c — Build a slim `Incident` from a resident report so the shared
+ * Desk Officer pages (Dashboard, dispatches) pick up real resident
+ * submissions alongside the demo seed data.
  */
 export function incidentFromReport(report: ResidentReport): Incident {
   return {
     id: report.tracking_id,
-    reportId: report.id,
     category: report.category || report.subtype || "Other",
     severity: severityFromReport(report),
     purok: purokFromPlace(report),
@@ -730,54 +938,24 @@ export function incidentFromReport(report: ResidentReport): Incident {
 }
 
 /**
- * §15.10d — Reconcile the `incidents` array against resident reports using the
- * persisted relationship `incidents.report_id === reports.id` (not tracking_id).
- *
- * Reports that already have a persisted incident get their report-derived
- * fields refreshed while keeping the Desk Officer's operational data (status,
- * assignment, dispatch, verification, resolution). Reports with no incident yet
- * receive a client-side mirror that `syncResidentReports` persists through the
- * backend. Non-resident incidents are untouched, and persisted resident
- * incidents are kept even when a report temporarily leaves `/api/reports`.
+ * §15.10d — Merge the mapped resident reports into the shared `incidents`
+ * array. Resident source records are keyed by tracking ID; any that
+ * disappeared from the API are dropped while seed/manual records stay.
  */
 function mergeResidentIncidents(reports: ResidentReport[]) {
-  const reportsById = new Map(reports.map((r) => [r.id, r]));
-
-  const merged: Incident[] = [];
+  const mapped = reports.map(incidentFromReport);
+  const byId = new Map<string, Incident>();
   for (const inc of incidents) {
-    if (inc.source === "resident") {
-      // Previews without a persisted report_id should only exist for a report
-      // currently in the queue; drop stale ones.
-      if (inc.reportId == null) continue;
-      const report = reportsById.get(inc.reportId);
-      if (!report) {
-        merged.push(inc); // persisted incident kept even if the list is empty
-        continue;
-      }
-      // Refresh report-derived fields, then overlay the persisted operational data.
-      merged.push({ ...incidentFromReport(report), ...inc });
-    } else {
-      merged.push(inc);
-    }
+    if (inc.source !== "resident") byId.set(inc.id, inc);
   }
-
-  const withIncident = new Set(
-    merged.filter((i) => i.reportId != null).map((i) => i.reportId)
-  );
-  for (const r of reports) {
-    if (!withIncident.has(r.id)) {
-      merged.push(incidentFromReport(r));
-    }
-  }
-  incidents = merged;
+  for (const inc of mapped) byId.set(inc.id, inc);
+  incidents = [...byId.values()];
 }
 
 /**
- * §15.10e — Pull fresh resident reports from the backend (`/api/reports`),
- * persist an incident for every report that doesn't have one yet (via
- * `incidents.report_id -> reports.id`), reload the persisted incidents, and
- * reconcile the store. The Desk Officer Incident Triage calls this on mount and
- * on a refresh interval.
+ * §15.10e — Pull fresh resident reports from the backend (`/api/reports`)
+ * and merge them into the shared store. The Desk Officer Incident Triage
+ * calls this on mount and on a refresh interval.
  */
 export async function syncResidentReports(): Promise<void> {
   residentReportsLoading = true;
@@ -786,22 +964,6 @@ export async function syncResidentReports(): Promise<void> {
     const reports = await fetchResidentReports();
     residentReports = reports;
     residentReportsError = false;
-
-    // Persist any report that is not yet linked to an incident. The backend is
-    // idempotent (one report → one incident), so this never duplicates.
-    const persistedReportIds = new Set(
-      incidents.filter((i) => i.reportId != null).map((i) => i.reportId)
-    );
-    const missing = reports.filter((r) => !persistedReportIds.has(r.id));
-    for (const report of missing) {
-      try {
-        await createIncidentFromReport(report.id);
-      } catch (error) {
-        console.error(`Failed to persist incident for report ${report.id}:`, error);
-      }
-    }
-
-    if (missing.length > 0) await refreshIncidents();
     mergeResidentIncidents(reports);
   } catch {
     residentReportsError = true;
@@ -813,9 +975,8 @@ export async function syncResidentReports(): Promise<void> {
 
 /**
  * §15.10f — Persist a Desk Officer processing action (status advance and/or
- * priority change) to the resident report AND keep the linked operational
- * incident in sync through `incidents.report_id -> reports.id`, so both the
- * report (triage) and the incident (dashboard/dispatch) reflect the change.
+ * priority change) to the backend and reflect it in both the raw report list
+ * and the shared incident mapping.
  */
 export async function updateResidentReportStatus(
   reportId: number,
@@ -832,42 +993,20 @@ export async function updateResidentReportStatus(
       resolution_note: changes.resolution_note,
     });
     residentReports = residentReports.map((r) => (r.id === updated.id ? updated : r));
-
     const incident = incidents.find(
-      (i) => i.source === "resident" && i.reportId === updated.id
+      (i) => i.source === "resident" && i.id === updated.tracking_id
     );
     if (incident) {
-      const patch: Partial<import("./incidentsApi").Incident> = {};
-      if (changes.status && REPORT_TO_INCIDENT_STATUS[changes.status]) {
-        patch.status = REPORT_TO_INCIDENT_STATUS[changes.status];
-        patch.verification_status = verificationFromReport(changes.status);
-      }
-      if (changes.priority) patch.priority = changes.priority;
-      if (Object.keys(patch).length > 0) {
-        try {
-          await updateIncident(incident.id, patch);
-        } catch (error) {
-          // The report was already saved; the incident sync is best-effort.
-          console.error("Failed to sync incident status from report:", error);
-        }
-      }
+      const merged = { ...incidentFromReport(updated), notes: incident.notes };
+      incidents = incidents.map((i) =>
+        i.source === "resident" && i.id === updated.tracking_id ? merged : i
+      );
     }
-
-    await refreshIncidents();
     emit();
     return updated;
   } catch {
     return null;
   }
-}
-
-/**
- * §15.10g — Resolve the persisted incident linked to a resident report
- * (incidents.report_id === reportId). Used by pages that need to walk
- * Incident -> report_id -> Original Report.
- */
-export function getIncidentForReport(reportId: number): Incident | undefined {
-  return incidents.find((i) => i.source === "resident" && i.reportId === reportId);
 }
 
 // §15.10a — Look up the dispatch record for an incident.
@@ -1047,7 +1186,6 @@ export function useIncidentStore() {
     residentReportsError,
     syncResidentReports,
     updateResidentReportStatus,
-    getIncidentForReport,
     convertToBlotter,
     setIncidents,
     setDispatches,

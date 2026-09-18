@@ -11,8 +11,6 @@ interface OtpProps {
   };
 }
 
-const DEMO_OTP = "123456"; // Demo OTP for testing
-
 export default function OtpVerification({ onVerify, onBack, userData }: OtpProps) {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
@@ -146,19 +144,7 @@ export default function OtpVerification({ onVerify, onBack, userData }: OtpProps
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    if (otpValue === DEMO_OTP) {
-      onVerify(otpValue);
-    } else {
-      setError("Invalid OTP. Please try again.");
-      setLoading(false);
-      // Clear OTP and focus first input
-      setOtp(["", "", "", "", "", ""]);
-      setTimeout(() => {
-        if (inputRefs.current[0]) {
-          inputRefs.current[0]?.focus();
-        }
-      }, 100);
-    }
+    onVerify(otpValue);
   };
 
   const handleResend = () => {
@@ -243,14 +229,6 @@ export default function OtpVerification({ onVerify, onBack, userData }: OtpProps
               Enter the 6-digit code sent to{" "}
               <span className="font-semibold text-[#33437A]">{userData.email}</span>
             </p>
-          </div>
-
-          {/* Demo notice */}
-          <div className="mb-6 rounded-xl bg-blue-50 p-4 border border-blue-100">
-            <div className="flex items-center gap-2 text-[14px] text-[#0038A8]">
-              <Shield size={16} />
-              <span className="font-semibold">Demo OTP: <span className="font-mono font-bold">{DEMO_OTP}</span></span>
-            </div>
           </div>
 
           {/* Error message */}

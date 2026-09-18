@@ -5,6 +5,27 @@ export type ShiftType = "day" | "night" | "graveyard";
 export type AssignmentMode = "whole_team" | "per_checkpoint";
 export type PatrolScheduleStatus = "draft" | "pending_approval" | "scheduled" | "active" | "completed";
 
+export interface TrainingCertification {
+  hasTraining: boolean;
+  certificateDate?: string;
+  trainingProvider?: string;
+  certificateNumber?: string;
+  proofOfTraining?: string;
+}
+
+export interface SkillsInventory {
+  existingTanodExperience: string;
+  basicPatrolExperience: string;
+  firstAidTraining: TrainingCertification;
+  selfDefenseTraining: boolean;
+  disasterResponseTraining: boolean;
+  crowdControlTraining: boolean;
+  radioCommunicationSkills: boolean;
+  humanRightsOrientation: boolean;
+  otherRelevantSkills: string;
+  certificateNumbers: string;
+}
+
 export interface RosterMember {
   id: string;
   name: string;
@@ -14,6 +35,7 @@ export interface RosterMember {
   performance: number;
   available: boolean;
   lastDutyAt: string;
+  skillsInventory?: SkillsInventory;
 }
 
 export interface PatrolTeam {
@@ -118,18 +140,7 @@ export const SCHED_STATUS_META: Record<PatrolScheduleStatus, { label: string; ba
   completed: { label: "Completed", badge: "bg-stone-100 text-stone-500", dot: "bg-stone-400" },
 };
 
-export const SEED_ROSTER: RosterMember[] = [
-  { id: "tn-01", name: "Juan Dela Cruz", purok: "Purok 3", skills: ["crowd control", "market watch"], experienceYears: 8, performance: 95, available: true, lastDutyAt: "2026-09-08" },
-  { id: "tn-02", name: "Pedro Santos", purok: "Purok 3", skills: ["traffic", "radio"], experienceYears: 5, performance: 88, available: true, lastDutyAt: "2026-09-12" },
-  { id: "tn-03", name: "Marco Lopez", purok: "Purok 2", skills: ["night patrol", "first aid"], experienceYears: 7, performance: 97, available: true, lastDutyAt: "2026-09-06" },
-  { id: "tn-04", name: "Luis Ramos", purok: "Purok 4", skills: ["school watch"], experienceYears: 2, performance: 72, available: true, lastDutyAt: "2026-09-14" },
-  { id: "tn-05", name: "Diego Mendoza", purok: "Purok 5", skills: ["traffic", "terminal"], experienceYears: 6, performance: 91, available: true, lastDutyAt: "2026-09-11" },
-  { id: "tn-06", name: "Andres Bautista", purok: "Purok 1", skills: ["flood watch", "night patrol"], experienceYears: 4, performance: 83, available: true, lastDutyAt: "2026-09-09" },
-  { id: "tn-07", name: "Rico Villanueva", purok: "Purok 3", skills: ["crowd control"], experienceYears: 3, performance: 80, available: false, lastDutyAt: "2026-09-15" },
-  { id: "tn-08", name: "Carlo Reyes", purok: "Purok 5", skills: ["radio", "first aid"], experienceYears: 9, performance: 93, available: true, lastDutyAt: "2026-09-04" },
-  { id: "tn-09", name: "Nilo Garcia", purok: "Purok 2", skills: ["plaza watch"], experienceYears: 1, performance: 68, available: true, lastDutyAt: "2026-09-13" },
-  { id: "tn-10", name: "Benito Cruz", purok: "Purok 4", skills: ["night patrol"], experienceYears: 5, performance: 86, available: true, lastDutyAt: "2026-09-07" },
-];
+export const SEED_ROSTER: RosterMember[] = [];
 
 export const SEED_TEAMS: PatrolTeam[] = [
   { id: "team-alpha", name: "Team Alpha", leaderId: "tn-01", memberIds: ["tn-01", "tn-02", "tn-03", "tn-07"], isActive: true, createdAt: "2026-09-01T08:00:00" },

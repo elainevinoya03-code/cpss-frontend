@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  Award,
   Calendar,
   Check,
   CheckCircle2,
@@ -57,6 +58,7 @@ import {
   type ShiftType,
   type TeamMemberSuggestion,
 } from "./patrolScheduleShared";
+import SkillsInventory from "./skillsInventory";
 
 const WIZARD_STEPS = [
   { n: 1, label: "Plan" },
@@ -113,11 +115,13 @@ function TeamsPanel({
   roster,
   schedules,
   flash,
+  onNavigate,
 }: {
   teams: PatrolTeam[];
   roster: RosterMember[];
   schedules: PatrolSchedule[];
   flash: (msg: string, opts?: { type?: "info" | "success" | "warning" | "error" }) => void;
+  onNavigate?: (key: string) => void;
 }) {
   const [editing, setEditing] = useState<PatrolTeam | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ team: PatrolTeam; action: "delete" | "toggle" } | null>(null);
@@ -129,6 +133,8 @@ function TeamsPanel({
   const [targetPurok, setTargetPurok] = useState("");
   const [scores, setScores] = useState<TeamMemberSuggestion[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [skillsInventoryTanod, setSkillsInventoryTanod] = useState<RosterMember | null>(null);
+  const [showSkillsInventory, setShowSkillsInventory] = useState(false);
 
   const nameOf = (id: string) => roster.find((r) => r.id === id)?.name ?? id;
 
@@ -261,6 +267,12 @@ function TeamsPanel({
               {teams.length} teams · {activeCount} active
             </span>
             <button
+              onClick={() => onNavigate?.("skills_inventory")}
+              className="flex h-8 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 text-[15px] font-semibold text-blue-700 hover:bg-blue-100"
+            >
+              <Award size={13} /> Skills Inventory
+            </button>
+            <button
               onClick={openCreate}
               className="flex h-8 items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 text-[15px] font-semibold text-white shadow-sm hover:bg-[#002A8C]"
             >
@@ -383,6 +395,7 @@ function TeamsPanel({
                 {scoredRows.map(({ r, criteria, total }) => {
                   const isLead = form.leaderId === r.id;
                   const on = form.memberIds.includes(r.id);
+                  const hasSkillsInventory = r.skillsInventory && Object.keys(r.skillsInventory).length > 0;
                   return (
                     <div key={r.id} className={`rounded-lg border px-3 py-2 ${on || isLead ? "border-[#0038A8]/30 bg-[#E9EDFB]" : "border-stone-100 bg-white"}`}>
                       <div className="flex items-center gap-2">
@@ -391,6 +404,7 @@ function TeamsPanel({
                           <p className="text-[16px] font-semibold text-stone-800">
                             {r.name} {isLead && <span className="ml-1 rounded-full bg-[#0038A8] px-1.5 py-px text-[10px] font-bold uppercase text-white">Leader</span>}
                             {editing && editing.memberIds.includes(r.id) && <span className="ml-1 rounded-full bg-stone-200 px-1.5 py-px text-[10px] font-semibold text-stone-600">In team</span>}
+                            {hasSkillsInventory && <span className="ml-1 rounded-full bg-emerald-100 px-1.5 py-px text-[10px] font-semibold text-emerald-700">Skills ✓</span>}
                           </p>
                           <p className="text-[11px] text-[#94A3B8]">
                             {r.purok} · {r.experienceYears}y · {r.skills.join(", ")} · perf {r.performance}% · last duty {ageById.get(r.id) ?? 30}d ago
@@ -407,6 +421,16 @@ function TeamsPanel({
                           className="rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-600 hover:bg-white disabled:opacity-40"
                         >
                           {isLead ? "Leader" : "Set as leader"}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSkillsInventoryTanod(r);
+                            setShowSkillsInventory(true);
+                          }}
+                          className="rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-600 hover:bg-[#E9EDFB] hover:text-[#0038A8]"
+                          title="View Skills Inventory"
+                        >
+                          <Award size={12} />
                         </button>
                       </div>
                       {on && (
@@ -516,6 +540,106 @@ function TeamsPanel({
           onClose={() => setConfirmTarget(null)}
         />
       )}
+
+      {showSkillsInventory && skillsInventoryTanod && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowSkillsInventory(false)}>
+          <div className="max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 border-b border-stone-200 bg-white px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-stone-900">Skills Inventory</h2>
+                <p className="text-sm text-stone-500">{skillsInventoryTanod.name} · {skillsInventoryTanod.purok}</p>
+              </div>
+              <button
+                onClick={() => setShowSkillsInventory(false)}
+                className="rounded-lg border border-stone-200 bg-white px-3 py-2 text-[12px] font-medium text-stone-600 hover:bg-stone-50"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div className="p-6">
+              {skillsInventoryTanod.skillsInventory ? (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-stone-800 mb-2">Experience</h3>
+                    <div className="space-y-2">
+                      <div className="rounded-lg bg-stone-50 p-3">
+                        <p className="text-xs font-medium text-stone-500">Existing Tanod Experience</p>
+                        <p className="text-sm text-stone-700 mt-1">{skillsInventoryTanod.skillsInventory.existingTanodExperience || "Not specified"}</p>
+                      </div>
+                      <div className="rounded-lg bg-stone-50 p-3">
+                        <p className="text-xs font-medium text-stone-500">Basic Patrol Experience</p>
+                        <p className="text-sm text-stone-700 mt-1">{skillsInventoryTanod.skillsInventory.basicPatrolExperience || "Not specified"}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold text-stone-800 mb-2">Training & Certifications</h3>
+                    <div className="rounded-lg bg-stone-50 p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-medium text-stone-700">First Aid Training</p>
+                        <span className={`text-xs font-semibold ${skillsInventoryTanod.skillsInventory.firstAidTraining.hasTraining ? "text-emerald-600" : "text-stone-500"}`}>
+                          {skillsInventoryTanod.skillsInventory.firstAidTraining.hasTraining ? "Yes" : "No"}
+                        </span>
+                      </div>
+                      {skillsInventoryTanod.skillsInventory.firstAidTraining.hasTraining && (
+                        <div className="mt-2 space-y-1 text-xs text-stone-600">
+                          <p><span className="font-medium">Date:</span> {skillsInventoryTanod.skillsInventory.firstAidTraining.certificateDate || "Not specified"}</p>
+                          <p><span className="font-medium">Provider:</span> {skillsInventoryTanod.skillsInventory.firstAidTraining.trainingProvider || "Not specified"}</p>
+                          <p><span className="font-medium">Certificate:</span> {skillsInventoryTanod.skillsInventory.firstAidTraining.certificateNumber || "Not specified"}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold text-stone-800 mb-2">Specialized Skills</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { key: "selfDefenseTraining" as const, label: "Self-Defense" },
+                        { key: "disasterResponseTraining" as const, label: "Disaster Response" },
+                        { key: "crowdControlTraining" as const, label: "Crowd Control" },
+                        { key: "radioCommunicationSkills" as const, label: "Radio Communication" },
+                        { key: "humanRightsOrientation" as const, label: "Human Rights" },
+                      ].map((skill) => (
+                        <div key={skill.key} className="rounded-lg bg-stone-50 p-2 flex items-center justify-between">
+                          <span className="text-xs text-stone-700">{skill.label}</span>
+                          <span className={`text-xs font-semibold ${skillsInventoryTanod.skillsInventory?.[skill.key] ? "text-emerald-600" : "text-stone-400"}`}>
+                            {skillsInventoryTanod.skillsInventory?.[skill.key] ? "Yes" : "No"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {skillsInventoryTanod.skillsInventory.otherRelevantSkills && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-stone-800 mb-2">Other Skills</h3>
+                      <div className="rounded-lg bg-stone-50 p-3">
+                        <p className="text-sm text-stone-700">{skillsInventoryTanod.skillsInventory.otherRelevantSkills}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {skillsInventoryTanod.skillsInventory.certificateNumbers && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-stone-800 mb-2">Certificate Numbers</h3>
+                      <div className="rounded-lg bg-stone-50 p-3">
+                        <p className="text-sm text-stone-700">{skillsInventoryTanod.skillsInventory.certificateNumbers}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Award size={48} className="mx-auto text-stone-300 mb-4" />
+                  <p className="text-sm text-stone-500">No skills inventory data recorded for this Tanod.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -530,7 +654,7 @@ export default function PatrolSchedulerRoutes({
   const plans = useCheckpointPlans();
   const { roster, teams, schedules, dutyLogs } = usePatrolScheduleStore();
 
-  const [tab, setTab] = useState<"plans" | "teams" | "schedules" | "logs">(isTanod ? "schedules" : "plans");
+  const [tab, setTab] = useState<"plans" | "teams" | "schedules" | "logs" | "skills_inventory">(isTanod ? "schedules" : "plans");
   const [wizardOpen, setWizardOpen] = useState(false);
   const [step, setStep] = useState(1);
   const [draft, setDraft] = useState<PatrolSchedule | null>(null);
@@ -1217,6 +1341,7 @@ export default function PatrolSchedulerRoutes({
                 [
                   { key: "plans", label: "Approved plans" },
                   { key: "teams", label: "Teams" },
+                  { key: "skills_inventory", label: "Skills Inventory" },
                   { key: "schedules", label: "Patrol schedules" },
                   { key: "logs", label: "Monitoring & logs" },
                 ] as const
@@ -1270,7 +1395,9 @@ export default function PatrolSchedulerRoutes({
               </div>
             )}
 
-            {tab === "teams" && <TeamsPanel teams={teams} roster={roster} schedules={schedules} flash={flash} />}
+            {tab === "teams" && <TeamsPanel teams={teams} roster={roster} schedules={schedules} flash={flash} onNavigate={_onNavigate} />}
+
+            {tab === "skills_inventory" && <SkillsInventory />}
 
             {tab === "schedules" && (
               <div className="space-y-3">

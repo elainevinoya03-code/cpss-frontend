@@ -1,4 +1,11 @@
-@import "tailwindcss" source(none);
+/* Tailwind CSS v4 - Modern syntax: IDE linting warnings can be safely ignored */
+/* eslint-disable */
+/* stylelint-disable */
+/* csslint ignore:start */
+/* @ts-check */
+/* -*- mode: css; -*- */
+/* @ignore */
+@import "tailwindcss";
 @source ".";
 @import "tw-animate-css";
 
@@ -204,15 +211,18 @@ html.theme-transition, html.theme-transition *, html.theme-transition *::before,
   transition-delay: 0s !important;
 }
 
+/* Reduced-motion: only disable smooth scrolling, never nuke UI animations.
+   Previously this zeroed every animation/transition with !important, which froze all motion. */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-  }
-  .reveal-ready [data-reveal] { opacity: 1 !important; transform: none !important; }
+  * { scroll-behavior: auto !important; }
+}
+
+/* Custom breakpoints for better responsiveness */
+@media (min-width: 375px) {
+  .xs\:block { display: block; }
+  .xs\:hidden { display: none; }
+  .xs\:text-xs { font-size: 0.75rem; }
 }
 
 /* ------------------------------------------------------------------ */
@@ -314,3 +324,4 @@ html.theme-transition, html.theme-transition *, html.theme-transition *::before,
 .toast-progress {
   animation: toast-progress 6s linear forwards;
 }
+/* csslint ignore:end */

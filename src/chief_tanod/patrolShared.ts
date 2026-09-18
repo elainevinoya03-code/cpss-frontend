@@ -1,39 +1,17 @@
 import { type Incident } from "../desk_officer/incidentStore";
-import { PUROK_ZONES } from "../constants/purok";
+import {
+  type PlanType,
+  type PlanStatus,
+  type CpPoint,
+  type CpRoute,
+} from "./patrolConfigurationApi";
 
 /* --------------------------------------------------------------------- */
 /* Types                                                                 */
 /* --------------------------------------------------------------------- */
 
-export type PlanType = "fixed" | "route";
-export type PlanStatus =
-  | "draft"
-  | "pending_approval"
-  | "approved"
-  | "revision_required"
-  | "rejected";
-
-export interface CpPoint {
-  id: string;
-  kind: "fixed" | "start" | "end" | "intermediate";
-  label: string;
-  name: string;
-  address: string;
-  landmark: string;
-  description: string;
-  remarks: string;
-  lat: number;
-  lng: number;
-}
-
-export interface CpRoute {
-  id: string;
-  label: string; // "Route 2", "Route 3", …
-  title: string; // short descriptive name
-  role: "support";
-  color: string; // render color (hex)
-  points: CpPoint[]; // intermediate waypoints only (A/B are shared plan-level points)
-}
+// Re-export types from API for consistency
+export type { PlanType, PlanStatus, CpPoint, CpRoute };
 
 export interface RouteSuggestion {
   id: string;
@@ -115,10 +93,9 @@ export type MapMode =
   | "set_custom";
 
 export type LayerState = {
-  boundaries: boolean;
-  roads: boolean;
-  incidents: boolean;
+  digitalBoundaries: boolean;
   hotspots: boolean;
+  incidents: boolean;
   checkpoints: boolean;
   patrols: boolean;
 };
@@ -182,49 +159,29 @@ export const RECURRING_OPTIONS = [
 
 export const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export const TARGET_AREA_SUGGESTIONS = [
-  ...PUROK_ZONES.map((z) => z.name),
-  "Main Barangay Boundary",
-  "Evacuation Zone Alpha",
-];
+export const TARGET_AREA_SUGGESTIONS: string[] = [];
 
-export const EXISTING_CHECKPOINTS = [
-  { id: "ECP-201", name: "Market North Gate", lat: 108, lng: 220, active: true },
-  { id: "ECP-202", name: "Highway Junction", lat: 225, lng: 100, active: true },
-  { id: "ECP-203", name: "Riverside Arc", lat: 160, lng: 330, active: false },
-  { id: "ECP-204", name: "School District Gate", lat: 205, lng: 205, active: true },
-];
+export const EXISTING_CHECKPOINTS: any[] = [];
 
-export const ACTIVE_PATROLS = [
-  { id: "PAT-1", name: "Purok 3–5 Sweep", pts: [{ x: 95, y: 185 }, { x: 150, y: 265 }, { x: 118, y: 330 }] },
-  { id: "PAT-2", name: "Purok 1–2 Perimeter", pts: [{ x: 108, y: 55 }, { x: 225, y: 68 }, { x: 238, y: 150 }] },
-];
+export const ACTIVE_PATROLS: any[] = [];
 
 export type ExistingCheckpoint = (typeof EXISTING_CHECKPOINTS)[number];
 export type ActivePatrol = (typeof ACTIVE_PATROLS)[number];
 
-export const LANDMARKS = [
-  { name: "Barangay Hall", x: 112, y: 52, code: "H" },
-  { name: "Chapel", x: 212, y: 205, code: "C" },
-  { name: "Public Market", x: 104, y: 232, code: "M" },
-  { name: "Jeep Terminal", x: 332, y: 218, code: "T" },
-  { name: "River Bridge", x: 176, y: 318, code: "B" },
-];
+export const LANDMARKS: any[] = [];
 
 export const ALL_LAYERS: LayerState = {
-  boundaries: true,
-  roads: true,
-  incidents: true,
+  digitalBoundaries: true,
   hotspots: true,
+  incidents: true,
   checkpoints: true,
   patrols: true,
 };
 
 export const LAYER_LABELS: { key: keyof LayerState; label: string }[] = [
-  { key: "boundaries", label: "Zones" },
-  { key: "roads", label: "Roads" },
-  { key: "incidents", label: "Incidents" },
+  { key: "digitalBoundaries", label: "Digital Boundaries" },
   { key: "hotspots", label: "Hotspots" },
+  { key: "incidents", label: "Incidents" },
   { key: "checkpoints", label: "Checkpoints" },
   { key: "patrols", label: "Patrols" },
 ];
@@ -243,246 +200,6 @@ let POINT_SEQ = 0;
 export function nextPointId() {
   return `pt-${++POINT_SEQ}`;
 }
-
-/* --------------------------------------------------------------------- */
-/* Seed plans                                                            */
-/* --------------------------------------------------------------------- */
-
-export const SEED_PLANS: CheckpointPlan[] = [
-  {
-    id: "CP-2026-118",
-    code: "CP-118",
-    name: "Public Market Night Interdiction",
-    type: "fixed",
-    purpose: "Crime Prevention",
-    objective:
-      "Deter theft and public-disturbance incidents around the market row during peak evening hours.",
-    rationale:
-      "Purok 3 logged five fire/public-disturbance alerts in the past month; two SOS triggers surfaced near the commercial strip.",
-    targetArea: "Purok 3",
-    remarks: "Requires PNP visibility alongside barangay tanods. High foot traffic on market days.",
-    points: [
-      {
-        id: "sp-1",
-        kind: "fixed",
-        label: "FIXED",
-        name: "Market North Gate",
-        address: "Market Row, Purok 3",
-        landmark: "Public Market North Entrance",
-        description: "Fixed post at the north gate",
-        remarks: "Night shift staffed; log all stops on BLOTTER-1.",
-        lat: 108,
-        lng: 220,
-      },
-    ],
-    linkedIncidentIds: ["INC-2071", "INC-2072", "INC-2070"],
-    schedule: {
-      operationDate: "2026-09-20",
-      endDate: "2026-09-27",
-      startTime: "18:00",
-      endTime: "23:00",
-      recurring: "specific_days",
-      recurringDays: ["Fri", "Sat", "Sun"],
-      expectedDuration: "5 hours per night",
-    },
-    notes: {
-      general: "Full tanod uniform with reflective vest. Briefing 30 min before start.",
-      safety: "Keep line of sight on adjacent alleys. Watch for vehicles speeding off.",
-      equipment: "Two search lights, traffic cones, log sheet, two handheld radios.",
-      coordination: "Coordinate with Purok 3 leader and PNP substation.",
-      special: "High-visibility only; no aggressive stops outside SOP.",
-      other: "Radios on channel 2; market vendors informed by the morning.",
-    },
-    coverage: { pct: 63, covered: 5, total: 8, window: "Last 30 days" },
-    status: "approved",
-    submittedBy: "C. Santos",
-    submittedAt: "2026-09-10T09:12:00",
-    decidedBy: "Punong Barangay",
-    decidedAt: "2026-09-11T14:05:00",
-    approvalComments: undefined,
-    createdAt: "2026-09-10T08:55:00",
-  },
-  {
-    id: "CP-2026-119",
-    code: "CP-119",
-    name: "Riverside ↔ Terminal Through-route",
-    type: "route",
-    purpose: "Traffic Control",
-    objective:
-      "Run a mobile checkpoint sweep across the terminal corridor to cut down traffic-related incidents and nuisance complaints.",
-    rationale:
-      "Terminal and riverside areas concentrate recurring noise and disturbance reports; a moving post covers both in one duty window.",
-    targetArea: "Purok 5",
-    remarks: "Accompany with PNP. Suspend during market-day rush.",
-    points: [
-      {
-        id: "sp-2",
-        kind: "start",
-        label: "A",
-        name: "Point A — Riverside Arc",
-        address: "Riverside Road",
-        landmark: "River Bridge",
-        description: "Start sweep at the riverside concourse",
-        remarks: "Assemble team here",
-        lat: 130,
-        lng: 312,
-      },
-      { id: "sp-3", kind: "intermediate", label: "CP1", name: "Checkpoint 1 — Chapel Crossing", address: "Purok Crossing", landmark: "Chapel", description: "Primary traffic stop point", remarks: "", lat: 148, lng: 248 },
-      { id: "sp-4", kind: "intermediate", label: "CP2", name: "Checkpoint 2 — Market Row", address: "Market Road", landmark: "Public Market", description: "Secondary stop point", remarks: "", lat: 118, lng: 222 },
-      {
-        id: "sp-5",
-        kind: "end",
-        label: "B",
-        name: "Point B — Terminal",
-        address: "Terminal Road",
-        landmark: "Jeepney Terminal",
-        description: "Sweep ends at the terminal",
-        remarks: "Debrief here after sweep",
-        lat: 312,
-        lng: 218,
-      },
-    ],
-    routes: [
-      {
-        id: "r-seed-1",
-        label: "Route 2",
-        title: "Safest suggestion",
-        role: "support",
-        color: "#0d9488",
-        points: [
-          { id: "sr-1", kind: "intermediate", label: "CP1", name: "CP — Chapel Service Road", address: "Chapel Lane", landmark: "Chapel", description: "Detour via chapel side road", remarks: "", lat: 205, lng: 250 },
-          { id: "sr-2", kind: "intermediate", label: "CP2", name: "CP — East Purok Crossing", address: "Purok Crossing", landmark: "", description: "Secondary coverage point", remarks: "", lat: 252, lng: 232 },
-        ],
-      },
-    ],
-    linkedIncidentIds: ["INC-2069", "INC-2067"],
-    schedule: {
-      operationDate: "2026-09-22",
-      endDate: "2026-09-22",
-      startTime: "17:00",
-      endTime: "21:00",
-      recurring: "none",
-      recurringDays: [],
-      expectedDuration: "4 hours",
-    },
-    notes: {
-      general: "Sweep speed kept below 20 kph. All stops logged.",
-      safety: "Use cones at each stop point before dismounting.",
-      equipment: "Mobile lights, cones, radios, GO-BAGS.",
-      coordination: "Desk Officer informed of live position for the duration.",
-      special: "Terminal guard to hold traffic at Point B on approach.",
-      other: "",
-    },
-    coverage: { pct: 71, covered: 5, total: 7, window: "Last 30 days" },
-    status: "pending_approval",
-    submittedBy: "C. Santos",
-    submittedAt: "2026-09-12T10:40:00",
-    createdAt: "2026-09-12T10:10:00",
-  },
-  {
-    id: "CP-2026-116",
-    code: "CP-116",
-    name: "School District Morning Watch",
-    type: "fixed",
-    purpose: "Community Safety",
-    objective: "Standby post near the school district during drop-off hours.",
-    rationale: "Reports of hazards and disturbances near school pickup lanes.",
-    targetArea: "Purok 4",
-    remarks: "",
-    points: [
-      { id: "sp-6", kind: "fixed", label: "FIXED", name: "School Gate Post", address: "School District, Purok 4", landmark: "Playground", description: "", remarks: "", lat: 205, lng: 205 },
-    ],
-    linkedIncidentIds: [],
-    schedule: {
-      operationDate: "2026-09-25",
-      endDate: "2026-09-25",
-      startTime: "06:00",
-      endTime: "08:00",
-      recurring: "daily",
-      recurringDays: [],
-      expectedDuration: "2 hours",
-    },
-    notes: {
-      general: "",
-      safety: "Direct traffic during drop-off; keep gates clear.",
-      equipment: "Vest, whistle, cones.",
-      coordination: "School guard on site.",
-      special: "",
-      other: "",
-    },
-    coverage: { pct: 25, covered: 1, total: 4, window: "Last 30 days" },
-    status: "revision_required",
-    submittedBy: "C. Santos",
-    submittedAt: "2026-09-11T09:05:00",
-    decidedBy: "Punong Barangay",
-    decidedAt: "2026-09-12T16:20:00",
-    revisionComment: "Extend the operating window through afternoon dismissal and add a second post at the playground exit.",
-    createdAt: "2026-09-11T08:40:00",
-  },
-  {
-    id: "CP-2026-113",
-    code: "CP-113",
-    name: "Purok 1 Riverside Flood Lane",
-    type: "route",
-    purpose: "Emergency Response",
-    objective: "Route checkpoint sweep along the low-lying flood lane.",
-    rationale: "Repeated hazard reports in the flood-prone corridor.",
-    targetArea: "Purok 1",
-    remarks: "",
-    points: [
-      { id: "sp-7", kind: "start", label: "A", name: "Point A", address: "", landmark: "", description: "", remarks: "", lat: 96, lng: 70 },
-      { id: "sp-8", kind: "end", label: "B", name: "Point B", address: "", landmark: "", description: "", remarks: "", lat: 250, lng: 80 },
-    ],
-    linkedIncidentIds: [],
-    schedule: {
-      operationDate: "2026-09-08",
-      endDate: "2026-09-08",
-      startTime: "10:00",
-      endTime: "12:00",
-      recurring: "none",
-      recurringDays: [],
-      expectedDuration: "2 hours",
-    },
-    notes: { general: "", safety: "", equipment: "", coordination: "", special: "", other: "" },
-    coverage: { pct: 30, covered: 1, total: 4, window: "Last 30 days" },
-    status: "rejected",
-    submittedBy: "C. Santos",
-    submittedAt: "2026-09-05T11:30:00",
-    decidedBy: "Punong Barangay",
-    decidedAt: "2026-09-06T09:50:00",
-    rejectionReason: "Route overlaps the approved Highway Junction post. Consolidate with the existing checkpoint instead of running a parallel route.",
-    createdAt: "2026-09-05T10:55:00",
-  },
-  {
-    id: "CP-2026-112",
-    code: "CP-112",
-    name: "Evening Plaza Visibility Post",
-    type: "fixed",
-    purpose: "Crime Prevention",
-    objective: "Deter loitering and noise complaints at the plaza.",
-    rationale: "Recurring evening noise disturbance reports in Purok 2.",
-    targetArea: "Purok 2",
-    remarks: "Pending personnel availability check.",
-    points: [
-      { id: "sp-9", kind: "fixed", label: "FIXED", name: "Plaza Post", address: "Plaza Avenue, Purok 2", landmark: "Barangay Plaza", description: "", remarks: "", lat: 225, lng: 138 },
-    ],
-    linkedIncidentIds: ["INC-2064"],
-    schedule: {
-      operationDate: "2026-09-30",
-      endDate: "2026-09-30",
-      startTime: "19:00",
-      endTime: "22:00",
-      recurring: "none",
-      recurringDays: [],
-      expectedDuration: "3 hours",
-    },
-    notes: { general: "", safety: "", equipment: "", coordination: "", special: "", other: "" },
-    coverage: { pct: 38, covered: 3, total: 8, window: "All incidents" },
-    status: "draft",
-    submittedBy: "C. Santos",
-    createdAt: "2026-09-13T08:20:00",
-  },
-];
 
 /* --------------------------------------------------------------------- */
 /* Helpers                                                               */
@@ -506,15 +223,7 @@ export function segDist(px: number, py: number, ax: number, ay: number, bx: numb
 /* Road network & snapping                                               */
 /* --------------------------------------------------------------------- */
 
-export const ROAD_SEGMENTS: { ax: number; ay: number; bx: number; by: number }[] = [
-  { ax: 0, ay: 118, bx: 440, by: 118 },
-  { ax: 0, ay: 205, bx: 440, by: 205 },
-  { ax: 0, ay: 300, bx: 440, by: 300 },
-  { ax: 110, ay: 0, bx: 110, by: 400 },
-  { ax: 228, ay: 0, bx: 228, by: 400 },
-  { ax: 330, ay: 0, bx: 330, by: 400 },
-  { ax: 40, ay: 40, bx: 400, by: 335 },
-];
+export const ROAD_SEGMENTS: { ax: number; ay: number; bx: number; by: number }[] = [];
 
 export function nearestOnSegment(
   px: number,
@@ -574,17 +283,18 @@ function pointInPolygon(x: number, y: number, poly: { x: number; y: number }[]):
 }
 
 /** Purok zone name containing SVG point (x = lat, y = lng), or null if outside. */
-export function zoneAtPoint(x: number, y: number): string | null {
-  for (const z of PUROK_ZONES) {
-    const poly = parseZonePolygon(z.path);
-    if (poly.length >= 3 && pointInPolygon(x, y, poly)) return z.name;
+export function zoneAtPoint(x: number, y: number, boundaries: any[] = []): string | null {
+  for (const b of boundaries) {
+    if (!b.nodes || b.nodes.length < 3) continue;
+    const poly = b.nodes.map((n: any) => ({ x: n.x, y: n.y }));
+    if (pointInPolygon(x, y, poly)) return b.name;
   }
   return null;
 }
 
 /** Auto-generated address for a snapped map point. Stays editable in the form. */
-export function autoAddressForPoint(x: number, y: number): string {
-  const zone = zoneAtPoint(x, y);
+export function autoAddressForPoint(x: number, y: number, boundaries: any[] = []): string {
+  const zone = zoneAtPoint(x, y, boundaries);
   return zone ? `${zone}, Tandang Sora, Quezon City` : "Tandang Sora, Quezon City";
 }
 

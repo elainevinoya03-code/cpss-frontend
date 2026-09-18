@@ -12,6 +12,7 @@ import {
   MapPin,
   Clock,
   Image as ImageIcon,
+  Activity,
   ChevronRight,
   Users,
   Phone,
@@ -161,6 +162,7 @@ export default function IncidentTriage(_props: { onNavigate?: (page: string) => 
     residentReportsLoading,
     syncResidentReports,
     updateResidentReportStatus,
+    incidents,
   } = useIncidentStore();
   const { flash, ToastPortal } = useToast();
 
@@ -181,6 +183,17 @@ export default function IncidentTriage(_props: { onNavigate?: (page: string) => 
     const t = setInterval(syncResidentReports, 30_000);
     return () => clearInterval(t);
   }, []);
+
+  // The report→incident link is the real FK incidents.report_id -> reports.id.
+  // Resident-submitted content always comes from the reports record; the linked
+  // incident carries the operational/processed state.
+  const incidentByReportId = useMemo(() => {
+    const m = new Map<number, (typeof incidents)[number]>();
+    for (const inc of incidents) {
+      if (inc.source === "resident" && inc.reportId != null) m.set(inc.reportId, inc);
+    }
+    return m;
+  }, [incidents]);
 
   const counts = useMemo(() => {
     const c: Record<ResidentReportStatus, number> = {
@@ -287,8 +300,10 @@ export default function IncidentTriage(_props: { onNavigate?: (page: string) => 
       });
     }
   }
+const selectedReport = selected;
 
-  const selectedReport = selected;
+  const linkedIncident = selectedReport ? incidentByReportId.get(selectedReport.id) : undefined;
+
   const selectedAction = selectedReport ? NEXT_ACTION[selectedReport.status] : null;
   const DetailIcon = selectedReport
     ? CATEGORY_ICON[selectedReport.category] ?? ClipboardList
@@ -411,6 +426,12 @@ export default function IncidentTriage(_props: { onNavigate?: (page: string) => 
                         <span className="font-mono text-[11px] font-bold text-stone-800">
                           {r.tracking_id}
                         </span>
+                        {incidentByReportId.has(r.id) && (
+                          <span className="flex items-center gap-1 rounded-full bg-[#0038A8]/10 px-2 py-px text-[9px] font-semibold text-[#0038A8]">
+                            <Activity size={10} />
+                            Linked · {incidentByReportId.get(r.id)!.id}
+                          </span>
+                        )}
                         {r.is_emergency && (
                           <span className="rounded-full bg-rose-100 px-2 py-px text-[9px] font-bold text-rose-700">
                             EMERGENCY
@@ -567,6 +588,40 @@ export default function IncidentTriage(_props: { onNavigate?: (page: string) => 
                 </span>
               )}
             </div>
+
+            {/* Operations link — Incident → incident.report_id → Original Report */}
+            <section className="rounded-xl border border-[#0038A8]/15 bg-[#E9EDFB]/60 p-3">
+              <SectionLabel>Operations link</SectionLabel>
+              {linkedIncident ? (
+                <div className="space-y-1.5">
+                  <InfoRow
+                    label="Linked incident"
+                    value={
+                      <span className="flex items-center justify-end gap-1.5">
+                        <Activity size={11} className="shrink-0 text-[#0038A8]" />
+                        <span className="font-mono">{linkedIncident.id}</span>
+                      </span>
+                    }
+                  />
+                  <InfoRow label="Source report" value={`reports.id #${selectedReport.id}`} />
+                  <InfoRow label="Operational status" value={linkedIncident.status} />
+                  <InfoRow label="Verification" value={linkedIncident.verificationStatus} />
+                  {linkedIncident.assignedTeam && (
+                    <InfoRow label="Assigned team" value={linkedIncident.assignedTeam} />
+                  )}
+                  <p className="pt-1 text-[10px] leading-relaxed text-stone-500">
+                    Resident-submitted information above comes from the reports record; processing
+                    state (verification, assignment, dispatch, status) lives on the persisted
+                    incident linked via <span className="font-mono">incidents.report_id</span>.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[11px] leading-relaxed text-stone-500">
+                  No incident is persisted for this report yet — it appears on the shared dashboard
+                  once converted, linked by <span className="font-mono">incidents.report_id</span>.
+                </p>
+              )}
+            </section>
 
             {/* Incident overview */}
             <section>

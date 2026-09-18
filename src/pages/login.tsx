@@ -323,7 +323,7 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
             >
               {loading ? (
                 <span className="inline-flex items-center justify-center gap-2.5">
-                  <span className="spinner inline-block h-5 w-5 rounded-full border-[2.5px] border-white/30 border-t-white" />
+                  <span className="login-spinner inline-block h-5 w-5 shrink-0 rounded-full border-[2.5px] border-white/60 border-t-white" />
                   Signing in...
                 </span>
               ) : (
@@ -343,15 +343,15 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
           60% { transform: translateX(-5px); }
           80% { transform: translateX(5px); }
         }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-4px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .spinner {
-          animation: spin 1s linear infinite;
+        @keyframes login-spin {
+          to { transform: rotate(360deg); }
+        }
+        .login-spinner {
+          animation: login-spin 0.8s linear infinite;
           will-change: transform;
         }
       `}</style>

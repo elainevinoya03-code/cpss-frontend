@@ -1337,8 +1337,8 @@ function ConvertIncidentModal({
   );
   const coord = PUROK_COORDS[alert.purok] ?? PUROK_COORDS["Purok 1"];
 
-  function submit() {
-    const inc = addIncident({
+  async function submit() {
+    const inc = await addIncident({
       category,
       severity: alert.severity === "Emergency" ? "critical" : alert.severity === "High" ? "warning" : "low",
       purok: alert.purok,

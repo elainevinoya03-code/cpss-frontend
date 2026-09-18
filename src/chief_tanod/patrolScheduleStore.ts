@@ -8,7 +8,9 @@ import {
   type PatrolSchedule,
   type PatrolTeam,
   type RosterMember,
+  type SkillsInventory,
 } from "./patrolScheduleShared";
+import { fetchRosterMembers } from "./rosterApi";
 
 let roster: RosterMember[] = SEED_ROSTER.map((m) => ({ ...m, skills: [...m.skills] }));
 let teams: PatrolTeam[] = SEED_TEAMS.map((t) => ({ ...t, memberIds: [...t.memberIds] }));
@@ -167,6 +169,24 @@ function emit() {
   listeners.forEach((fn) => fn());
 }
 
+let rosterLoaded = false;
+
+export async function loadRosterFromBackend(): Promise<void> {
+  if (rosterLoaded) return;
+  try {
+    const members = await fetchRosterMembers();
+    if (members.length) {
+      roster = members;
+      rosterLoaded = true;
+      emit();
+    }
+  } catch (err) {
+    console.warn("Failed to load roster from backend. Using seed data.", err);
+  }
+}
+
+loadRosterFromBackend();
+
 export function subscribePatrolSchedules(fn: () => void) {
   listeners.add(fn);
   return () => {
@@ -201,6 +221,13 @@ export function upsertTeam(team: PatrolTeam): PatrolTeam {
 export function deleteTeam(id: string): void {
   teams = teams.filter((t) => t.id !== id);
   emit();
+}
+
+export function upsertRosterMember(member: RosterMember): RosterMember {
+  const exists = roster.some((m) => m.id === member.id);
+  roster = exists ? roster.map((m) => (m.id === member.id ? member : m)) : [member, ...roster];
+  emit();
+  return member;
 }
 
 export function upsertSchedule(s: PatrolSchedule): PatrolSchedule {

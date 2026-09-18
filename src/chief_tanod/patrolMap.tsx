@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Check, Crosshair } from "lucide-react";
-import { PUROK_ZONES } from "../constants/purok";
 import { type Incident } from "../desk_officer/incidentStore";
 import {
   ACTIVE_PATROLS,
@@ -17,7 +16,8 @@ import {
   type LayerState,
   type MapMode,
 } from "./patrolShared";
-import { MAP_CENTER, toGeoPoint, purokZoneToGeo } from "../utils/geoUtils";
+import { MAP_CENTER, toGeoPoint } from "../utils/geoUtils";
+import { useDigitalBoundaries, type DigitalBoundary } from "../hooks/useDigitalBoundaries";
 
 interface BarangayMapProps {
   incidents: Incident[];
@@ -38,6 +38,7 @@ interface BarangayMapProps {
   coveragePct: number;
   nowLabel?: string;
   draftPolylines?: DrawableRoute[];
+  digitalBoundaries?: DigitalBoundary[];
 }
 
 // Ensure leaflet handles icons properly in our bundler setup
@@ -68,12 +69,13 @@ export function BarangayMap({
   coveragePct,
   nowLabel = "Barangay GIS Map",
   draftPolylines,
+  digitalBoundaries = [],
 }: BarangayMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
 
   // Layer groups to easily clear/update Leaflet elements
-  const zonesLayerRef = useRef<L.LayerGroup | null>(null);
+  const digitalBoundariesLayerRef = useRef<L.LayerGroup | null>(null);
   const incidentsLayerRef = useRef<L.LayerGroup | null>(null);
   const checkpointsLayerRef = useRef<L.LayerGroup | null>(null);
   const patrolsLayerRef = useRef<L.LayerGroup | null>(null);
@@ -120,8 +122,7 @@ export function BarangayMap({
       onMapClickRef.current(e.latlng.lat, e.latlng.lng);
     });
 
-    zonesLayerRef.current = L.layerGroup().addTo(map);
-    hotspotsLayerRef.current = L.layerGroup().addTo(map);
+    digitalBoundariesLayerRef.current = L.layerGroup().addTo(map);
     checkpointsLayerRef.current = L.layerGroup().addTo(map);
     patrolsLayerRef.current = L.layerGroup().addTo(map);
     coverageLayerRef.current = L.layerGroup().addTo(map);
@@ -140,81 +141,88 @@ export function BarangayMap({
       resizeObserver.disconnect();
       map.remove();
       mapRef.current = null;
+      digitalBoundariesLayerRef.current = null;
     };
   }, []);
 
-  // Update Zones Layer
+
+
+  // Update Digital Boundaries Layer
   useEffect(() => {
-    if (!zonesLayerRef.current) return;
-    zonesLayerRef.current.clearLayers();
+    if (!digitalBoundariesLayerRef.current) return;
+    digitalBoundariesLayerRef.current.clearLayers();
 
-    if (!layers.boundaries) return;
+    if (!layers.digitalBoundaries) return;
 
-    PUROK_ZONES.forEach((zone) => {
-      const geoPoints = purokZoneToGeo(zone.path);
-      if (geoPoints.length < 3) return;
+    const visibleBoundaries = digitalBoundaries.filter((b) => b.visible && b.status === "Active");
 
-      const count = heatCounts[zone.name] ?? 0;
-      const intensity = count / maxHeat;
-      const heatFill =
-        count === 0
-          ? "#F8FAFC"
-          : count >= 1
-          ? `rgba(239,68,68,${0.08 + 0.42 * intensity})`
-          : "#F8FAFC";
+    visibleBoundaries.forEach((boundary) => {
+      if (boundary.nodes.length < 3) return;
+
+      const geoPoints = boundary.nodes.map((n) => [n.y, n.x] as L.LatLngTuple);
+      
+      // Determine color based on badge and classification
+      const STROKE_BY_BADGE: Record<string, string> = {
+        Primary: "#9f1239",
+        "Sub-zone": "#0369a1",
+      };
+      
+      const classificationColors: Record<string, string> = {
+        "Standard": "#0369a1",
+        "Residential": "#16a34a",
+        "Market": "#f59e0b",
+        "Evacuation / Emergency": "#dc2626",
+        "Hazard Zone": "#ea580c",
+      };
+
+      const color = classificationColors[boundary.classification] || STROKE_BY_BADGE[boundary.badge] || "#0369a1";
+      const weight = boundary.badge === "Primary" ? 3 : 2;
+      const dashArray = boundary.badge === "Primary" ? undefined : "4 2";
 
       const polygon = L.polygon(geoPoints, {
-        color: zone.color,
-        weight: 1.6,
-        opacity: 0.75,
-        fillColor: heatFill,
-        fillOpacity: 0.8,
+        color,
+        weight,
+        opacity: 0.8,
+        fillColor: color,
+        fillOpacity: 0.15,
+        dashArray,
       });
 
-      polygon.bindTooltip(`${zone.name} — ${count} incident${count === 1 ? "" : "s"}`, {
-        permanent: true,
+      polygon.bindTooltip(`${boundary.name} (${boundary.badge})`, {
+        permanent: false,
         direction: "center",
         className: "bg-transparent border-none shadow-none text-xs font-bold",
       });
 
-      // Override the text color via a bit of DOM manipulation when added
-      polygon.on('add', function() {
-         const tooltip = polygon.getTooltip();
-         if (tooltip && tooltip.getElement()) {
-             tooltip.getElement()!.style.color = zone.color;
-             tooltip.getElement()!.style.textShadow = "0px 1px 2px rgba(255,255,255,0.8)";
-         }
-      });
-
-      polygon.on("click", (e) => {
-        if (!interactiveRef.current || mapModeRef.current !== "view") return;
-        L.DomEvent.stopPropagation(e);
-        if (mapRef.current) {
-          mapRef.current.fitBounds(polygon.getBounds(), { padding: [20, 20] });
-        }
-      });
-
-      polygon.addTo(zonesLayerRef.current!);
+      polygon.addTo(digitalBoundariesLayerRef.current!);
     });
-  }, [layers.boundaries, heatCounts, maxHeat]);
+  }, [layers.digitalBoundaries, digitalBoundaries]);
 
-  // Update Hotspots Layer
+  // Update Hotspots Layer using digital boundaries
   useEffect(() => {
     if (!hotspotsLayerRef.current) return;
     hotspotsLayerRef.current.clearLayers();
 
     if (!layers.hotspots) return;
 
+    const visibleBoundaries = digitalBoundaries.filter((b) => b.visible && b.status === "Active");
+
     Object.entries(heatCounts).forEach(([name, cnt]) => {
-      const z = PUROK_ZONES.find((zz) => zz.name === name);
-      if (!z || cnt === 0) return;
+      const boundary = visibleBoundaries.find((b) => b.name === name);
+      if (!boundary || cnt === 0) return;
       const top =
         Object.values(heatCounts).filter((c) => c > cnt).length === 0 ||
         Object.values(heatCounts).filter((c) => c >= cnt).length <= 2;
       if (!top) return;
 
+      // Calculate centroid of the boundary for hotspot location
+      const centroid = boundary.nodes.reduce((acc, node) => ({
+        x: acc.x + node.x / boundary.nodes.length,
+        y: acc.y + node.y / boundary.nodes.length
+      }), { x: 0, y: 0 });
+
       const r = 40 + cnt * 8; // roughly mapped to meters for radius
-      const [lat, lng] = toGeoPoint(z.labelX, z.labelY);
+      const [lat, lng] = toGeoPoint(centroid.x, centroid.y);
       
       L.circle([lat, lng], {
         radius: r,
@@ -225,7 +233,9 @@ export function BarangayMap({
         fillOpacity: 1,
       }).addTo(hotspotsLayerRef.current!);
     });
-  }, [layers.hotspots, heatCounts]);
+  }, [layers.hotspots, heatCounts, digitalBoundaries]);
+
+
 
   // Update Existing Checkpoints Layer
   useEffect(() => {
@@ -506,6 +516,10 @@ export function BarangayMap({
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full border border-rose-400 bg-rose-100" />
           <span className="text-[10px] font-medium text-stone-600">Hotspot</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="h-0 w-3.5 border-t-2 border-dashed border-sky-600" />
+          <span className="text-[10px] font-medium text-stone-600">Digital boundary</span>
         </div>
       </div>
 

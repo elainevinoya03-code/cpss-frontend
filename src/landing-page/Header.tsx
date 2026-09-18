@@ -82,24 +82,25 @@ const Header: React.FC<HeaderProps> = ({ scrollToSection, onNavigateToLogin }) =
     <header className="fixed inset-x-0 top-0 z-50" role="banner">
       {/* Government utility bar */}
       <div className="bg-primary text-primary-foreground">
-        <div className="mx-auto flex h-8 w-full max-w-[100rem] items-center justify-between gap-4 px-5 sm:px-8 lg:px-12">
-          <div className="flex min-w-0 items-center gap-2 text-[0.6875rem] font-semibold tracking-[0.08em] text-primary-foreground/85">
-            <svg className="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+        <div className="mx-auto flex h-8 w-full max-w-[100rem] items-center justify-between gap-2 px-3 sm:gap-4 sm:px-5 md:px-8 lg:px-12">
+          <div className="flex min-w-0 items-center gap-1.5 text-[0.6rem] font-semibold tracking-[0.06em] text-primary-foreground/85 sm:gap-2 sm:text-[0.6875rem] sm:tracking-[0.08em]">
+            <svg className="size-3 shrink-0 sm:size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
               <circle cx="12" cy="12" r="10" />
               <circle cx="12" cy="12" r="4" fill="currentColor" opacity="0.3" stroke="none" />
             </svg>
-            <span className="truncate">GOVERNMENT OF THE PHILIPPINES</span>
+            <span className="truncate">GOV.PH</span>
+            <span className="hidden sm:inline truncate">GOVERNMENT OF THE PHILIPPINES</span>
           </div>
-          <div className="flex items-center gap-2 text-[0.6875rem] font-semibold text-primary-foreground/80 sm:gap-3">
+          <div className="flex items-center gap-1 text-[0.6rem] font-semibold text-primary-foreground/80 sm:gap-2 sm:text-[0.6875rem] md:gap-3">
             <a href="#main-content" className="shrink-0 transition-colors hover:text-primary-foreground">
-              Skip to main content
+              Skip
             </a>
-            <span aria-hidden="true" className="text-primary-foreground/40">|</span>
+            <span aria-hidden="true" className="hidden text-primary-foreground/40 sm:inline">|</span>
             <span className="flex items-center gap-0.5">
               <button
                 type="button"
                 className={cn(
-                  'px-1 transition-colors hover:text-primary-foreground',
+                  'px-0.5 transition-colors hover:text-primary-foreground sm:px-1',
                   fontSize === 'small' && 'text-primary-foreground',
                 )}
                 data-size="small"
@@ -111,7 +112,7 @@ const Header: React.FC<HeaderProps> = ({ scrollToSection, onNavigateToLogin }) =
               <button
                 type="button"
                 className={cn(
-                  'px-1 transition-colors hover:text-primary-foreground',
+                  'px-0.5 transition-colors hover:text-primary-foreground sm:px-1',
                   fontSize === 'medium' && 'text-primary-foreground',
                 )}
                 data-size="medium"
@@ -123,7 +124,7 @@ const Header: React.FC<HeaderProps> = ({ scrollToSection, onNavigateToLogin }) =
               <button
                 type="button"
                 className={cn(
-                  'px-1 transition-colors hover:text-primary-foreground',
+                  'px-0.5 transition-colors hover:text-primary-foreground sm:px-1',
                   fontSize === 'large' && 'text-primary-foreground',
                 )}
                 data-size="large"
@@ -133,9 +134,9 @@ const Header: React.FC<HeaderProps> = ({ scrollToSection, onNavigateToLogin }) =
                 A+
               </button>
             </span>
-            <span aria-hidden="true" className="hidden text-primary-foreground/40 sm:inline">|</span>
-            <span className="hidden items-center gap-0.5 sm:flex">
-              English <ChevronDown size={11} className="opacity-60" aria-hidden="true" />
+            <span aria-hidden="true" className="hidden text-primary-foreground/40 md:inline">|</span>
+            <span className="hidden items-center gap-0.5 md:flex">
+              English <ChevronDown size={10} className="opacity-60 sm:size-11" aria-hidden="true" />
             </span>
           </div>
         </div>
@@ -143,28 +144,30 @@ const Header: React.FC<HeaderProps> = ({ scrollToSection, onNavigateToLogin }) =
 
       {/* Fixed main navigation */}
         <div className="border-b border-border/70 bg-background/85 backdrop-blur-xl">
-          <div className="mx-auto flex h-20 w-full max-w-[100rem] items-center justify-between gap-3 px-5 sm:px-8 lg:h-24 lg:px-12">
+          <div className="mx-auto flex h-16 w-full max-w-[100rem] items-center justify-between gap-2 px-3 sm:h-18 sm:gap-3 sm:px-5 md:h-20 md:px-8 lg:h-24 lg:gap-3 lg:px-12">
             <button
               type="button"
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="flex min-w-0 items-center gap-3 text-left focus-visible:outline-hidden focus-visible:ring-3 focus-visible:ring-ring/40"
+              className="flex min-w-0 items-center gap-2 text-left focus-visible:outline-hidden focus-visible:ring-3 focus-visible:ring-ring/40 sm:gap-3"
               aria-label="Go to top"
             >
-              <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-transform duration-500 hover:rotate-3 sm:size-12 lg:size-14">
+              <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-transform duration-500 hover:rotate-3 sm:size-11 sm:rounded-2xl md:size-12 lg:size-14">
                 <img src="/logo.png" alt="" className="size-full object-contain" aria-hidden="true" />
               </span>
               <span className="flex min-w-0 flex-col">
-                <span className="max-w-[190px] truncate font-display text-[0.8125rem] font-extrabold leading-tight tracking-[0.01em] sm:max-w-[230px] sm:text-sm lg:max-w-[300px] lg:text-base">
-                  COMMUNITY POLICING &amp; SURVEILLANCE SYSTEM
+                <span className="max-w-[140px] truncate font-display text-[0.7rem] font-extrabold leading-tight tracking-[0.01em] sm:max-w-[190px] sm:text-[0.8125rem] md:max-w-[230px] md:text-sm lg:max-w-[300px] lg:text-base">
+                  CPSS
+                  <span className="hidden sm:inline"> &amp; SURVEILLANCE</span>
                 </span>
-                <span className="mt-0.5 flex items-center gap-1.5 text-[0.6rem] font-extrabold uppercase tracking-[0.22em] text-muted-foreground sm:text-[0.625rem]">
-                  <span className="hidden h-px w-4 bg-primary/40 sm:block" aria-hidden="true" />
-                  Barangay Culiat · District 6
+                <span className="mt-0.5 flex items-center gap-1 text-[0.55rem] font-extrabold uppercase tracking-[0.18em] text-muted-foreground sm:gap-1.5 sm:text-[0.6rem] sm:tracking-[0.22em]">
+                  <span className="hidden h-px w-3 bg-primary/40 sm:block sm:w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">Barangay Culiat · District 6</span>
+                  <span className="sm:hidden">Culiat</span>
                 </span>
               </span>
             </button>
 
-            <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
+            <nav className="hidden items-center gap-1 md:flex lg:gap-1" aria-label="Main navigation">
               {NAV_ITEMS.map((item) => (
                 <button
                   key={item.id}
@@ -177,7 +180,7 @@ const Header: React.FC<HeaderProps> = ({ scrollToSection, onNavigateToLogin }) =
               ))}
             </nav>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Button
                 ref={themeBtnRef}
                 variant="icon"
@@ -188,22 +191,23 @@ const Header: React.FC<HeaderProps> = ({ scrollToSection, onNavigateToLogin }) =
               >
                 <Sun
                   className={cn(
-                    'absolute inset-0 m-auto size-5 transition-all duration-700 [transition-timing-function:var(--ease-theme)]',
+                    'absolute inset-0 m-auto size-4 transition-all duration-700 [transition-timing-function:var(--ease-theme)] sm:size-5',
                     isDark ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0',
                   )}
                 />
                 <Moon
                   className={cn(
-                    'absolute inset-0 m-auto size-5 transition-all duration-700 [transition-timing-function:var(--ease-theme)]',
+                    'absolute inset-0 m-auto size-4 transition-all duration-700 [transition-timing-function:var(--ease-theme)] sm:size-5',
                     isDark ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100',
                   )}
                 />
               </Button>
 
-              <div className="hidden items-center gap-2 lg:flex">
+              <div className="hidden items-center gap-2 md:flex lg:gap-2">
                 {onNavigateToLogin && (
                   <Button
                     variant="outline"
+                    className="text-xs sm:text-sm"
                     onClick={() => {
                       onNavigateToLogin();
                       setIsNavOpen(false);
@@ -212,18 +216,18 @@ const Header: React.FC<HeaderProps> = ({ scrollToSection, onNavigateToLogin }) =
                     Login
                   </Button>
                 )}
-                <Button onClick={() => goToSection('mobile-app')}>Report an Issue</Button>
+                <Button className="text-xs sm:text-sm" onClick={() => goToSection('mobile-app')}>Report an Issue</Button>
               </div>
 
               <Button
                 variant="icon"
                 size="icon"
-                className="lg:hidden"
+                className="md:hidden lg:hidden"
                 onClick={() => setIsNavOpen((open) => !open)}
                 aria-label={isNavOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={isNavOpen}
               >
-                {isNavOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+                {isNavOpen ? <X className="size-4 sm:size-5" /> : <Menu className="size-4 sm:size-5" />}
               </Button>
             </div>
           </div>
@@ -232,17 +236,17 @@ const Header: React.FC<HeaderProps> = ({ scrollToSection, onNavigateToLogin }) =
         {/* Collapsible mobile menu */}
         <div
           className={cn(
-            'overflow-hidden border-b border-border/70 bg-background/95 backdrop-blur-xl transition-all duration-500 lg:hidden',
-            isNavOpen ? 'max-h-80' : 'max-h-0',
+            'overflow-hidden border-b border-border/70 bg-background/95 backdrop-blur-xl transition-all duration-500 md:hidden',
+            isNavOpen ? 'max-h-96' : 'max-h-0',
           )}
         >
-          <nav className="space-y-1 px-5 py-4 sm:px-8" aria-label="Mobile navigation">
+          <nav className="space-y-1 px-3 py-3 sm:px-5 sm:py-4" aria-label="Mobile navigation">
             {NAV_ITEMS.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 className={cn(
-                  'block w-full rounded-full px-4 py-2.5 text-left text-sm font-semibold transition-colors focus-visible:outline-hidden focus-visible:ring-3 focus-visible:ring-ring/40',
+                  'block w-full rounded-full px-3 py-2 text-left text-xs font-semibold transition-colors focus-visible:outline-hidden focus-visible:ring-3 focus-visible:ring-ring/40 sm:px-4 sm:py-2.5 sm:text-sm',
                   active === item.id
                     ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -256,7 +260,7 @@ const Header: React.FC<HeaderProps> = ({ scrollToSection, onNavigateToLogin }) =
               {onNavigateToLogin && (
                 <Button
                   variant="outline"
-                  className="w-full sm:w-auto"
+                  className="w-full text-xs sm:w-auto sm:text-sm"
                   onClick={() => {
                     onNavigateToLogin();
                     setIsNavOpen(false);
@@ -265,7 +269,7 @@ const Header: React.FC<HeaderProps> = ({ scrollToSection, onNavigateToLogin }) =
                   Login
                 </Button>
               )}
-              <Button className="w-full sm:w-auto" onClick={() => goToSection('mobile-app')}>
+              <Button className="w-full text-xs sm:w-auto sm:text-sm" onClick={() => goToSection('mobile-app')}>
                 Report an Issue
               </Button>
             </div>

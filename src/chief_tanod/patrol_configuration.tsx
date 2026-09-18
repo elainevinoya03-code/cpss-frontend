@@ -21,8 +21,8 @@ import {
 } from "lucide-react";
 import { ConfirmModal } from "../components/ui";
 import { useToast } from "../hooks/useToast";
+import { useDigitalBoundaries } from "../hooks/useDigitalBoundaries";
 import { useIncidentStore, type Incident } from "../desk_officer/incidentStore";
-import { PUROK_ZONES } from "../constants/purok";
 import { fromGeoPoint } from "../utils/geoUtils";
 import {
   ALL_LAYERS,
@@ -96,6 +96,7 @@ export default function PatrolConfiguration({
 }: { onNavigate?: (key: string) => void } = {}) {
   const { flash, ToastPortal } = useToast();
   const { incidents } = useIncidentStore();
+  const { boundaries: digitalBoundaries } = useDigitalBoundaries();
 
   const [plannerOpen, setPlannerOpen] = useState(false);
   const [step, setStep] = useState(1);
@@ -105,7 +106,13 @@ export default function PatrolConfiguration({
   const [filters, setFilters] = useState<IncidentFilters>(DEFAULT_FILTERS);
   const [mapMode, setMapMode] = useState<MapMode>("view");
   const [customTargetId, setCustomTargetId] = useState<string | null>(null);
-  const [layers, setLayers] = useState<LayerState>(ALL_LAYERS);
+  const [layers, setLayers] = useState<LayerState>({
+    digitalBoundaries: true,
+    hotspots: true,
+    incidents: true,
+    checkpoints: true,
+    patrols: true,
+  });
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<ExistingCheckpoint | null>(null);
   const [selectedPatrol, setSelectedPatrol] = useState<ActivePatrol | null>(null);
@@ -121,21 +128,21 @@ export default function PatrolConfiguration({
     () => [...new Set(incidents.map((i) => i.category).filter(Boolean))].sort(),
     [incidents]
   );
-  const purokOptions = useMemo(
-    () =>
-      [...new Set(incidents.map((i) => i.purok).filter(Boolean))].sort((a, b) =>
-        a.localeCompare(b, undefined, { numeric: true })
-      ),
-    [incidents]
-  );
+  const purokOptions = useMemo(() => {
+    // Get unique purok names from incidents and digital boundaries
+    const incidentPuroks = [...new Set(incidents.map((i) => i.purok).filter(Boolean))];
+    const boundaryNames = digitalBoundaries.map((b) => b.name);
+    const allOptions = [...new Set([...incidentPuroks, ...boundaryNames])];
+    return allOptions.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [incidents, digitalBoundaries]);
 
   const filtered = useMemo(() => {
     return incidents.filter((i) => {
       if (filters.type !== "all" && i.category !== filters.type) return false;
       if (filters.severity !== "all" && i.severity !== filters.severity) return false;
       if (filters.area !== "all") {
-        const zoneMatch = PUROK_ZONES.find((z) => z.name === i.purok || i.purok?.startsWith(z.name));
-        if (zoneMatch?.name !== filters.area && i.purok !== filters.area) return false;
+        const boundaryMatch = digitalBoundaries.find((b) => b.name === i.purok || i.purok?.startsWith(b.name));
+        if (boundaryMatch?.name !== filters.area && i.purok !== filters.area) return false;
       }
       if (filters.status === "open" && !["new", "acknowledged"].includes(i.status)) return false;
       if (filters.status === "under_investigation" && i.status !== "in_progress") return false;
@@ -149,13 +156,17 @@ export default function PatrolConfiguration({
 
   const heatCounts = useMemo(() => {
     const m: Record<string, number> = {};
-    for (const z of PUROK_ZONES) m[z.name] = 0;
+    // Initialize with digital boundaries
+    for (const b of digitalBoundaries) m[b.name] = 0;
+    // Also initialize with any purok names from incidents
     for (const i of filtered) {
-      const z = PUROK_ZONES.find((zz) => zz.name === i.purok || i.purok?.startsWith(zz.name));
-      if (z) m[z.name] += 1;
+      if (i.purok && !m[i.purok]) m[i.purok] = 0;
+    }
+    for (const i of filtered) {
+      if (i.purok) m[i.purok] = (m[i.purok] || 0) + 1;
     }
     return m;
-  }, [filtered]);
+  }, [filtered, digitalBoundaries]);
 
   const areaStats: AreaStat[] = useMemo(() => {
     const byArea = new Map<string, { count: number; types: Map<string, number> }>();
@@ -288,7 +299,7 @@ export default function PatrolConfiguration({
     const slng = snapped.lng;
     const road = snapped.snapped > 0.5;
     const at = `(${slat}, ${slng})${road ? " · snapped to nearest road" : ""}`;
-    const autoAddress = autoAddressForPoint(slat, slng);
+    const autoAddress = autoAddressForPoint(slat, slng, digitalBoundaries);
     let next = [...draft.points];
     let msg = "";
     let createdId: string | null = null;
@@ -521,7 +532,7 @@ export default function PatrolConfiguration({
     }
   }
 
-  function saveAsDraft() {
+  async function saveAsDraft() {
     if (!draft) return;
     const identity = draft.id ? { id: draft.id, code: draft.code } : nextPlanIdentity(plans);
     const saved: CheckpointPlan = {
@@ -530,14 +541,21 @@ export default function PatrolConfiguration({
       status: "draft",
       coverage: draftCoverage ?? draft.coverage,
     };
-    upsertCheckpointPlan(saved);
-    setPlannerOpen(false);
-    setDraft(null);
-    setDirty(false);
-    flash(`Plan ${saved.code} saved as Draft`);
+    try {
+      await upsertCheckpointPlan(saved);
+      setPlannerOpen(false);
+      setDraft(null);
+      setDirty(false);
+      flash(`Plan ${saved.code} saved as Draft`);
+    } catch (error) {
+      flash(
+        `Could not save ${saved.code} — ${error instanceof Error ? error.message : "please try again"}. Check that the backend is running.`,
+        { type: "error", title: "Save failed" }
+      );
+    }
   }
 
-  function submitForApproval() {
+  async function submitForApproval() {
     if (!draft) return;
     const errs = validateStep(6, draft);
     if (errs.length > 0) {
@@ -557,11 +575,18 @@ export default function PatrolConfiguration({
       revisionComment: undefined,
       rejectionReason: undefined,
     };
-    upsertCheckpointPlan(submittedPlan);
-    setPlannerOpen(false);
-    setDraft(null);
-    setDirty(false);
-    flash(`Plan ${submittedPlan.code} saved — status set to Pending; the Captain can now Approve or Reject it`);
+    try {
+      await upsertCheckpointPlan(submittedPlan);
+      setPlannerOpen(false);
+      setDraft(null);
+      setDirty(false);
+      flash(`Plan ${submittedPlan.code} saved — status set to Pending; the Captain can now Approve or Reject it`);
+    } catch (error) {
+      flash(
+        `Could not submit ${submittedPlan.code} — ${error instanceof Error ? error.message : "please try again"}. Check that the backend is running.`,
+        { type: "error", title: "Submit failed" }
+      );
+    }
   }
 
   function revisePlan(id: string) {
@@ -571,7 +596,7 @@ export default function PatrolConfiguration({
     flash(`Editing ${p.code} — resubmit once revisions are complete`);
   }
 
-  function duplicatePlan(id: string) {
+  async function duplicatePlan(id: string) {
     const p = plans.find((x) => x.id === id);
     if (!p) return;
     const identity = nextPlanIdentity(plans);
@@ -588,14 +613,29 @@ export default function PatrolConfiguration({
       name: `${p.name} (copy)`,
       createdAt: new Date().toISOString(),
     };
-    upsertCheckpointPlan(copy);
-    flash(`${copy.code} duplicated as a new draft`);
+    try {
+      await upsertCheckpointPlan(copy);
+      flash(`${copy.code} duplicated as a new draft`);
+    } catch (error) {
+      flash(`Could not duplicate ${p.code} — ${error instanceof Error ? error.message : "please try again"}.`, {
+        type: "error",
+        title: "Duplicate failed",
+      });
+    }
   }
 
-  function deletePlan(id: string) {
-    removeCheckpointPlan(id);
-    setDeleteTarget(null);
-    flash(`Plan ${id} deleted`);
+  async function deletePlan(id: string) {
+    try {
+      await removeCheckpointPlan(id);
+      setDeleteTarget(null);
+      flash(`Plan ${id} deleted`);
+    } catch (error) {
+      setDeleteTarget(null);
+      flash(`Could not delete plan ${id} — ${error instanceof Error ? error.message : "please try again"}.`, {
+        type: "error",
+        title: "Delete failed",
+      });
+    }
   }
 
   function leavePlanner(discard: boolean) {
@@ -719,6 +759,7 @@ export default function PatrolConfiguration({
                   showCoverage={step >= 3}
                   coveragePct={draftCoverage?.pct ?? 0}
                   nowLabel={`Planner — Step ${step}${step === 2 ? " · click the map to set points" : ""}`}
+                  digitalBoundaries={digitalBoundaries}
                   />
                 </div>
               </div>

@@ -699,10 +699,10 @@ function CreateManualIncidentModal({
   const severityMeta = { critical: "Critical", warning: "Warning", low: "Low" }[severity];
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  function submit() {
+  async function submit() {
     if (!valid) return;
     const coord = PUROK_COORDS[purok] ?? PUROK_COORDS["Purok 1"];
-    const inc = addIncident({
+    const inc = await addIncident({
       category,
       severity: severity as "critical" | "warning" | "low",
       purok,

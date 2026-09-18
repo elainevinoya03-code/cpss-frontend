@@ -26,6 +26,7 @@ import {
 import { BarangayMap } from "./patrolMap";
 import { selectCls } from "./patrolUi";
 import { haversineDistance, toGeoPoint } from "../utils/geoUtils";
+import { useDigitalBoundaries } from "../hooks/useDigitalBoundaries";
 
 /* --------------------------------------------------------------------- */
 /* Incident details modal                                                */
@@ -126,7 +127,7 @@ export function IncidentDetailsModal({ incident, onClose }: { incident: Incident
 /* --------------------------------------------------------------------- */
 
 export function CheckpointDetailsModal({ checkpoint, onClose }: { checkpoint: ExistingCheckpoint; onClose: () => void }) {
-  const zone = zoneAtPoint(checkpoint.lat, checkpoint.lng);
+  const zone = zoneAtPoint(checkpoint.lat, checkpoint.lng, []);
   const [gpsLat, gpsLng] = toGeoPoint(checkpoint.lat, checkpoint.lng);
   return (
     <Modal
@@ -196,7 +197,7 @@ export function PatrolDetailsModal({ patrol, onClose }: { patrol: ActivePatrol; 
   for (let i = 0; i + 1 < gpsPts.length; i += 1) {
     meters += haversineDistance(gpsPts[i][0], gpsPts[i][1], gpsPts[i + 1][0], gpsPts[i + 1][1]);
   }
-  const zones = [...new Set(patrol.pts.map((p) => zoneAtPoint(p.x, p.y)).filter(Boolean))];
+  const zones = [...new Set(patrol.pts.map((p) => zoneAtPoint(p.x, p.y)).filter((z): z is string => z !== null))];
   return (
     <Modal
       onClose={onClose}
@@ -221,9 +222,9 @@ export function PatrolDetailsModal({ patrol, onClose }: { patrol: ActivePatrol; 
           <span className="rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-semibold text-teal-700">
             On Patrol
           </span>
-          {zones.map((z) => (
-            <span key={z} className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-[#0038A8]">
-              <MapPin size={10} /> {z}
+          {zones.map((z, i) => (
+            <span key={i} className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-[#0038A8]">
+              <MapPin size={10} /> {String(z)}
             </span>
           ))}
         </div>
@@ -326,6 +327,7 @@ export function MapAnalysisView({
   maxBucketCount,
   maxDayCount,
 }: MapAnalysisViewProps) {
+  const { boundaries: digitalBoundaries } = useDigitalBoundaries();
   return (
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-3 items-stretch">
       <div className="min-w-0 xl:col-span-2 flex flex-col h-full">
@@ -448,6 +450,7 @@ export function MapAnalysisView({
             showCoverage={false}
             coveragePct={0}
             nowLabel={`${incidents.length} incidents · ${filtered.length} shown`}
+            digitalBoundaries={digitalBoundaries}
           />
         </div>
       </div>
