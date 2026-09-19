@@ -2796,7 +2796,7 @@ export default function CctvPlacement() {
                           openCredentialEdit(cam);
                         }}
                         className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-semibold transition ${
-                          testResult.reason === "Invalid Credentials"
+                          testResult.reason.startsWith("Invalid credentials")
                             ? "bg-[#15803D] text-white shadow-sm hover:bg-[#166534]"
                             : "border border-stone-200 bg-white text-stone-600 hover:bg-stone-50"
                         }`}
@@ -2930,7 +2930,7 @@ export default function CctvPlacement() {
                 </DetailRow>
               </div>
 
-              {!passed && testResult.reason === "Invalid Credentials" && (
+              {!passed && testResult.reason.startsWith("Invalid credentials") && (
                 <p className="flex items-start gap-1.5 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2.5 text-[11px] text-amber-700">
                   <KeyRound size={12} className="mt-0.5 shrink-0" />
                   Credentials: Invalid — the stream authentication is being rejected. Update the
