@@ -729,6 +729,26 @@ function alternateApiBase() {
     : API_BASE.replace("8000", "8080");
 }
 
+// True for camera addresses that only exist inside their local network
+// (10/8, 172.16/12, 192.168/16, localhost). A backend running outside that
+// LAN — e.g. the Render cloud deployment — can never open a TCP/RTSP session
+// to one, so a connection test against it is expected to FAIL there. That
+// verdict says nothing about whether the camera is alive on-site.
+function isPrivateLanIp(ip: string): boolean {
+  const host = (ip || "").trim().toLowerCase();
+  if (host === "localhost") return true;
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (!m) return false;
+  const a = Number(m[1]);
+  const b = Number(m[2]);
+  if (a === 10) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 127) return true;
+  if (a === 169 && b === 254) return true;
+  return false;
+}
+
 async function cctvFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const request = {
     ...options,
@@ -996,6 +1016,7 @@ export default function CctvPlacement() {
     resulting: CameraStatus;
     reason: string;
     checks: { auth: boolean; reach: boolean; response: boolean };
+    isPrivateLan: boolean;
   } | null>(null);
   const [mapFilter, setMapFilter] = useState<"all" | CameraStatus>("all");
   const [mapSearch, setMapSearch] = useState("");
@@ -1361,6 +1382,7 @@ export default function CctvPlacement() {
         resulting: cam.status,
         reason: configErrors.join(" "),
         checks: { auth: false, reach: false, response: false },
+        isPrivateLan: isPrivateLanIp(cam.ip),
       });
       return;
     }
@@ -1383,6 +1405,10 @@ export default function CctvPlacement() {
       let auth = false;
       let reach = false;
       let response = false;
+      // Whether the camera lives on a private LAN the (possibly cloud)
+      // backend cannot reach. The backend reports this itself, with a local
+      // check as fallback so older backends still get the guidance note.
+      let privateLan = isPrivateLanIp(cam.ip);
       try {
         const diagPayload: Record<string, string> = {
           camera_id: cam.id,
@@ -1411,6 +1437,7 @@ export default function CctvPlacement() {
           response: boolean;
           latency: string;
           reason: string;
+          is_private_ip?: boolean;
         };
         success = !!diag.connected;
         reason = diag.reason || "";
@@ -1418,6 +1445,7 @@ export default function CctvPlacement() {
         reach = !!diag.reachable;
         auth = !!diag.authentication;
         response = !!diag.response;
+        privateLan = diag.is_private_ip ?? isPrivateLanIp(cam.ip);
       } catch (err) {
         success = false;
         reason = `Camera diagnosis service unavailable — ${
@@ -1646,6 +1674,7 @@ export default function CctvPlacement() {
         resulting,
         reason,
         checks: { auth, reach, response },
+        isPrivateLan: privateLan && !success,
       });
     })();
   }
@@ -2906,6 +2935,16 @@ export default function CctvPlacement() {
                   <KeyRound size={12} className="mt-0.5 shrink-0" />
                   Credentials: Invalid — the stream authentication is being rejected. Update the
                   camera credentials to continue. Actual password or token values are never exposed.
+                </p>
+              )}
+
+              {!passed && testResult.isPrivateLan && (
+                <p className="flex items-start gap-1.5 rounded-lg border border-sky-200 bg-sky-50/70 px-3 py-2.5 text-[11px] text-sky-800">
+                  <WifiOff size={12} className="mt-0.5 shrink-0" />
+                  {cam.ip} is a private LAN address that this backend cannot reach from outside
+                  the local network — this FAIL does not mean the camera is dead on-site. To verify
+                  it, run Test Connection from a backend on the same LAN as the camera (e.g. the
+                  local dev server), with the camera powered on and reachable on the network.
                 </p>
               )}
             </div>
