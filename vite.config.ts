@@ -22,6 +22,19 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       host: true,
+      proxy: {
+        // Proxy API calls to the FastAPI backend so the browser only ever
+        // talks to the same origin (no CORS / preflight issues in dev).
+        '/api': {
+          target: 'http://127.0.0.1:8000',
+          changeOrigin: true,
+        },
+        // Live CCTV MJPEG stream endpoint.
+        '/video_feed': {
+          target: 'http://127.0.0.1:8000',
+          changeOrigin: true,
+        },
+      },
     },
   }
 })

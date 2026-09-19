@@ -1,5 +1,5 @@
 // API client for patrol configuration (checkpoint plans)
-const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export type PlanType = "fixed" | "route";
 export type PlanStatus =
@@ -86,25 +86,56 @@ export interface CheckpointPlan {
   updated_at: string;
 }
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options?.headers || {}),
-    },
-  });
-  if (!res.ok) {
-    let detail = `Request failed (${res.status})`;
-    try {
-      const data = await res.json();
-      detail = data?.detail || detail;
-    } catch {
-      /* ignore parse errors */
+function isNetworkError(error: unknown): boolean {
+  // fetch rejects with a TypeError on network-level failures (connection
+  // reset, server restart mid-request, etc.), whereas HTTP error statuses
+  // throw an Error with a status detail.
+  return error instanceof TypeError;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function apiFetch<T>(
+  path: string,
+  options?: RequestInit,
+  retries = 0
+): Promise<T> {
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(options?.headers || {}),
+      },
+    });
+    if (!res.ok) {
+      // DELETE is idempotent — a 404 on retry means the first attempt
+      // already succeeded but the response was lost.
+      if (options?.method === "DELETE" && res.status === 404) {
+        return undefined as T;
+      }
+      let detail = `Request failed (${res.status})`;
+      try {
+        const data = await res.json();
+        detail = data?.detail || detail;
+      } catch {
+        /* ignore parse errors */
+      }
+      throw new Error(detail);
     }
-    throw new Error(detail);
+    return res.json() as Promise<T>;
+  } catch (error) {
+    if (retries > 0 && isNetworkError(error)) {
+      // The backend may have processed (and committed) the first attempt, so
+      // retry before surfacing an error — create/update re-assert the same
+      // plan id, which is safe.
+      await sleep(600);
+      return apiFetch(path, options, retries - 1);
+    }
+    throw error;
   }
-  return res.json() as Promise<T>;
 }
 
 export async function fetchCheckpointPlans(): Promise<CheckpointPlan[]> {
@@ -119,7 +150,7 @@ export async function createCheckpointPlan(plan: CheckpointPlan): Promise<Checkp
   return apiFetch<CheckpointPlan>("/api/patrol-configuration", {
     method: "POST",
     body: JSON.stringify(plan),
-  });
+  }, 3);
 }
 
 export async function updateCheckpointPlan(
@@ -129,11 +160,11 @@ export async function updateCheckpointPlan(
   return apiFetch<CheckpointPlan>(`/api/patrol-configuration/${planId}`, {
     method: "PUT",
     body: JSON.stringify(plan),
-  });
+  }, 3);
 }
 
 export async function deleteCheckpointPlan(planId: string): Promise<void> {
   return apiFetch<void>(`/api/patrol-configuration/${planId}`, {
     method: "DELETE",
-  });
+  }, 1);
 }

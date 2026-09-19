@@ -38,7 +38,7 @@ import { formatTime } from "../utils/format";
 import { STYLES, Field } from "./_shared";
 import { fetchIncidents, type Incident } from "../desk_officer/incidentsApi";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 const SEVERITY_META: Record<string, { badge: string; dot: string; label: string; icon: any }> = {
   critical: { badge: "bg-rose-100 text-rose-700", dot: "bg-rose-500", label: "Critical", icon: Flame },

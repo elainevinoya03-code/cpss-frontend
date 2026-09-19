@@ -10,6 +10,7 @@ import {
   Crosshair,
   FileText,
   Lightbulb,
+  Loader2,
   MapPin,
   MessageSquare,
   Plus,
@@ -37,21 +38,29 @@ import {
   TARGET_AREA_SUGGESTIONS,
   TYPE_LABEL,
   coverageOf,
+  effectiveEndDate,
   emptyPlan,
+  findScheduleConflicts,
   formatDay,
   geocodeAddress,
   hourBucket,
+  isMultiDaySchedule,
+  isOvernightWindow,
   nextPlanIdentity,
   nextPointId,
   nextRouteId,
   planMarkers,
   planPolylines,
   relabelIntermediates,
-  segDist,
+  revalidateScheduleDates,
+  scheduleOccurrences,
   snapToRoad,
   sortRoutePoints,
   suggestRoutes,
+  todayStr,
   validateStep,
+  weekdayOf,
+  weekdaysInRange,
   windowDesc,
   type ActivePatrol,
   type CheckpointPlan,
@@ -120,6 +129,7 @@ export default function PatrolConfiguration({
   const [detailTarget, setDetailTarget] = useState<CheckpointPlan | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CheckpointPlan | null>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [planTypeFilter, setPlanTypeFilter] = useState<"all" | PlanType>("all");
   const [planAreaFilter, setPlanAreaFilter] = useState<string>("all");
   const addressSyncTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -224,6 +234,26 @@ export default function PatrolConfiguration({
     return { ...coverageOf(allDraftPoints, filtered), window: windowDesc(filters) };
   }, [draft, allDraftPoints, filtered, filters]);
 
+  const scheduleConflicts = useMemo(
+    () => (draft ? findScheduleConflicts(draft, plans) : []),
+    [draft, plans]
+  );
+  const duplicateConflicts = useMemo(
+    () => scheduleConflicts.filter((c) => c.kind === "duplicate"),
+    [scheduleConflicts]
+  );
+  const overlapConflicts = useMemo(
+    () => scheduleConflicts.filter((c) => c.kind === "overlap"),
+    [scheduleConflicts]
+  );
+  const schedMultiDay = useMemo(() => (draft ? isMultiDaySchedule(draft.schedule) : false), [draft]);
+  const schedValidDays = useMemo(() => {
+    if (!draft || !isMultiDaySchedule(draft.schedule)) return [];
+    return weekdaysInRange(draft.schedule.operationDate, effectiveEndDate(draft.schedule));
+  }, [draft]);
+  const schedOccurrences = useMemo(() => (draft ? scheduleOccurrences(draft.schedule) : []), [draft]);
+  const schedOvernight = useMemo(() => (draft ? isOvernightWindow(draft.schedule) : false), [draft]);
+
   /* ---------------- Plan list derivations ---------------- */
 
   const statusCounts = useMemo(() => {
@@ -261,6 +291,25 @@ export default function PatrolConfiguration({
     setDirty(true);
   }
 
+  /** Schedule date changes auto-revalidate: end date is moved up when it
+   *  falls before the operation date, single-day ranges reset recurring to
+   *  one-time, and out-of-range recurring days are pruned (user is notified). */
+  function handleScheduleDateChange(field: "operationDate" | "endDate", value: string) {
+    if (!draft) return;
+    if (!value) {
+      updateDraft({ schedule: { ...draft.schedule, [field]: value } });
+      return;
+    }
+    const { schedule: fixed, notes } = revalidateScheduleDates(
+      { ...draft.schedule, [field]: value },
+      field
+    );
+    updateDraft({ schedule: fixed });
+    if (notes.length > 0) {
+      flash(notes.join(" "), { type: "warning" });
+    }
+  }
+
   function usedPointIds() {
     return [
       ...(draft?.points ?? []).map((p) => p.id),
@@ -270,6 +319,20 @@ export default function PatrolConfiguration({
 
   function usedRouteIds() {
     return (draft?.routes ?? []).map((r) => r.id);
+  }
+
+  function nextIntermediateNumber() {
+    const all = [
+      ...(draft?.points ?? []),
+      ...(draft?.routes ?? []).flatMap((r) => (r.points ?? []).map((p) => p)),
+    ];
+    const nums = all
+      .filter((p) => p.kind === "intermediate")
+      .map((p) => {
+        const m = /^CP(\d+)$/.exec(p.label ?? "");
+        return m ? Number(m[1]) : 0;
+      });
+    return (nums.length ? Math.max(...nums) : 0) + 1;
   }
 
   function openPlanner(d: CheckpointPlan | null, targetStep = 1) {
@@ -395,40 +458,13 @@ export default function PatrolConfiguration({
       next.push({ id: createdId, kind: "end", label: "B", name: "Point B", address: autoAddress, landmark: "", description: "End point of route", remarks: "", lat: slat, lng: slng });
       msg = `Point B set at ${at} · ${autoAddress}`;
     } else if (mapMode === "set_intermediate") {
-      const near = nearestRouteInfo(slat, slng);
-      if (near) {
-        if (near.rid === "primary") {
-          createdId = nextPointId(usedPointIds());
-          const updated = insertSeriesPoint(sortRoutePoints(draft.points), near.anchorId, slat, slng, autoAddress, createdId);
-          updateDraft({ points: relabelIntermediates(updated) });
-          msg = `Checkpoint added to Route 1 at ${at} · ${autoAddress}`;
-        } else {
-          createdId = nextPointId(usedPointIds());
-          const newId = createdId;
-          updateDraft({
-            routes: (draft.routes ?? []).map((r) => {
-              if (r.id !== near.rid) return r;
-              const start = draft.points.find((p) => p.kind === "start");
-              const end = draft.points.find((p) => p.kind === "end");
-              if (!start || !end) return r;
-              const series = insertSeriesPoint([start, ...r.points, end], near.anchorId, slat, slng, autoAddress, newId);
-              return { ...r, points: relabelIntermediates(series.slice(1, -1)) };
-            }),
-          });
-          const rl = (draft.routes ?? []).find((r) => r.id === near.rid)?.label ?? "route";
-          msg = `Checkpoint added to ${rl} at ${at} · ${autoAddress}`;
-        }
-        setMapMode("view");
-        flash(msg);
-        if (createdId) applyTrueAddress(createdId, autoAddress, lat, lng);
-        return;
-      }
-      const cnt = next.filter((p) => p.kind === "intermediate").length + 1;
+      const n = nextIntermediateNumber();
       createdId = nextPointId(usedPointIds());
-      next.push({ id: createdId, kind: "intermediate", label: `CP${cnt}`, name: `Checkpoint ${cnt}`, address: autoAddress, landmark: "", description: "", remarks: "", lat: slat, lng: slng });
-      msg = `Checkpoint ${cnt} added at ${at} · ${autoAddress}`;
+      next.push({ id: createdId, kind: "intermediate", label: `CP${n}`, name: `Checkpoint ${n}`, address: autoAddress, landmark: "", description: "", remarks: "", lat: slat, lng: slng });
+      msg = `Checkpoint ${n} added at ${at} · ${autoAddress}`;
     } else if (mapMode === "set_custom") {
-      const pt: CpPoint = { id: nextPointId(usedPointIds()), kind: "intermediate", label: "CP", name: "", address: autoAddress, landmark: "", description: "", remarks: "", lat: slat, lng: slng };
+      const n = nextIntermediateNumber();
+      const pt: CpPoint = { id: nextPointId(usedPointIds()), kind: "intermediate", label: `CP${n}`, name: `Checkpoint ${n}`, address: autoAddress, landmark: "", description: "", remarks: "", lat: slat, lng: slng };
       createdId = pt.id;
       if (!customTargetId) {
         const existing = draft.routes ?? [];
@@ -446,7 +482,7 @@ export default function PatrolConfiguration({
         msg = `${route.label} started — keep clicking to extend it`;
       } else {
         updateDraft({
-          routes: (draft.routes ?? []).map((r) => (r.id === customTargetId ? { ...r, points: relabelIntermediates([...r.points, pt]) } : r)),
+          routes: (draft.routes ?? []).map((r) => (r.id === customTargetId ? { ...r, points: [...r.points, pt] } : r)),
         });
         msg = `Waypoint added to ${(draft.routes ?? []).find((r) => r.id === customTargetId)?.label ?? "custom route"}`;
       }
@@ -461,49 +497,6 @@ export default function PatrolConfiguration({
     if (createdId) applyTrueAddress(createdId, autoAddress, lat, lng);
   }
 
-  function nearestRouteInfo(lat: number, lng: number): { rid: string; anchorId: string } | null {
-    if (!draft) return null;
-    const hits: { rid: string; anchorId: string; d: number }[] = [];
-    const consider = (rid: string, series: CpPoint[]) => {
-      for (let i = 0; i + 1 < series.length; i += 1) {
-        hits.push({
-          rid,
-          anchorId: series[i].id,
-          d: segDist(lat, lng, series[i].lat, series[i].lng, series[i + 1].lat, series[i + 1].lng),
-        });
-      }
-    };
-    consider("primary", sortRoutePoints(draft.points));
-    const start = draft.points.find((p) => p.kind === "start");
-    const end = draft.points.find((p) => p.kind === "end");
-    for (const r of draft.routes ?? []) {
-      if (start && end) consider(r.id, [start, ...r.points, end]);
-    }
-    if (hits.length === 0) return null;
-    let min = hits[0];
-    for (let i = 1; i < hits.length; i += 1) if (hits[i].d < min.d) min = hits[i];
-    return { rid: min.rid, anchorId: min.anchorId };
-  }
-
-  function insertSeriesPoint(series: CpPoint[], anchorId: string, lat: number, lng: number, address = "", id = nextPointId()): CpPoint[] {
-    const idx = series.findIndex((p) => p.id === anchorId);
-    const at = idx >= 0 ? idx + 1 : series.length;
-    const out = [...series];
-    out.splice(at, 0, {
-      id,
-      kind: "intermediate",
-      label: "CP",
-      name: "Checkpoint",
-      address,
-      landmark: "",
-      description: "",
-      remarks: "",
-      lat,
-      lng,
-    });
-    return out;
-  }
-
   function updateRoutePoint(routeId: string, pointId: string, patch: Partial<CpPoint>) {
     updateDraft({
       routes: (draft?.routes ?? []).map((r) =>
@@ -515,7 +508,7 @@ export default function PatrolConfiguration({
   function removeRoutePoint(routeId: string, pointId: string) {
     updateDraft({
       routes: (draft?.routes ?? []).map((r) =>
-        r.id === routeId ? { ...r, points: relabelIntermediates(r.points.filter((x) => x.id !== pointId)) } : r
+        r.id === routeId ? { ...r, points: r.points.filter((x) => x.id !== pointId) } : r
       ),
     });
   }
@@ -600,6 +593,13 @@ export default function PatrolConfiguration({
       flash(errs.join(" · "), { type: "warning" });
       return;
     }
+    if (step === 4 && duplicateConflicts.length > 0) {
+      flash(`Duplicate schedule — ${duplicateConflicts[0].detail} Adjust the dates, times, or target area before continuing.`, {
+        type: "error",
+        title: "Duplicate schedule",
+      });
+      return;
+    }
     if (step < 6) {
       setStep(step + 1);
       setMapMode("view");
@@ -608,7 +608,8 @@ export default function PatrolConfiguration({
   }
 
   async function saveAsDraft() {
-    if (!draft) return;
+    if (!draft || saving) return;
+    setSaving(true);
     const identity = draft.id ? { id: draft.id, code: draft.code } : nextPlanIdentity(plans);
     const saved: CheckpointPlan = {
       ...draft,
@@ -627,16 +628,27 @@ export default function PatrolConfiguration({
         `Could not save ${saved.code} — ${error instanceof Error ? error.message : "please try again"}. Check that the backend is running.`,
         { type: "error", title: "Save failed" }
       );
+    } finally {
+      setSaving(false);
     }
   }
 
   async function submitForApproval() {
-    if (!draft) return;
+    if (!draft || saving) return;
     const errs = validateStep(6, draft);
     if (errs.length > 0) {
       flash(errs.join(" · "), { type: "warning" });
       return;
     }
+    const dups = findScheduleConflicts(draft, plans).filter((c) => c.kind === "duplicate");
+    if (dups.length > 0) {
+      flash(`Duplicate schedule — ${dups[0].detail} Adjust the dates, times, or target area before submitting.`, {
+        type: "error",
+        title: "Submit blocked",
+      });
+      return;
+    }
+    setSaving(true);
     const identity = draft.id ? { id: draft.id, code: draft.code } : nextPlanIdentity(plans);
     const submittedPlan: CheckpointPlan = {
       ...draft,
@@ -661,6 +673,8 @@ export default function PatrolConfiguration({
         `Could not submit ${submittedPlan.code} — ${error instanceof Error ? error.message : "please try again"}. Check that the backend is running.`,
         { type: "error", title: "Submit failed" }
       );
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -714,13 +728,12 @@ export default function PatrolConfiguration({
   }
 
   function leavePlanner(discard: boolean) {
+    setLeaveOpen(false);
     if (discard) {
       setDraft(null);
       setDirty(false);
       setPlannerOpen(false);
       flash("Draft discarded");
-    } else {
-      setLeaveOpen(false);
     }
   }
 
@@ -804,10 +817,15 @@ export default function PatrolConfiguration({
               </div>
               <button
                 onClick={saveAsDraft}
-                className="flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-[10px] font-semibold text-stone-600 transition hover:bg-stone-50"
+                disabled={saving}
+                className="flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-[10px] font-semibold text-stone-600 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <CheckCircle2 size={12} />
-                Save as Draft
+                {saving ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  <CheckCircle2 size={12} />
+                )}
+                {saving ? "Saving…" : "Save as Draft"}
               </button>
             </div>
 
@@ -1021,7 +1039,7 @@ export default function PatrolConfiguration({
                             disabled={bothEndpointsSet}
                             className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${mapMode === "set_intermediate" ? "bg-sky-600 text-white" : "bg-white text-sky-700 shadow-sm hover:bg-sky-100"
                               }`}
-                            title={bothEndpointsSet ? "No additional points can be added once Point A and Point B are set" : "Click on/near a route line on the map to add a checkpoint to that route"}
+                            title={bothEndpointsSet ? "No additional points can be added once Point A and Point B are set" : "Click the map to add a checkpoint — each new one is appended in order (CP1, CP2, …)"}
                           >
                             <Plus size={12} />
                             Add Intermediate CP
@@ -1135,7 +1153,7 @@ export default function PatrolConfiguration({
                                           scheduleAddressSync(p.id, patch.address);
                                         }
                                       }}
-                                      onRemove={() => updateDraft({ points: relabelIntermediates(draft.points.filter((x) => x.id !== p.id)) })}
+                                      onRemove={() => updateDraft({ points: draft.points.filter((x) => x.id !== p.id) })}
                                     />
                                   ))}
                                 </div>
@@ -1267,18 +1285,21 @@ export default function PatrolConfiguration({
                         <Field label="Operation Date" required>
                           <input
                             type="date"
+                            min={todayStr()}
                             value={draft.schedule.operationDate}
-                            onChange={(e) => updateDraft({ schedule: { ...draft.schedule, operationDate: e.target.value } })}
+                            onChange={(e) => handleScheduleDateChange("operationDate", e.target.value)}
                             className={inputCls}
                           />
                         </Field>
                         <Field label="End Date">
                           <input
                             type="date"
+                            min={draft.schedule.operationDate || todayStr()}
                             value={draft.schedule.endDate}
-                            onChange={(e) => updateDraft({ schedule: { ...draft.schedule, endDate: e.target.value } })}
+                            onChange={(e) => handleScheduleDateChange("endDate", e.target.value)}
                             className={inputCls}
                           />
+                          <p className="mt-1 text-[9px] text-[#94A3B8]">Leave blank for a single-day operation.</p>
                         </Field>
                         <Field label="Start Time" required>
                           <input
@@ -1297,38 +1318,54 @@ export default function PatrolConfiguration({
                           />
                         </Field>
                       </div>
+                      {schedOvernight && (
+                        <p className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[10px] font-medium text-sky-700">
+                          Overnight window — the operation ends the next day at {draft.schedule.endTime}.
+                        </p>
+                      )}
                       <Field label="Recurring">
                         <div className="grid grid-cols-3 gap-1.5">
-                          {RECURRING_OPTIONS.map((o) => (
-                            <button
-                              key={o.key}
-                              onClick={() =>
-                                updateDraft({
-                                  schedule: {
-                                    ...draft.schedule,
-                                    recurring: o.key as ScheduleForm["recurring"],
-                                    recurringDays: draft.schedule.recurringDays,
-                                  },
-                                })
-                              }
-                              className={`rounded-lg border px-2 py-1.5 text-[9px] font-semibold transition ${draft.schedule.recurring === o.key
-                                  ? "border-[#0038A8] bg-[#0038A8] text-white"
-                                  : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
-                                }`}
-                            >
-                              {o.label}
-                            </button>
-                          ))}
+                          {RECURRING_OPTIONS.map((o) => {
+                            const disabledOpt = !schedMultiDay && o.key !== "none";
+                            return (
+                              <button
+                                key={o.key}
+                                disabled={disabledOpt}
+                                title={disabledOpt ? "Recurring needs a multi-day date range" : undefined}
+                                onClick={() =>
+                                  updateDraft({
+                                    schedule: {
+                                      ...draft.schedule,
+                                      recurring: o.key as ScheduleForm["recurring"],
+                                      recurringDays: draft.schedule.recurringDays,
+                                    },
+                                  })
+                                }
+                                className={`rounded-lg border px-2 py-1.5 text-[9px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${draft.schedule.recurring === o.key
+                                    ? "border-[#0038A8] bg-[#0038A8] text-white"
+                                    : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
+                                  }`}
+                              >
+                                {o.label}
+                              </button>
+                            );
+                          })}
                         </div>
+                        {!schedMultiDay && (
+                          <p className="mt-1 text-[9px] text-[#94A3B8]">Single-day operation — recurring options unlock when the end date is after the operation date.</p>
+                        )}
                       </Field>
                       {draft.schedule.recurring === "specific_days" && (
                         <Field label="Select days">
                           <div className="flex flex-wrap gap-1.5">
                             {DAY_LABELS.map((d) => {
                               const on = draft.schedule.recurringDays.includes(d);
+                              const allowed = schedValidDays.includes(d);
                               return (
                                 <button
                                   key={d}
+                                  disabled={!allowed}
+                                  title={allowed ? d : `${d} does not occur in the selected date range`}
                                   onClick={() =>
                                     updateDraft({
                                       schedule: {
@@ -1339,7 +1376,7 @@ export default function PatrolConfiguration({
                                       },
                                     })
                                   }
-                                  className={`flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold transition ${on ? "bg-[#0038A8] text-white" : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+                                  className={`flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold transition disabled:cursor-not-allowed disabled:opacity-30 ${on ? "bg-[#0038A8] text-white" : "bg-stone-100 text-stone-500 hover:bg-stone-200"
                                     }`}
                                 >
                                   {d[0]}
@@ -1347,7 +1384,52 @@ export default function PatrolConfiguration({
                               );
                             })}
                           </div>
+                          <p className="mt-1 text-[9px] text-[#94A3B8]">
+                            Only days inside {draft.schedule.operationDate} → {effectiveEndDate(draft.schedule)} can be selected.
+                          </p>
                         </Field>
+                      )}
+                      {draft.schedule.operationDate && (
+                        <div className="rounded-lg border border-stone-200 bg-stone-50/70 px-3 py-2">
+                          <p className="text-[9px] font-semibold uppercase tracking-wider text-stone-500">
+                            Scheduled occurrence{schedOccurrences.length === 1 ? "" : "s"} ({schedOccurrences.length})
+                          </p>
+                          {schedOccurrences.length > 0 ? (
+                            <ul className="mt-1 max-h-28 space-y-0.5 overflow-y-auto text-[10px] text-stone-600">
+                              {schedOccurrences.slice(0, 14).map((ds) => (
+                                <li key={ds}>
+                                  {formatDay(ds)} · {weekdayOf(ds) ?? ""} · {draft.schedule.startTime}–{draft.schedule.endTime}
+                                  {schedOvernight ? " (+1 day)" : ""}
+                                </li>
+                              ))}
+                              {schedOccurrences.length > 14 && (
+                                <li className="text-stone-400">+{schedOccurrences.length - 14} more…</li>
+                              )}
+                            </ul>
+                          ) : (
+                            <p className="mt-1 text-[10px] text-stone-500">No dates generated — adjust the range or recurring days.</p>
+                          )}
+                        </div>
+                      )}
+                      {duplicateConflicts.length > 0 && (
+                        <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
+                          <p className="text-[10px] font-bold text-rose-700">Duplicate schedule — saving is blocked until this is resolved:</p>
+                          <ul className="mt-1 space-y-0.5 text-[10px] text-rose-600">
+                            {duplicateConflicts.map((c) => (
+                              <li key={c.planId}>{c.detail}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {overlapConflicts.length > 0 && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                          <p className="text-[10px] font-bold text-amber-700">Possible schedule overlap — review before submitting:</p>
+                          <ul className="mt-1 space-y-0.5 text-[10px] text-amber-700">
+                            {overlapConflicts.map((c) => (
+                              <li key={c.planId}>{c.detail}</li>
+                            ))}
+                          </ul>
+                        </div>
                       )}
                       <Field label="Expected Duration">
                         <input
@@ -1483,6 +1565,18 @@ export default function PatrolConfiguration({
                               : "One-time"}
                           {draft.schedule.expectedDuration ? ` · ~${draft.schedule.expectedDuration}` : ""}
                         </p>
+                        {schedOccurrences.length > 0 && (
+                          <p className="mt-1 text-[10px] font-medium text-stone-600">
+                            {schedOccurrences.length} occurrence{schedOccurrences.length === 1 ? "" : "s"}:{" "}
+                            {schedOccurrences.slice(0, 5).map((ds) => formatDay(ds)).join(", ")}
+                            {schedOccurrences.length > 5 ? ` +${schedOccurrences.length - 5} more` : ""}
+                          </p>
+                        )}
+                        {overlapConflicts.length > 0 && (
+                          <p className="mt-1 text-[10px] font-medium text-amber-700">
+                            Warning: overlaps {overlapConflicts.map((c) => c.code).join(", ")} — simultaneous operations in {draft.targetArea || "this area"}.
+                          </p>
+                        )}
                       </div>
 
                       {draft.notes.general ||
@@ -1564,10 +1658,15 @@ export default function PatrolConfiguration({
                   ) : (
                     <button
                       onClick={submitForApproval}
-                      disabled={atStep(6).length > 0}
-                      className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-[11px] font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-40"
+                      disabled={atStep(6).length > 0 || saving}
+                      className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-[11px] font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      <Send size={13} /> Save Checkpoint Plan
+                      {saving ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Send size={13} />
+                      )}{" "}
+                      {saving ? "Saving Checkpoint Plan…" : "Save Checkpoint Plan"}
                     </button>
                   )}
                 </div>

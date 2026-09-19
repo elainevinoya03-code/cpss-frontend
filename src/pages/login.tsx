@@ -3,7 +3,7 @@ import { User, Lock, Eye, EyeOff, AlertCircle } from "lucide-react";
 import culiatBg from "../assets/culiat.jpg";
 import logo from "../assets/logo.png";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 interface LoginResponse {
   id: number;

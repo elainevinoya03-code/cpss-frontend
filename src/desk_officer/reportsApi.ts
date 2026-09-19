@@ -1,6 +1,6 @@
 // API client for resident-submitted incident reports (report.dart -> Supabase
 // `reports` table -> FastAPI `/api/reports` -> Desk Officer Incident Triage).
-const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 export type ResidentReportStatus =
   | "pending"

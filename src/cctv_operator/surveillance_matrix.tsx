@@ -106,7 +106,7 @@ interface CameraFault {
 /*  in the database). Pending or disabled registrations are never shown.       */
 /* -------------------------------------------------------------------------- */
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 function alternateApiBase() {
   return API_BASE.includes("8080")

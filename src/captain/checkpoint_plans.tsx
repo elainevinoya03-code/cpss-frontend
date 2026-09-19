@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useToast } from "../hooks/useToast.tsx";
 import Modal from "../components/ui/Modal";
+import { ConfirmModal } from "../components/ui";
 import {
   getCheckpointPlans,
   upsertCheckpointPlan,
@@ -46,6 +47,8 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [approvalDecision, setApprovalDecision] = useState<"approve" | "reject">("approve");
   const [approvalComment, setApprovalComment] = useState("");
+  const [deciding, setDeciding] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Access control - only Captain can access
   if (role !== "captain") {
@@ -91,14 +94,23 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
     setShowApprovalModal(true);
   };
 
+  const handleConfirmClick = () => {
+    if (approvalDecision === "reject" && !approvalComment.trim()) {
+      flash("Please provide a rejection reason", { type: "warning" });
+      return;
+    }
+    setShowConfirmModal(true);
+  };
+
   const handleApprovalDecision = async () => {
-    if (!selectedPlan) return;
+    if (!selectedPlan || deciding) return;
 
     if (approvalDecision === "reject" && !approvalComment.trim()) {
       flash("Please provide a rejection reason", { type: "warning" });
       return;
     }
 
+    setDeciding(true);
     try {
       const updatedPlan: CheckpointPlan = {
         ...selectedPlan,
@@ -114,11 +126,14 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
         `Plan ${updatedPlan.code} has been ${approvalDecision === "approve" ? "approved" : "rejected"}`,
         { type: "success" }
       );
+      setShowConfirmModal(false);
       setShowApprovalModal(false);
       setSelectedPlan(null);
     } catch (error) {
       flash("Failed to update plan status", { type: "error" });
       console.error(error);
+    } finally {
+      setDeciding(false);
     }
   };
 
@@ -450,9 +465,9 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
                 Cancel
               </button>
               <button
-                onClick={handleApprovalDecision}
+                onClick={handleConfirmClick}
                 disabled={approvalDecision === "reject" && !approvalComment.trim()}
-                className={`flex-1 rounded-lg px-4 py-2 text-[12px] font-semibold text-white transition disabled:opacity-40 ${
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-[12px] font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40 ${
                   approvalDecision === "approve" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-rose-600 hover:bg-rose-700"
                 }`}
               >
@@ -536,6 +551,27 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
             </div>
           </div>
         </Modal>
+      )}
+
+      {showConfirmModal && selectedPlan && (
+        <ConfirmModal
+          type="confirm"
+          title={approvalDecision === "approve" ? `Approve ${selectedPlan.code}?` : `Reject ${selectedPlan.code}?`}
+          message={
+            approvalDecision === "approve"
+              ? `${selectedPlan.name} will be finalized for deployment. You can still review it afterwards.`
+              : `${selectedPlan.name} will be returned. Rejection reason: ${approvalComment.trim()}`
+          }
+          cancelLabel="Go Back"
+          confirmLabel={approvalDecision === "approve" ? "Confirm Approval" : "Confirm Rejection"}
+          tone={approvalDecision === "approve" ? "primary" : "danger"}
+          loading={deciding}
+          loadingLabel={approvalDecision === "approve" ? "Approving…" : "Rejecting…"}
+          onConfirm={handleApprovalDecision}
+          onClose={() => {
+            if (!deciding) setShowConfirmModal(false);
+          }}
+        />
       )}
     </div>
   );

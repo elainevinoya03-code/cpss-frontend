@@ -140,7 +140,7 @@ function saveRegions(regions: Region[]) {
 
 // ─── Backend API (FastAPI + PostgreSQL — source of truth) ─────────────────────
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 function alternateApiBase() {
   return API_BASE.includes("8080")

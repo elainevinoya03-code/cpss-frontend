@@ -688,6 +688,275 @@ export function windowDesc(f: IncidentFilters) {
   return "Current filter window";
 }
 
+/* ---------------- Operational schedule validation ---------------- */
+
+export function todayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+export function parseDateOnly(s: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((s || "").trim());
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (d.getFullYear() !== Number(m[1]) || d.getMonth() !== Number(m[2]) - 1 || d.getDate() !== Number(m[3])) {
+    return null;
+  }
+  return d;
+}
+
+export function toDateStr(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+export function addDaysStr(dateStr: string, n: number): string {
+  const d = parseDateOnly(dateStr);
+  if (!d) return dateStr;
+  d.setDate(d.getDate() + n);
+  return toDateStr(d);
+}
+
+/** Whole calendar days from a to b (b − a). Null when either side is invalid. */
+export function diffCalendarDays(a: string, b: string): number | null {
+  const da = parseDateOnly(a);
+  const db = parseDateOnly(b);
+  if (!da || !db) return null;
+  return Math.round((db.getTime() - da.getTime()) / 86400000);
+}
+
+export function weekdayOf(dateStr: string): string | null {
+  const d = parseDateOnly(dateStr);
+  return d ? DAY_LABELS[d.getDay()] : null;
+}
+
+/** Effective end date: explicit endDate, or operationDate when blank (single-day). */
+export function effectiveEndDate(s: ScheduleForm): string {
+  return s.endDate?.trim() ? s.endDate.trim() : s.operationDate;
+}
+
+export function isMultiDaySchedule(s: ScheduleForm): boolean {
+  if (!s.operationDate) return false;
+  const diff = diffCalendarDays(s.operationDate, effectiveEndDate(s));
+  return diff !== null && diff > 0;
+}
+
+/** Ordered unique weekday labels (Sun→Sat) actually covered by the date range. */
+export function weekdaysInRange(start: string, end: string): string[] {
+  const diff = diffCalendarDays(start, end);
+  if (diff === null || diff < 0) return [];
+  const seen = new Set<string>();
+  for (let i = 0; i <= Math.min(diff, 366); i += 1) {
+    const w = weekdayOf(addDaysStr(start, i));
+    if (w) seen.add(w);
+  }
+  return DAY_LABELS.filter((d) => seen.has(d));
+}
+
+export function timeToMinutes(t: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec((t || "").trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h < 0 || h > 23 || min < 0 || min > 59) return null;
+  return h * 60 + min;
+}
+
+/** True when the daily window crosses midnight (end earlier than start = next-day end). */
+export function isOvernightWindow(s: ScheduleForm): boolean {
+  const a = timeToMinutes(s.startTime);
+  const b = timeToMinutes(s.endTime);
+  return a !== null && b !== null && b < a;
+}
+
+/** Length of the daily time window in minutes. 0 when equal (zero-length), null when invalid. */
+export function dailyWindowMinutes(s: ScheduleForm): number | null {
+  const a = timeToMinutes(s.startTime);
+  const b = timeToMinutes(s.endTime);
+  if (a === null || b === null) return null;
+  if (b === a) return 0;
+  return b > a ? b - a : 24 * 60 - a + b;
+}
+
+/** Concrete occurrence dates for the schedule — each inside the date range. */
+export function scheduleOccurrences(s: ScheduleForm): string[] {
+  if (!s.operationDate) return [];
+  const end = effectiveEndDate(s);
+  const diff = diffCalendarDays(s.operationDate, end);
+  if (diff === null || diff < 0) return [];
+  const total = Math.min(diff, 366);
+  if (s.recurring === "daily") {
+    const out: string[] = [];
+    for (let i = 0; i <= total; i += 1) out.push(addDaysStr(s.operationDate, i));
+    return out;
+  }
+  if (s.recurring === "specific_days") {
+    if (s.recurringDays.length === 0) return [];
+    const want = new Set(s.recurringDays);
+    const out: string[] = [];
+    for (let i = 0; i <= total; i += 1) {
+      const ds = addDaysStr(s.operationDate, i);
+      const w = weekdayOf(ds);
+      if (w && want.has(w)) out.push(ds);
+    }
+    return out;
+  }
+  // One-time: the operation date itself.
+  return [s.operationDate];
+}
+
+/** Full schedule validation with specific, actionable messages. */
+export function validateSchedule(s: ScheduleForm): string[] {
+  const errs: string[] = [];
+  const today = todayStr();
+  if (!s.operationDate) {
+    errs.push("Operation date is required.");
+    return errs;
+  }
+  if (s.operationDate < today) {
+    errs.push(`Operation date ${s.operationDate} is in the past — pick today or a future date.`);
+  }
+  const end = effectiveEndDate(s);
+  if (s.endDate?.trim() && s.endDate.trim() < s.operationDate) {
+    errs.push(`End date ${s.endDate.trim()} is earlier than operation date ${s.operationDate}.`);
+    return errs;
+  }
+  if (!s.startTime || !s.endTime) {
+    errs.push("Start and end times are required.");
+  } else {
+    const a = timeToMinutes(s.startTime);
+    const b = timeToMinutes(s.endTime);
+    if (a === null || b === null) {
+      errs.push("Start and end times must be valid times (HH:MM).");
+    } else if (a === b) {
+      errs.push(`Time range ${s.startTime}–${s.endTime} has zero length — set an end time different from the start time.`);
+    }
+  }
+  const multi = isMultiDaySchedule(s);
+  if (!multi) {
+    if (s.recurring !== "none") {
+      errs.push("Single-day operation — set Recurring to “One-time operation”.");
+    }
+    if (s.recurringDays.length > 0) {
+      errs.push("Single-day operation — clear the selected recurring days.");
+    }
+  } else if (s.recurring === "specific_days") {
+    if (s.recurringDays.length === 0) {
+      errs.push("Pick at least one recurring day.");
+    } else {
+      const valid = new Set(weekdaysInRange(s.operationDate, end));
+      const bad = s.recurringDays.filter((d) => !valid.has(d));
+      if (bad.length > 0) {
+        errs.push(
+          `${bad.join(", ")} ${bad.length === 1 ? "does" : "do"} not occur between ${s.operationDate} and ${end} — remove ${bad.length === 1 ? "it" : "them"}.`
+        );
+      }
+      if (scheduleOccurrences(s).length === 0) {
+        errs.push("The selected days produce no occurrence inside the date range.");
+      }
+    }
+  }
+  return errs;
+}
+
+/** Normalize a schedule after its dates change: move an earlier end date up,
+ *  collapse single-day ranges to one-time, and prune out-of-range recurring
+ *  days. Returns the fixed schedule plus human-readable notes of what changed. */
+export function revalidateScheduleDates(
+  s: ScheduleForm,
+  changed: "operationDate" | "endDate"
+): { schedule: ScheduleForm; notes: string[] } {
+  const notes: string[] = [];
+  let next: ScheduleForm = { ...s, recurringDays: [...s.recurringDays] };
+  if (changed === "operationDate" && next.endDate?.trim() && next.endDate.trim() < next.operationDate) {
+    notes.push(`End date ${next.endDate.trim()} was earlier than the new operation date — it was moved to ${next.operationDate}.`);
+    next = { ...next, endDate: next.operationDate };
+  }
+  const end = effectiveEndDate(next);
+  if (!isMultiDaySchedule(next)) {
+    if (next.recurring !== "none" || next.recurringDays.length > 0) {
+      notes.push("Single-day range — recurring was reset to one-time operation.");
+    }
+    next = { ...next, recurring: "none", recurringDays: [] };
+  } else if (next.recurring === "specific_days") {
+    const valid = new Set(weekdaysInRange(next.operationDate, end));
+    const removed = next.recurringDays.filter((d) => !valid.has(d));
+    if (removed.length > 0) {
+      notes.push(`${removed.join(", ")} no longer occur between ${next.operationDate} and ${end} — removed.`);
+      next = { ...next, recurringDays: next.recurringDays.filter((d) => valid.has(d)) };
+    }
+  }
+  return { schedule: next, notes };
+}
+
+export interface ScheduleConflict {
+  planId: string;
+  code: string;
+  name: string;
+  kind: "duplicate" | "overlap";
+  detail: string;
+}
+
+function splitWindow(start: string, end: string): Array<[number, number]> {
+  const ms = timeToMinutes(start);
+  const me = timeToMinutes(end);
+  if (ms === null || me === null || ms === me) return [];
+  return me > ms ? [[ms, me]] : [[ms, 1440], [0, me]];
+}
+
+function timeWindowsOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
+  const A = splitWindow(aStart, aEnd);
+  const B = splitWindow(bStart, bEnd);
+  if (A.length === 0 || B.length === 0) return false;
+  return A.some(([a0, a1]) => B.some(([b0, b1]) => a0 < b1 && b0 < a1));
+}
+
+function dateRangesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
+  return aStart <= bEnd && bStart <= aEnd;
+}
+
+/** Compare a draft schedule against already-saved plans (excluding itself).
+ *  Same area + dates + times => duplicate (blocking); any other same-area
+ *  overlap => overlap (warning). Planner schedules carry no team field, so
+ *  conflicts are matched on checkpoint area + time window. */
+export function findScheduleConflicts(draft: CheckpointPlan, plans: CheckpointPlan[]): ScheduleConflict[] {
+  const out: ScheduleConflict[] = [];
+  const ds = draft.schedule;
+  if (!ds.operationDate || !ds.startTime || !ds.endTime) return out;
+  const dEnd = effectiveEndDate(ds);
+  if (diffCalendarDays(ds.operationDate, dEnd) === null) return out;
+  const area = (draft.targetArea || "").trim().toLowerCase();
+  if (!area) return out;
+  for (const p of plans) {
+    if (draft.id && p.id === draft.id) continue; // exclude self when editing
+    const ps = p.schedule;
+    if (!ps?.operationDate || !ps?.startTime || !ps?.endTime) continue;
+    if ((p.targetArea || "").trim().toLowerCase() !== area) continue;
+    const pEnd = ps.endDate?.trim() ? ps.endDate.trim() : ps.operationDate;
+    if (!dateRangesOverlap(ds.operationDate, dEnd, ps.operationDate, pEnd)) continue;
+    if (!timeWindowsOverlap(ds.startTime, ds.endTime, ps.startTime, ps.endTime)) continue;
+    const sameDates = ds.operationDate === ps.operationDate && dEnd === pEnd;
+    const sameTimes = ds.startTime === ps.startTime && ds.endTime === ps.endTime;
+    if (sameDates && sameTimes) {
+      out.push({
+        planId: p.id,
+        code: p.code,
+        name: p.name,
+        kind: "duplicate",
+        detail: `${p.code} already covers ${draft.targetArea.trim()} on ${ds.operationDate}${dEnd !== ds.operationDate ? ` → ${dEnd}` : ""} at ${ds.startTime}–${ds.endTime}.`,
+      });
+    } else {
+      out.push({
+        planId: p.id,
+        code: p.code,
+        name: p.name,
+        kind: "overlap",
+        detail: `${p.code} (${ps.operationDate}${pEnd !== ps.operationDate ? ` → ${pEnd}` : ""} ${ps.startTime}–${ps.endTime}) overlaps this schedule.`,
+      });
+    }
+  }
+  return out;
+}
+
 export function validateStep(step: number, d: CheckpointPlan): string[] {
   const errs: string[] = [];
   if (step === 1) {
@@ -704,17 +973,7 @@ export function validateStep(step: number, d: CheckpointPlan): string[] {
     }
   }
   if (step === 4) {
-    if (!d.schedule.operationDate) errs.push("Operation date is required.");
-    if (!d.schedule.startTime || !d.schedule.endTime) errs.push("Start and end times are required.");
-    else if (
-      d.schedule.endTime <= d.schedule.startTime &&
-      (!d.schedule.endDate || d.schedule.endDate === d.schedule.operationDate)
-    ) {
-      errs.push("End time must be after start time on the same day.");
-    }
-    if (d.schedule.recurring === "specific_days" && d.schedule.recurringDays.length === 0) {
-      errs.push("Pick at least one recurring day.");
-    }
+    errs.push(...validateSchedule(d.schedule));
   }
   if (step === 6) {
     errs.push(...validateStep(1, d), ...validateStep(2, d), ...validateStep(4, d));
