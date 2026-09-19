@@ -9,10 +9,10 @@ import {
   ChevronRight,
   ClipboardList,
   Eye,
+  Loader2,
   Pencil,
   Plus,
   Power,
-  Sparkles,
   Trash2,
   Users,
   X,
@@ -39,18 +39,19 @@ import {
   FREQ_OPTIONS,
   SCHED_STATUS_META,
   SHIFT_OPTIONS,
-  TEAM_CRITERIA,
+  activeTeamAssignedIds,
+  allowedPatrolFrequencies,
   dateWindowLabel,
   emptySchedule,
+  findActiveTeamConflicts,
   freqLabel,
   inferShift,
-  lastDutyAgeDays,
-  memberCriteriaFor,
+  isOperationalScheduleUsable,
   nextScheduleIdentity,
-  suggestLeader,
-  suggestMembers,
-  suggestTeamLeader,
-  suggestTeamMembers,
+  operationalLinkIssues,
+  operationalScheduleIdForPlan,
+  operationalScheduleSummary,
+  validateNewTeamMembers,
   validateSchedule,
   type AssignmentMode,
   type PatrolFrequency,
@@ -58,7 +59,6 @@ import {
   type PatrolTeam,
   type RosterMember,
   type ShiftType,
-  type TeamMemberSuggestion,
 } from "./patrolScheduleShared";
 import SkillsInventory from "./skillsInventory";
 
@@ -127,31 +127,25 @@ function TeamsPanel({
 }) {
   const [editing, setEditing] = useState<PatrolTeam | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ team: PatrolTeam; action: "delete" | "toggle" } | null>(null);
+  const [deletingTeamId, setDeletingTeamId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteSuccessName, setDeleteSuccessName] = useState<string | null>(null);
   const [form, setForm] = useState<{ name: string; leaderId: string; memberIds: string[] }>({
     name: "",
     leaderId: "",
     memberIds: [],
   });
-  const [targetPurok, setTargetPurok] = useState("");
-  const [scores, setScores] = useState<TeamMemberSuggestion[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [skillsInventoryTanod, setSkillsInventoryTanod] = useState<RosterMember | null>(null);
   const [showSkillsInventory, setShowSkillsInventory] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Get Tanod IDs that are already assigned to non-draft schedules
-  const assignedTanodIds = useMemo(() => {
-    const assignedIds = new Set<string>();
-    const nonDraftSchedules = schedules.filter((s) => s.status !== "draft");
-    for (const schedule of nonDraftSchedules) {
-      const team = teams.find((t) => t.id === schedule.teamId);
-      if (team) {
-        for (const memberId of team.memberIds) {
-          assignedIds.add(memberId);
-        }
-      }
-    }
-    return assignedIds;
-  }, [schedules, teams]);
+  // Members taken by another ACTIVE team are not selectable for a new team.
+  // Deleting/deactivating a team (or removing the member from it) frees them again.
+  const assignedTanodIds = useMemo(
+    () => activeTeamAssignedIds(teams, editing?.id ?? undefined),
+    [teams, editing?.id]
+  );
 
   const nameOf = (id: string) => roster.find((r) => r.id === id)?.name ?? id;
 
@@ -160,67 +154,31 @@ function TeamsPanel({
     [schedules]
   );
 
-  const ageById = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const r of roster) m.set(r.id, lastDutyAgeDays(r));
-    return m;
-  }, [roster]);
-
-  const scoredRows = useMemo(() => {
-    const rows = roster
-      .filter((r) => r.available || (editing !== null && editing.memberIds.includes(r.id)))
-      .map((r) => {
-        const criteria = memberCriteriaFor(r, { lastDutyAgeDays: ageById.get(r.id) ?? 30, targetPurok: targetPurok || undefined });
-        return { r, criteria, total: criteria.reduce((s, c) => s + c.score, 0), isAssigned: assignedTanodIds.has(r.id) };
-      });
-    if (scores.length && targetPurok) {
-      const scoreById = new Map(scores.map((s) => [s.id, s.total]));
-      rows.sort((a, b) => (scoreById.get(b.r.id) ?? b.total) - (scoreById.get(a.r.id) ?? a.total));
-    } else {
-      rows.sort((a, b) => b.total - a.total);
-    }
-    return rows;
-  }, [roster, ageById, scores, targetPurok, editing, assignedTanodIds]);
+  const rosterRows = useMemo(() => {
+    return roster
+      .filter(
+        (r) =>
+          r.available ||
+          assignedTanodIds.has(r.id) ||
+          (editing !== null && (editing.memberIds.includes(r.id) || editing.leaderId === r.id))
+      )
+      .map((r) => ({ r, isAssigned: assignedTanodIds.has(r.id) }));
+  }, [roster, editing, assignedTanodIds]);
 
   function openCreate() {
     setForm({ name: "", leaderId: "", memberIds: [] });
-    setScores([]);
     setEditing(null);
     setShowForm(true);
   }
 
   function openEdit(team: PatrolTeam) {
     setForm({ name: team.name, leaderId: team.leaderId, memberIds: team.memberIds.filter((x) => x !== team.leaderId) });
-    setScores([]);
     setEditing(team);
     setShowForm(true);
   }
 
-  function runSuggestion(excludeIds: string[]) {
-    // Filter out already assigned Tanod from roster
-    const availableRoster = roster.filter((r) => !assignedTanodIds.has(r.id));
-    
-    const pickers = suggestTeamMembers(availableRoster, { excludeIds, count: 5, targetPurok: targetPurok || undefined });
-    if (pickers.length === 0) {
-      flash("No available tanods to suggest — all tanods are already assigned to existing schedules", { type: "warning" });
-      return;
-    }
-    setScores(pickers);
-    const leader = suggestTeamLeader(availableRoster, pickers, excludeIds);
-    setForm((f) => {
-      const memberIds = [...f.memberIds];
-      for (const p of pickers) {
-        if (memberIds.length >= 4) break;
-        if (p.id === leader?.id) continue;
-        if (memberIds.includes(p.id)) continue;
-        memberIds.push(p.id);
-      }
-      return { ...f, leaderId: leader?.id ?? f.leaderId, memberIds };
-    });
-    flash("Suggested members — final decision rests with you (Chief Tanod / Captain)");
-  }
-
   async function handleSave() {
+    if (isSaving) return;
     if (!form.name.trim()) {
       flash("Team name is required", { type: "warning" });
       return;
@@ -240,6 +198,18 @@ function TeamsPanel({
       return;
     }
     const fullIds = [form.leaderId, ...form.memberIds];
+    // Re-check availability at submit time: a member may have joined another
+    // active team while this form was open. This also blocks manual bypass
+    // attempts (e.g. crafted payloads) on the frontend; the backend re-validates.
+    const memberIssues = validateNewTeamMembers(teams, fullIds, {
+      excludeTeamId: editing?.id ?? undefined,
+      roster,
+    });
+    if (memberIssues.length > 0) {
+      flash(memberIssues.map((i) => i.message).join(" · "), { type: "error" });
+      return;
+    }
+    setIsSaving(true);
     try {
       if (editing) {
         await upsertTeam({ ...editing, name: form.name.trim(), leaderId: form.leaderId, memberIds: fullIds });
@@ -260,11 +230,17 @@ function TeamsPanel({
       }
     } catch (err) {
       flash((err as Error).message || "Failed to save team", { type: "error" });
+    } finally {
+      setIsSaving(false);
     }
-    setScores([]);
   }
 
   function toggleMember(id: string) {
+    // Hard guard so a disabled (already-assigned) member cannot be toggled on.
+    if (!form.memberIds.includes(id) && assignedTanodIds.has(id) && form.leaderId !== id) {
+      flash("That member is already assigned to another active team", { type: "warning" });
+      return;
+    }
     setForm((f) => {
       const on = f.memberIds.includes(id);
       return { ...f, memberIds: on ? f.memberIds.filter((x) => x !== id) : [...f.memberIds, id].slice(0, 4) };
@@ -287,7 +263,7 @@ function TeamsPanel({
             </p>
             <p className="mt-1 text-[13px] text-amber-700">
               <AlertTriangle size={12} className="mr-1 inline" />
-              Tanod with existing schedules are disabled and marked as "Already assigned"
+              Tanod assigned to another active team are disabled and marked as "Already assigned"
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -319,7 +295,7 @@ function TeamsPanel({
           </div>
           <div className="rounded-lg bg-stone-50 p-2.5">
             <p className="text-[16px] font-bold uppercase tracking-wider text-[#94A3B8]">Decision</p>
-            <p className="mt-0.5 text-[15px] text-stone-700">System may suggest, but you have full control</p>
+            <p className="mt-0.5 text-[15px] text-stone-700">You have full control</p>
           </div>
         </div>
       </div>
@@ -342,50 +318,20 @@ function TeamsPanel({
               <Field label="Team Leader" required>
                 <select className={selectCls} value={form.leaderId} onChange={(e) => setForm({ ...form, leaderId: e.target.value })}>
                   <option value="">Select Team Leader…</option>
-                  {scoredRows.map(({ r, isAssigned }) => (
+                  {rosterRows.map(({ r, isAssigned }) => (
                     <option key={r.id} value={r.id} disabled={isAssigned}>
-                      {r.name} · {r.purok} · {r.experienceYears}y{isAssigned ? " — Already assigned to schedule" : ""}
+                      {r.name} · {r.purok} · {r.experienceYears}y{isAssigned ? " — Already assigned to another active team" : ""}
                     </option>
                   ))}
                 </select>
               </Field>
-              <div>
-                <p className="mb-1 text-[15px] font-semibold text-[#334155]">Selection basis — priority</p>
-                <div className="space-y-1.5">
-                  {TEAM_CRITERIA.map((c) => (
-                    <div key={c.priority} className="flex items-start gap-2 rounded-lg border border-stone-100 bg-stone-50 px-2.5 py-1.5">
-                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#0038A8] text-[10px] font-bold text-white">
-                        {c.priority}
-                      </span>
-                      <div>
-                        <p className="text-[16px] font-bold text-stone-700">{c.label}</p>
-                        <p className="text-[11px] text-stone-500">{c.reason}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <Field label="Target purok (optional)">
-                <select className={selectCls} value={targetPurok} onChange={(e) => setTargetPurok(e.target.value)}>
-                  <option value="">Any / mixed purok</option>
-                  {[...new Set(roster.map((r) => r.purok))].map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <button
-                onClick={() => runSuggestion(editing ? editing.memberIds : [])}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-[15px] font-semibold text-violet-800 hover:bg-violet-100"
-              >
-                <Sparkles size={13} /> Suggest members (purok, availability, rotation, skills)
-              </button>
               <button
                 onClick={handleSave}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-[15px] font-bold text-white hover:bg-emerald-700"
+                disabled={isSaving}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-[15px] font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <Check size={13} /> {editing ? "Save Changes" : "Save Team"}
+                {isSaving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}{" "}
+                {isSaving ? "Saving…" : editing ? "Save Changes" : "Save Team"}
               </button>
             </div>
 
@@ -396,31 +342,10 @@ function TeamsPanel({
                   {form.memberIds.length + 1}/5 persons
                 </span>
               </div>
-              <p className="mb-2 mt-0.5 text-[11px] text-[#94A3B8]">Check members (1 TL + 2–4 members recommended). Scores reflect the priority criteria above.</p>
-
-              {scores.length > 0 && (
-                <div className="mb-3 space-y-1.5 rounded-lg border border-violet-200 bg-violet-50 p-3">
-                  <p className="text-[16px] font-bold uppercase tracking-wider text-violet-700">Suggested picks</p>
-                  {scores.slice(0, 3).map((s) => (
-                    <div key={s.id} className="rounded-lg bg-white px-2.5 py-1.5">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[15px] font-bold text-stone-800">{s.name} <span className="ml-1 rounded-full bg-violet-100 px-1.5 py-px text-[11px] font-semibold text-violet-700">{s.total} pts</span></p>
-                        <p className="text-[11px] text-stone-400">{s.member.purok}</p>
-                      </div>
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {s.criteria.filter((c) => c.score > 0).map((c) => (
-                          <span key={c.priority} className="rounded-full bg-stone-100 px-1.5 py-px text-[10px] text-stone-600">
-                            #{c.priority} {c.label}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <p className="mb-2 mt-0.5 text-[11px] text-[#94A3B8]">Check members (1 TL + 2–4 members recommended).</p>
 
               <div className="max-h-[420px] space-y-1.5 overflow-y-auto pr-1">
-                {scoredRows.map(({ r, criteria, total, isAssigned }) => {
+                {rosterRows.map(({ r, isAssigned }) => {
                   const isLead = form.leaderId === r.id;
                   const on = form.memberIds.includes(r.id);
                   const hasSkillsInventory = r.skillsInventory && Object.keys(r.skillsInventory).length > 0;
@@ -442,17 +367,19 @@ function TeamsPanel({
                             {isAssigned && <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-px text-[10px] font-semibold text-amber-700">Already assigned</span>}
                           </p>
                           <p className="text-[11px] text-[#94A3B8]">
-                            {r.purok} · {r.experienceYears}y · {r.skills.join(", ")} · perf {r.performance}% · last duty {ageById.get(r.id) ?? 30}d ago
+                            {r.purok} · {r.experienceYears}y · {r.skills.join(", ")} · perf {r.performance}%
                             {!r.available && <span className="ml-1 font-semibold text-rose-600">Unavailable</span>}
-                            {isAssigned && <span className="ml-1 font-semibold text-amber-600">Has existing schedule</span>}
+                            {isAssigned && <span className="ml-1 font-semibold text-amber-600">Already assigned to another active team</span>}
                           </p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-[15px] font-bold text-[#0038A8]">{total}</p>
-                          <p className="text-[10px] text-[#94A3B8]">fit</p>
-                        </div>
                         <button
-                          onClick={() => setForm({ ...form, leaderId: r.id })}
+                          onClick={() => {
+                            if (isAssigned) {
+                              flash("That member is already assigned to another active team", { type: "warning" });
+                              return;
+                            }
+                            setForm({ ...form, leaderId: r.id });
+                          }}
                           disabled={isLead || isAssigned}
                           className={`rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-600 hover:bg-white disabled:opacity-40 ${isAssigned ? "opacity-40 cursor-not-allowed" : ""}`}
                         >
@@ -469,15 +396,6 @@ function TeamsPanel({
                           <Award size={12} />
                         </button>
                       </div>
-                      {on && (
-                        <div className="mt-1.5 flex flex-wrap gap-1 pl-6">
-                          {criteria.filter((c) => c.score > 0).map((c) => (
-                            <span key={c.priority} title={`${c.reason}`} className="rounded-full bg-stone-100 px-1.5 py-px text-[10px] text-stone-600">
-                              #{c.priority} {c.label} {c.score}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -529,10 +447,10 @@ function TeamsPanel({
                       <button onClick={() => openEdit(team)} className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-[#0038A8]" title="Edit team">
                         <Pencil size={13} />
                       </button>
-                      <button onClick={() => setConfirmTarget({ team, action: "toggle" })} className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 hover:bg-amber-50 hover:text-amber-600" title={team.isActive ? "Deactivate team" : "Activate team"}>
+                      <button onClick={() => { setDeleteError(null); setConfirmTarget({ team, action: "toggle" }); }} className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 hover:bg-amber-50 hover:text-amber-600" title={team.isActive ? "Deactivate team" : "Activate team"}>
                         <Power size={13} />
                       </button>
-                      <button onClick={() => setConfirmTarget({ team, action: "delete" })} className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 hover:bg-rose-50 hover:text-rose-600" title="Delete team">
+                      <button onClick={() => { setDeleteError(null); setConfirmTarget({ team, action: "delete" }); }} className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 hover:bg-rose-50 hover:text-rose-600" title="Delete team">
                         <Trash2 size={13} />
                       </button>
                     </div>
@@ -545,39 +463,79 @@ function TeamsPanel({
       </div>
 
       {confirmTarget && (
-        <ConfirmModal
-          type="confirm"
-          title={
-            confirmTarget.action === "delete"
-              ? `Delete ${confirmTarget.team.name}?`
-              : confirmTarget.team.isActive
-                ? `Deactivate ${confirmTarget.team.name}?`
-                : `Activate ${confirmTarget.team.name}?`
-          }
-          message={
-            confirmTarget.action === "delete"
-              ? "This removes the team permanently. Any schedule draft still referencing it will need a new team."
-              : confirmTarget.team.isActive
-                ? "Deactivated teams cannot be selected in the Patrol Scheduling wizard until reactivated."
-                : "This team will become selectable in the Patrol Scheduling wizard again."
-          }
-          confirmLabel={confirmTarget.action === "delete" ? "Delete team" : confirmTarget.team.isActive ? "Deactivate" : "Activate"}
-          tone={confirmTarget.action === "delete" ? "danger" : "primary"}
-          onConfirm={async () => {
-            try {
-              if (confirmTarget.action === "delete") {
-                await deleteTeam(confirmTarget.team.id);
-                flash(`Team "${confirmTarget.team.name}" deleted`);
-              } else {
-                await upsertTeam({ ...confirmTarget.team, isActive: !confirmTarget.team.isActive });
-                flash(confirmTarget.team.isActive ? `Team "${confirmTarget.team.name}" deactivated` : `Team "${confirmTarget.team.name}" reactivated`);
-              }
-            } catch (err) {
-              flash((err as Error).message || "Failed to update team", { type: "error" });
+        <>
+          <ConfirmModal
+            type="confirm"
+            title={
+              confirmTarget.action === "delete"
+                ? `Delete ${confirmTarget.team.name}?`
+                : confirmTarget.team.isActive
+                  ? `Deactivate ${confirmTarget.team.name}?`
+                  : `Activate ${confirmTarget.team.name}?`
             }
-            setConfirmTarget(null);
-          }}
-          onClose={() => setConfirmTarget(null)}
+            message={
+              confirmTarget.action === "delete"
+                ? "This removes the team permanently. Any schedule draft still referencing it will need a new team."
+                : confirmTarget.team.isActive
+                  ? "Deactivated teams cannot be selected in the Patrol Scheduling wizard until reactivated."
+                  : "This team will become selectable in the Patrol Scheduling wizard again."
+            }
+            confirmLabel={confirmTarget.action === "delete" ? "Delete team" : confirmTarget.team.isActive ? "Deactivate" : "Activate"}
+            tone={confirmTarget.action === "delete" ? "danger" : "primary"}
+            loading={deletingTeamId === confirmTarget.team.id}
+            loadingLabel={confirmTarget.action === "delete" ? "Deleting…" : "Updating…"}
+            onConfirm={async () => {
+              // Prevent duplicate requests while one is already in flight for this team.
+              if (deletingTeamId === confirmTarget.team.id) return;
+              if (confirmTarget.action === "delete") {
+                // Keep the confirmation modal open while the request is processing.
+                setDeletingTeamId(confirmTarget.team.id);
+                setDeleteError(null);
+                try {
+                  await deleteTeam(confirmTarget.team.id);
+                  // deleteTeam optimistically removes the team and emits,
+                  // so the team list refreshes immediately via usePatrolScheduleStore.
+                  const deletedName = confirmTarget.team.name;
+                  setConfirmTarget(null);
+                  setDeleteSuccessName(deletedName);
+                } catch (err) {
+                  const message = (err as Error).message || "Failed to delete team. Please try again.";
+                  setDeleteError(message);
+                  flash(message, { type: "error" });
+                } finally {
+                  setDeletingTeamId(null);
+                }
+              } else {
+                try {
+                  await upsertTeam({ ...confirmTarget.team, isActive: !confirmTarget.team.isActive });
+                  flash(confirmTarget.team.isActive ? `Team "${confirmTarget.team.name}" deactivated` : `Team "${confirmTarget.team.name}" reactivated`);
+                  setConfirmTarget(null);
+                } catch (err) {
+                  flash((err as Error).message || "Failed to update team", { type: "error" });
+                }
+              }
+            }}
+            onClose={() => {
+              // Don't allow dismissing while the delete request is processing.
+              if (deletingTeamId === confirmTarget.team.id) return;
+              setDeleteError(null);
+              setConfirmTarget(null);
+            }}
+          />
+          {deleteError && confirmTarget.action === "delete" && (
+            <div className="fixed left-1/2 top-6 z-[95] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-center shadow-lg">
+              <p className="text-[13px] font-semibold text-rose-800">{deleteError}</p>
+            </div>
+          )}
+        </>
+      )}
+
+      {deleteSuccessName && (
+        <ConfirmModal
+          type="success"
+          title={`Team "${deleteSuccessName}" deleted successfully`}
+          message="The team has been removed and the team list has been updated."
+          onClose={() => setDeleteSuccessName(null)}
         />
       )}
 
@@ -722,20 +680,45 @@ export default function PatrolSchedulerRoutes({
   const draftTeam = useMemo(() => teams.find((t) => t.id === draft?.teamId), [teams, draft?.teamId]);
   const rosterTeam = pendingTeam ?? draftTeam;
 
-  // Tanod who already have non-draft schedules should not be selectable
-  const assignedTanodIds = useMemo(() => {
-    const assignedIds = new Set<string>();
-    const nonDraftSchedules = schedules.filter((s) => s.status !== "draft");
-    for (const schedule of nonDraftSchedules) {
-      const team = teams.find((t) => t.id === schedule.teamId);
-      if (team) {
-        for (const memberId of team.memberIds) {
-          assignedIds.add(memberId);
-        }
-      }
-    }
-    return assignedIds;
-  }, [schedules, teams]);
+  // Members taken by another ACTIVE team are not selectable for a new team.
+  // When viewing an existing team, its own members stay enabled.
+  const rosterDisabledIds = useMemo(
+    () => activeTeamAssignedIds(teams, pendingTeam ? undefined : (draft?.teamId || undefined)),
+    [teams, pendingTeam, draft?.teamId]
+  );
+
+  // Once a patrol schedule has been created (it has an id and a linked
+  // Operational Schedule), the link is read-only here — changes must go
+  // through the Operational Schedule itself (Patrol Configuration).
+  const opScheduleLocked = Boolean(draft?.id && draft?.operationalScheduleId);
+
+  /** Clamp a patrol date inside the linked Operational Schedule's range. */
+  function clampToOperationalRange(value: string): string {
+    if (!value || !draftPlan || !isOperationalScheduleUsable(draftPlan)) return value;
+    const opStart = draftPlan.schedule.operationDate;
+    const opEnd = draftPlan.schedule.endDate?.trim() ? draftPlan.schedule.endDate.trim() : opStart;
+    if (value < opStart) return opStart;
+    if (value > opEnd) return opEnd;
+    return value;
+  }
+
+  const opScheduleOptions = useMemo(
+    () => [...(draftPlan && !approvedPlans.some((p) => p.id === draftPlan.id) ? [draftPlan] : []), ...approvedPlans],
+    [draftPlan, approvedPlans]
+  );
+  const opRangeStart = draftPlan && isOperationalScheduleUsable(draftPlan) ? draftPlan.schedule.operationDate : "";
+  const opRangeEnd =
+    draftPlan && isOperationalScheduleUsable(draftPlan)
+      ? draftPlan.schedule.endDate?.trim()
+        ? draftPlan.schedule.endDate.trim()
+        : draftPlan.schedule.operationDate
+      : "";
+  const opOvernightWindow =
+    draftPlan && isOperationalScheduleUsable(draftPlan)
+      ? draftPlan.schedule.startTime > draftPlan.schedule.endTime
+      : false;
+  const allowedFreqs = useMemo(() => allowedPatrolFrequencies(draftPlan), [draftPlan]);
+  const opLinkErrs = draft ? operationalLinkIssues(draft, draftPlan).filter((i) => i.level === "error") : [];
 
   const heatCounts = useMemo(() => {
     const m: Record<string, number> = {};
@@ -758,6 +741,10 @@ export default function PatrolSchedulerRoutes({
   }
 
   function startFromPlan(plan: CheckpointPlan) {
+    if (!isOperationalScheduleUsable(plan)) {
+      flash(`No available Operational Schedule for ${plan.code} — it was deleted or is invalid`, { type: "warning" });
+      return;
+    }
     setDraft(emptySchedule(plan));
     setCreatingTeam(false);
     setNewTeamName("");
@@ -786,31 +773,12 @@ export default function PatrolSchedulerRoutes({
     setWizardOpen(true);
   }
 
-  function applySuggestions() {
-    if (!draftPlan || !draft) return;
-    // Filter out already assigned Tanod from suggestions
-    const availableRoster = roster.filter((r) => !assignedTanodIds.has(r.id));
-    const leader = suggestLeader(draftPlan, availableRoster);
-    const members = suggestMembers(draftPlan, availableRoster, 3);
-    const ids = [...new Set([leader?.id, ...members.map((m) => m.id)].filter(Boolean) as string[])].slice(0, 4);
-    if (!leader || ids.length === 0) {
-      flash("No available tanods to suggest — all tanods are already assigned to existing schedules", { type: "warning" });
+  function toggleMember(id: string) {
+    // A new (pending) team must not take members of another active team.
+    if (pendingTeam && !pendingTeam.memberIds.includes(id) && rosterDisabledIds.has(id)) {
+      flash("That member is already assigned to another active team", { type: "warning" });
       return;
     }
-    setPendingTeam({
-      id: `team-sug-${Date.now()}`,
-      name: newTeamName.trim() || `${draftPlan.targetArea} Night Team`,
-      leaderId: leader.id,
-      memberIds: ids.includes(leader.id) ? ids : [leader.id, ...ids].slice(0, 4),
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    });
-    setCreatingTeam(true);
-    setNewTeamName(newTeamName.trim() || `${draftPlan.targetArea} Night Team`);
-    flash(`Suggested ${leader.name} as Team Leader + ${ids.length - 1} members — review, then click Save team to create it.`);
-  }
-
-  function toggleMember(id: string) {
     if (pendingTeam) {
       const leaderId = pendingTeam.leaderId;
       let memberIds = pendingTeam.memberIds.includes(id)
@@ -832,6 +800,10 @@ export default function PatrolSchedulerRoutes({
   }
 
   function setLeader(id: string) {
+    if (pendingTeam && rosterDisabledIds.has(id) && pendingTeam.leaderId !== id && !pendingTeam.memberIds.includes(id)) {
+      flash("That member is already assigned to another active team", { type: "warning" });
+      return;
+    }
     if (pendingTeam) {
       const memberIds = pendingTeam.memberIds.includes(id) ? pendingTeam.memberIds : [id, ...pendingTeam.memberIds];
       setPendingTeam({ ...pendingTeam, leaderId: id, memberIds });
@@ -849,6 +821,17 @@ export default function PatrolSchedulerRoutes({
     if (!name) {
       flash("Team name is required", { type: "warning" });
       return;
+    }
+    // Re-check at submit time against the latest active teams (covers members
+    // assigned elsewhere while the form was open + manual bypass attempts).
+    if (pendingTeam) {
+      const candidateIds = [pendingTeam.leaderId, ...pendingTeam.memberIds].filter(Boolean);
+      const conflicts = findActiveTeamConflicts(teams, candidateIds);
+      if (conflicts.length > 0) {
+        const names = conflicts.map((id) => roster.find((r) => r.id === id)?.name ?? id);
+        flash(`${names.join(", ")} ${conflicts.length === 1 ? "is" : "are"} already assigned to another active team.`, { type: "error" });
+        return;
+      }
     }
     try {
       if (pendingTeam) {
@@ -893,6 +876,13 @@ export default function PatrolSchedulerRoutes({
 
   function saveDraft() {
     if (!draft) return;
+    // Even drafts require a live Operational Schedule link — a deleted or
+    // invalid Operational Schedule must not seed new patrol schedules.
+    const linkErrs = operationalLinkIssues(draft, draftPlan).filter((i) => i.level === "error");
+    if (linkErrs.length) {
+      flash(linkErrs.map((b) => b.message).join(" · "), { type: "error" });
+      return;
+    }
     const identity = draft.id ? { id: draft.id, code: draft.code } : nextScheduleIdentity(getSchedules());
     upsertSchedule({ ...draft, ...identity, status: "draft" });
     setPendingTeam(null);
@@ -990,8 +980,9 @@ export default function PatrolSchedulerRoutes({
             ) : (
               <button
                 onClick={() => {
-                  const first = approvedPlans[0];
+                  const first = approvedPlans.find((p) => isOperationalScheduleUsable(p));
                   if (first) startFromPlan(first);
+                  else if (approvedPlans.length) flash("No available Operational Schedule — existing ones were deleted or are invalid", { type: "warning" });
                   else flash("No approved checkpoint plans yet", { type: "warning" });
                 }}
                 className="flex h-9 items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 text-[16px] font-semibold text-white shadow-sm hover:bg-[#002A8C]"
@@ -1016,18 +1007,27 @@ export default function PatrolSchedulerRoutes({
                       value={draft.planId}
                       onChange={(e) => {
                         const p = plans.find((x) => x.id === e.target.value);
-                        if (p) setDraft(emptySchedule(p));
+                        if (!p) return;
+                        if (!isOperationalScheduleUsable(p)) {
+                          flash("That Operational Schedule is no longer available — select a current one", { type: "warning" });
+                          return;
+                        }
+                        if (p.id === draft.planId) return;
+                        setDraft(emptySchedule(p));
                       }}
                     >
                       <option value="">Select plan…</option>
                       {[
                         ...(draftPlan && !approvedPlans.some((p) => p.id === draftPlan.id) ? [draftPlan] : []),
                         ...approvedPlans,
-                      ].map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.code} — {p.name}
-                        </option>
-                      ))}
+                      ].map((p) => {
+                        const usable = isOperationalScheduleUsable(p);
+                        return (
+                          <option key={p.id} value={p.id} disabled={!usable}>
+                            {p.code} — {p.name}{usable ? "" : " — Operational Schedule no longer available"}
+                          </option>
+                        );
+                      })}
                     </select>
                     {draftPlan && (
                       <div className="mt-3 space-y-2">
@@ -1080,60 +1080,225 @@ export default function PatrolSchedulerRoutes({
             )}
 
             {step === 2 && (
-              <section className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
-                <p className="mb-3 text-[15px] font-semibold uppercase tracking-wider text-[#94A3B8]">Patrol Schedule Details</p>
+              <section className="space-y-4">
+                {/* Operational Schedule selector — existing backend data, not a separate list */}
+                <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+                  <p className="mb-1 text-[15px] font-semibold uppercase tracking-wider text-[#94A3B8]">Operational Schedule</p>
+                  <p className="mb-2 text-[13px] text-stone-500">
+                    Select an existing Operational Schedule. Operation dates, times, checkpoints and recurrence are populated from it automatically.
+                  </p>
+                  <Field label="Existing Operational Schedule" required>
+                    <select
+                      className={selectCls}
+                      value={draft.operationalScheduleId}
+                      disabled={opScheduleLocked}
+                      onChange={(e) => {
+                        const next = plans.find((x) => operationalScheduleIdForPlan(x) === e.target.value);
+                        if (!next) return;
+                        if (!isOperationalScheduleUsable(next)) {
+                          flash("That Operational Schedule is no longer available — select a current one", { type: "warning" });
+                          return;
+                        }
+                        if (next.id === draft.planId) return;
+                        setDraft(emptySchedule(next));
+                        flash(`Operational Schedule loaded — ${operationalScheduleSummary(next)}`);
+                      }}
+                    >
+                      <option value="">Select Operational Schedule…</option>
+                      {opScheduleOptions.map((p) => {
+                        const usable = isOperationalScheduleUsable(p);
+                        return (
+                          <option key={p.id} value={operationalScheduleIdForPlan(p)} disabled={!usable}>
+                            {p.code} — {p.name} · {operationalScheduleSummary(p)}{usable ? "" : " — no longer available"}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </Field>
+                  {opScheduleLocked && (
+                    <p className="mt-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[13px] font-medium text-stone-600">
+                      Linked Operational Schedule is read-only — it cannot be changed after the patrol schedule has been created. Manage it in Patrol Configuration.
+                    </p>
+                  )}
+                  {opLinkErrs.length > 0 && (
+                    <div className="mt-2 space-y-1 rounded-lg border border-rose-200 bg-rose-50 p-3">
+                      {opLinkErrs.map((i) => (
+                        <p key={i.message} className="flex items-start gap-1.5 text-[13px] font-semibold text-rose-700">
+                          <AlertTriangle size={12} className="mt-0.5 shrink-0" /> {i.message}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Linked details — always read-only */}
+                {draftPlan && isOperationalScheduleUsable(draftPlan) && (
+                  <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+                    <p className="mb-2 text-[15px] font-semibold uppercase tracking-wider text-[#94A3B8]">Linked schedule details (read-only)</p>
+                    <dl className="grid grid-cols-1 gap-3 text-[16px] sm:grid-cols-2">
+                      <div>
+                        <dt className="text-[11px] font-semibold text-[#94A3B8]">OPERATION DATE</dt>
+                        <dd className="font-semibold text-stone-800">{draftPlan.schedule.operationDate}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-[11px] font-semibold text-[#94A3B8]">END DATE</dt>
+                        <dd className="font-semibold text-stone-800">{opRangeEnd}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-[11px] font-semibold text-[#94A3B8]">OPERATION TIME</dt>
+                        <dd className="font-semibold text-stone-800">{draftPlan.schedule.startTime}–{draftPlan.schedule.endTime}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-[11px] font-semibold text-[#94A3B8]">RECURRING</dt>
+                        <dd className="font-semibold text-stone-800">
+                          {draftPlan.schedule.recurring === "specific_days"
+                            ? draftPlan.schedule.recurringDays.join(", ") || "—"
+                            : draftPlan.schedule.recurring === "daily"
+                              ? "Daily"
+                              : "One-time"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-[11px] font-semibold text-[#94A3B8]">CHECKPOINTS / ROUTE</dt>
+                        <dd className="text-stone-700">
+                          {draftPlan.points.length} point{draftPlan.points.length === 1 ? "" : "s"}
+                          {(draftPlan.routes?.length ?? 0) > 0 && ` · ${draftPlan.routes!.length} supporting route${draftPlan.routes!.length === 1 ? "" : "s"}`}
+                          {draftPlan.points.length > 0 && ` — ${draftPlan.points.slice(0, 4).map((pt) => pt.label).join(", ")}${draftPlan.points.length > 4 ? "…" : ""}`}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-[11px] font-semibold text-[#94A3B8]">ASSIGNED TEAM</dt>
+                        <dd className="text-stone-700">{draftTeam ? draftTeam.name : "Not selected yet (Step 3)"}</dd>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <dt className="text-[11px] font-semibold text-[#94A3B8]">OPERATIONAL SCHEDULE ID</dt>
+                        <dd className="font-mono text-stone-700">{draft.operationalScheduleId || "—"}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+                <p className="mb-1 text-[15px] font-semibold uppercase tracking-wider text-[#94A3B8]">Patrol Schedule Details</p>
+                <p className="mb-3 text-[13px] text-stone-500">
+                  Must stay inside the Operational Schedule range{opRangeStart ? ` (${opRangeStart} → ${opRangeEnd}, ${draftPlan?.schedule.startTime}–${draftPlan?.schedule.endTime})` : ""}. Dates outside it are not allowed.
+                </p>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <Field label="Start date" required>
-                    <input type="date" className={inputCls} value={draft.startDate} onChange={(e) => patchDraft({ startDate: e.target.value })} />
+                    <input
+                      type="date"
+                      className={inputCls}
+                      value={draft.startDate}
+                      min={opRangeStart || undefined}
+                      max={opRangeEnd || undefined}
+                      disabled={opScheduleLocked}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const v = clampToOperationalRange(raw);
+                        if (v !== raw) flash(`Start date must stay inside the Operational Schedule range ${opRangeStart} → ${opRangeEnd}`, { type: "warning" });
+                        patchDraft({ startDate: v, endDate: draft.endDate && draft.endDate < v ? v : draft.endDate });
+                      }}
+                    />
                   </Field>
                   <Field label="End date">
-                    <input type="date" className={inputCls} value={draft.endDate} onChange={(e) => patchDraft({ endDate: e.target.value })} />
+                    <input
+                      type="date"
+                      className={inputCls}
+                      value={draft.endDate}
+                      min={draft.startDate || opRangeStart || undefined}
+                      max={opRangeEnd || undefined}
+                      disabled={opScheduleLocked}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const v = clampToOperationalRange(raw);
+                        if (v !== raw) flash(`End date must stay inside the Operational Schedule range ${opRangeStart} → ${opRangeEnd}`, { type: "warning" });
+                        patchDraft({ endDate: v });
+                      }}
+                    />
                   </Field>
                   <Field label="Start time" required>
                     <input
                       type="time"
                       className={inputCls}
                       value={draft.startTime}
+                      min={!opOvernightWindow && opRangeStart ? draftPlan?.schedule.startTime : undefined}
+                      max={!opOvernightWindow && opRangeStart ? draftPlan?.schedule.endTime : undefined}
+                      disabled={opScheduleLocked}
                       onChange={(e) => patchDraft({ startTime: e.target.value, shiftType: inferShift(e.target.value) })}
                     />
                   </Field>
                   <Field label="End time" required>
-                    <input type="time" className={inputCls} value={draft.endTime} onChange={(e) => patchDraft({ endTime: e.target.value })} />
+                    <input
+                      type="time"
+                      className={inputCls}
+                      value={draft.endTime}
+                      min={!opOvernightWindow && opRangeStart ? draftPlan?.schedule.startTime : undefined}
+                      max={!opOvernightWindow && opRangeStart ? draftPlan?.schedule.endTime : undefined}
+                      disabled={opScheduleLocked}
+                      onChange={(e) => patchDraft({ endTime: e.target.value })}
+                    />
                   </Field>
                 </div>
                 <p className="mb-2 mt-4 text-[15px] font-semibold text-[#334155]">Frequency</p>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-                  {FREQ_OPTIONS.map((f) => (
-                    <button
-                      key={f.key}
-                      onClick={() =>
-                        patchDraft({
-                          frequency: f.key as PatrolFrequency,
-                          shiftType: f.key === "nightly" ? "night" : draft.shiftType,
-                        })
-                      }
-                      className={`rounded-xl border p-2.5 text-left ${
-                        draft.frequency === f.key ? "border-[#0038A8] bg-[#E9EDFB] ring-1 ring-[#0038A8]/30" : "border-stone-200 bg-white hover:bg-stone-50"
-                      }`}
-                    >
-                      <p className="text-[15px] font-bold text-stone-800">{f.label}</p>
-                      <p className="text-[11px] text-[#94A3B8]">{f.hint}</p>
-                    </button>
-                  ))}
+                  {FREQ_OPTIONS.map((f) => {
+                    const allowed = allowedFreqs.includes(f.key as PatrolFrequency);
+                    const disabled = opScheduleLocked || !allowed;
+                    return (
+                      <button
+                        key={f.key}
+                        disabled={disabled}
+                        title={
+                          opScheduleLocked
+                            ? "Read-only — linked Operational Schedule cannot be changed after creation"
+                            : allowed
+                              ? undefined
+                              : "Not covered by the Operational Schedule's recurrence"
+                        }
+                        onClick={() =>
+                          patchDraft({
+                            frequency: f.key as PatrolFrequency,
+                            shiftType: f.key === "nightly" ? "night" : draft.shiftType,
+                          })
+                        }
+                        className={`rounded-xl border p-2.5 text-left disabled:cursor-not-allowed disabled:opacity-40 ${
+                          draft.frequency === f.key ? "border-[#0038A8] bg-[#E9EDFB] ring-1 ring-[#0038A8]/30" : "border-stone-200 bg-white hover:bg-stone-50"
+                        }`}
+                      >
+                        <p className="text-[15px] font-bold text-stone-800">{f.label}</p>
+                        <p className="text-[11px] text-[#94A3B8]">{f.hint}</p>
+                      </button>
+                    );
+                  })}
                 </div>
                 {draft.frequency === "specific_days" && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     {DAY_LABELS.map((d) => {
                       const on = draft.frequencyDays.includes(d);
+                      // Patrol days must be valid recurring dates of the Operational Schedule.
+                      const opDayBlocked =
+                        !!draftPlan &&
+                        isOperationalScheduleUsable(draftPlan) &&
+                        draftPlan.schedule.recurring === "specific_days" &&
+                        !draftPlan.schedule.recurringDays.includes(d);
+                      const disabled = opScheduleLocked || opDayBlocked;
                       return (
                         <button
                           key={d}
+                          disabled={disabled}
+                          title={
+                            opScheduleLocked
+                              ? "Read-only — linked Operational Schedule cannot be changed after creation"
+                              : opDayBlocked
+                                ? `${d} is not a recurring day of the Operational Schedule`
+                                : undefined
+                          }
                           onClick={() =>
                             patchDraft({
                               frequencyDays: on ? draft.frequencyDays.filter((x) => x !== d) : [...draft.frequencyDays, d],
                             })
                           }
-                          className={`rounded-full px-3 py-1 text-[16px] font-semibold ${on ? "bg-[#0038A8] text-white" : "bg-stone-100 text-stone-600"}`}
+                          className={`rounded-full px-3 py-1 text-[16px] font-semibold disabled:cursor-not-allowed disabled:opacity-40 ${on ? "bg-[#0038A8] text-white" : "bg-stone-100 text-stone-600"}`}
                         >
                           {d}
                         </button>
@@ -1153,8 +1318,10 @@ export default function PatrolSchedulerRoutes({
                   {SHIFT_OPTIONS.map((s) => (
                     <button
                       key={s.key}
+                      disabled={opScheduleLocked}
+                      title={opScheduleLocked ? "Read-only — linked Operational Schedule cannot be changed after creation" : undefined}
                       onClick={() => patchDraft({ shiftType: s.key as ShiftType })}
-                      className={`rounded-xl border p-3 text-left ${
+                      className={`rounded-xl border p-3 text-left disabled:cursor-not-allowed disabled:opacity-40 ${
                         draft.shiftType === s.key ? "border-[#0038A8] bg-[#E9EDFB]" : "border-stone-200 hover:bg-stone-50"
                       }`}
                     >
@@ -1162,6 +1329,7 @@ export default function PatrolSchedulerRoutes({
                       <p className="text-[11px] text-[#94A3B8]">{s.window}</p>
                     </button>
                   ))}
+                </div>
                 </div>
               </section>
             )}
@@ -1194,25 +1362,21 @@ export default function PatrolSchedulerRoutes({
                           <option value="">Select team…</option>
                           {teams
                             .filter((t) => t.isActive)
-                            .map((t) => {
-                              const hasAssignedMembers = t.memberIds.some((id) => assignedTanodIds.has(id));
-                              return (
-                                <option key={t.id} value={t.id} disabled={hasAssignedMembers}>
-                                  {t.name} ({t.memberIds.length} members){hasAssignedMembers ? " — Has members with existing schedules" : ""}
-                                </option>
-                              );
-                            })}
+                            .map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.name} ({t.memberIds.length} members)
+                              </option>
+                            ))}
                         </select>
-                        <p className="text-[13px] text-amber-700">
-                          <AlertTriangle size={12} className="mr-1 inline" />
-                          Teams with members who have existing schedules are disabled
+                        <p className="text-[13px] text-stone-500">
+                          Only active teams are listed. To add new members, use "New team" — tanods already in another active team cannot be reused.
                         </p>
                       </div>
                     ) : (
                       <div className="space-y-2">
                         <p className="text-[13px] text-amber-700">
                           <AlertTriangle size={12} className="mr-1 inline" />
-                          Only available Tanod (without existing schedules) can be added to new teams
+                          Only available Tanod (not in another active team) can be added to new teams
                         </p>
                         <Field label="Team name" required>
                           <input className={inputCls} value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} placeholder="e.g. Market Night Watch" />
@@ -1223,21 +1387,10 @@ export default function PatrolSchedulerRoutes({
                           </button>
                         )}
                         {pendingTeam && (
-                          <p className="text-[14px] font-semibold text-violet-700">Suggested selection — not yet saved. Click "Save team" to create it.</p>
+                          <p className="text-[14px] font-semibold text-stone-600">Unsaved team — not yet saved. Click "Save team" to create it.</p>
                         )}
                       </div>
                     )}
-                    {draftPlan && (!draft.teamId || pendingTeam) && (
-                      <button
-                        onClick={applySuggestions}
-                        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-[15px] font-semibold text-violet-800 hover:bg-violet-100"
-                      >
-                        <Sparkles size={13} /> Suggest members (purok, availability, rotation, skills)
-                      </button>
-                    )}
-                    <p className="mt-2 text-[16px] leading-relaxed text-[#94A3B8]">
-                      Accept, modify, or pick manually. Final decision rests with Punong Barangay / Chief Tanod.
-                    </p>
                   </div>
                 </div>
                 <div className="lg:col-span-3">
@@ -1245,21 +1398,21 @@ export default function PatrolSchedulerRoutes({
                     <p className="mb-3 text-[15px] font-semibold uppercase tracking-wider text-[#94A3B8]">Roster</p>
                     <p className="mb-2 text-[13px] text-amber-700">
                       <AlertTriangle size={12} className="mr-1 inline" />
-                      Tanod with existing schedules are disabled and marked as "Already assigned"
+                      Tanod already in another active team are disabled and marked as "Already assigned"
                     </p>
                     {!rosterTeam ? (
                       <p className="text-[16px] text-[#94A3B8]">Select or create a team to assign a leader and members.</p>
                     ) : (
                       <div className="space-y-2">
                         {pendingTeam && (
-                          <p className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-[14px] font-semibold text-violet-700">
-                            <Sparkles size={12} className="mr-1 inline" /> Suggestion preview — {pendingTeam.name}. Not saved until you click "Save team".
+                          <p className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[14px] font-semibold text-stone-600">
+                            New team preview — {pendingTeam.name}. Not saved until you click "Save team".
                           </p>
                         )}
                         {roster.map((m) => {
                           const on = rosterTeam.memberIds.includes(m.id);
                           const isLead = rosterTeam.leaderId === m.id;
-                          const isAssigned = assignedTanodIds.has(m.id);
+                          const isAssigned = rosterDisabledIds.has(m.id) && !on && !isLead;
                           return (
                             <div key={m.id} className={`flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 ${on ? "border-[#0038A8]/30 bg-[#E9EDFB]" : isAssigned ? "border-stone-200 bg-stone-100 opacity-60" : "border-stone-100"}`}>
                               <input 
@@ -1277,7 +1430,7 @@ export default function PatrolSchedulerRoutes({
                                 <p className="text-[11px] text-[#94A3B8]">
                                   {m.purok} · {m.experienceYears}y · {m.skills.join(", ")} · perf {m.performance}% · last duty {formatDay(m.lastDutyAt)}
                                   {!m.available && <span className="ml-1 font-semibold text-rose-600">Unavailable</span>}
-                                  {isAssigned && <span className="ml-1 font-semibold text-amber-600">Has existing schedule</span>}
+                                  {isAssigned && <span className="ml-1 font-semibold text-amber-600">Already assigned to another active team</span>}
                                 </p>
                               </div>
                               <button
@@ -1401,6 +1554,22 @@ export default function PatrolSchedulerRoutes({
                       <dd className="font-semibold text-stone-800">{draftPlan ? `${draftPlan.code} — ${draftPlan.name}` : "—"}</dd>
                     </div>
                     <div>
+                      <dt className="text-[11px] font-semibold text-[#94A3B8]">OPERATIONAL SCHEDULE</dt>
+                      <dd className="text-stone-700">
+                        {draft.operationalScheduleId ? (
+                          <>
+                            ID {draft.operationalScheduleId}
+                            {draftPlan && isOperationalScheduleUsable(draftPlan)
+                              ? ` · ${operationalScheduleSummary(draftPlan)}`
+                              : " · no longer available"}{" "}
+                            <span className="text-stone-400">(read-only)</span>
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </dd>
+                    </div>
+                    <div>
                       <dt className="text-[11px] font-semibold text-[#94A3B8]">SCHEDULE</dt>
                       <dd className="text-stone-700">
                         {dateWindowLabel(draft)} · {draft.startTime}–{draft.endTime} · {freqLabel(draft)} · {draft.shiftType}
@@ -1465,6 +1634,10 @@ export default function PatrolSchedulerRoutes({
               {step < 6 && (
                 <button
                   onClick={() => {
+                    if (step === 2 && opLinkErrs.length) {
+                      flash(opLinkErrs.map((b) => b.message).join(" · "), { type: "error" });
+                      return;
+                    }
                     if (step === 3 && pendingTeam) {
                       flash("Please save the team first by clicking 'Save team' before continuing.", { type: "warning" });
                       return;
@@ -1605,6 +1778,18 @@ export default function PatrolSchedulerRoutes({
                               <p className="text-[12px] font-bold uppercase tracking-wider text-[#94A3B8]">Schedule</p>
                               <dl className="mt-2 space-y-1 text-[15px]">
                                 <DetailRow label="Frequency" value={freqLabel(s)} />
+                                <DetailRow
+                                  label="Operational Schedule"
+                                  value={(() => {
+                                    if (!s.operationalScheduleId) return "Not linked";
+                                    const opPlan = plans.find((p) => p.id === s.planId);
+                                    const summary =
+                                      opPlan && isOperationalScheduleUsable(opPlan)
+                                        ? operationalScheduleSummary(opPlan)
+                                        : "source no longer available";
+                                    return `ID ${s.operationalScheduleId} · ${summary} (read-only)`;
+                                  })()}
+                                />
                                 <DetailRow label="Shift" value={s.shiftType} />
                                 <DetailRow
                                   label="Days"

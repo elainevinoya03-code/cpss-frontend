@@ -62,6 +62,7 @@ import {
   weekdayOf,
   weekdaysInRange,
   windowDesc,
+  formatDateTime,
   type ActivePatrol,
   type CheckpointPlan,
   type CpPoint,
@@ -165,6 +166,97 @@ export default function PatrolConfiguration({
       return true;
     });
   }, [incidents, filters]);
+
+  /* ---------------- Reason / Basis: resolved incidents only ----------------
+   * Loaded from the existing backend/database via useIncidentStore (which
+   * fetches /api/incidents). Only `resolved` status is selectable — pending,
+   * active, in-progress, or otherwise unresolved records never appear. */
+  const resolvedIncidents = useMemo(() => {
+    return incidents
+      .filter((i) => i.status === "resolved")
+      .sort((a, b) => {
+        const at = new Date(a.resolvedAt ?? a.time).getTime();
+        const bt = new Date(b.resolvedAt ?? b.time).getTime();
+        return (Number.isNaN(bt) ? 0 : bt) - (Number.isNaN(at) ? 0 : at);
+      });
+  }, [incidents]);
+
+  // Multi-select Reason / Basis: every id in draft.linkedIncidentIds is one
+  // selected resolved incident. Previously saved selections are retained on
+  // edit because they already live in linkedIncidentIds.
+  const basisIncidentIds = draft?.linkedIncidentIds ?? [];
+  const basisIncidents = useMemo(() => {
+    const byId = new Map(incidents.map((i) => [i.id, i]));
+    return basisIncidentIds
+      .map((id) => byId.get(id) ?? null)
+      .filter((inc): inc is Incident => inc !== null);
+  }, [incidents, basisIncidentIds]);
+  // Ids that no longer resolve to a loaded incident (deleted or not yet
+  // loaded) — kept visible so an edit never silently drops a prior choice.
+  const basisMissingIds = useMemo(() => {
+    const byId = new Set(incidents.map((i) => i.id));
+    return basisIncidentIds.filter((id) => !byId.has(id));
+  }, [incidents, basisIncidentIds]);
+  // Resolved incidents not yet selected — the only options offered for
+  // adding, which prevents duplicate selections by construction.
+  const basisAvailableToAdd = useMemo(() => {
+    const selected = new Set(basisIncidentIds);
+    return resolvedIncidents.filter((i) => !selected.has(i.id));
+  }, [resolvedIncidents, basisIncidentIds]);
+
+  function basisSummary(inc: Incident): string {
+    const resolvedOn = inc.resolvedAt ?? inc.time;
+    return `${inc.id} · ${inc.category} · ${inc.purok || "Unknown location"} · Resolved ${formatDay(resolvedOn)}`;
+  }
+
+  function handleBasisAdd(incidentId: string) {
+    if (!draft || !incidentId) return;
+    // Frontend guard — no duplicates.
+    if (draft.linkedIncidentIds.includes(incidentId)) {
+      flash(`Incident ${incidentId} is already selected.`, { type: "warning" });
+      return;
+    }
+    const inc = incidents.find((i) => i.id === incidentId) ?? null;
+    if (!inc) return;
+    // Frontend guard — only resolved incidents may be stored as the basis.
+    if (inc.status !== "resolved") {
+      flash(`Incident ${inc.id} is not resolved and cannot be used as the Reason / Basis.`, {
+        type: "error",
+        title: "Unresolved incident",
+      });
+      return;
+    }
+    const nextIds = [...draft.linkedIncidentIds, inc.id];
+    const nextSummaries = [...basisIncidents.map(basisSummary), basisSummary(inc)];
+    updateDraft({ linkedIncidentIds: nextIds, rationale: nextSummaries.join(" | ") });
+  }
+
+  function handleBasisRemove(incidentId: string) {
+    if (!draft) return;
+    const nextIds = draft.linkedIncidentIds.filter((id) => id !== incidentId);
+    const remaining = basisIncidents.filter((inc) => inc.id !== incidentId);
+    updateDraft({
+      linkedIncidentIds: nextIds,
+      rationale: remaining.length > 0 ? remaining.map(basisSummary).join(" | ") : nextIds.length > 0 ? draft.rationale : "",
+    });
+    flash(`Removed ${incidentId} from the Reason / Basis selection`);
+  }
+
+  /** Shared guard used before saving/submitting so a tampered or stale
+   *  selection can never be persisted from this UI. */
+  function basisSelectionError(): string | null {
+    if (!draft) return null;
+    const ids = draft.linkedIncidentIds ?? [];
+    if (ids.length === 0) return "Select at least one resolved incident as the Reason / Basis.";
+    if (new Set(ids).size !== ids.length) return "Duplicate incidents selected — each incident may only be selected once.";
+    for (const id of ids) {
+      const inc = incidents.find((i) => i.id === id);
+      if (!inc) return `Selected incident ${id} was not found — remove it and pick a resolved incident.`;
+      if (inc.status !== "resolved")
+        return `Incident ${id} is no longer resolved and cannot be submitted as the Reason / Basis.`;
+    }
+    return null;
+  }
 
   const heatCounts = useMemo(() => {
     const m: Record<string, number> = {};
@@ -609,6 +701,12 @@ export default function PatrolConfiguration({
 
   async function saveAsDraft() {
     if (!draft || saving) return;
+    const basisErr = basisSelectionError();
+    if (basisErr) {
+      flash(basisErr, { type: "warning", title: "Reason / Basis required" });
+      setStep(1);
+      return;
+    }
     setSaving(true);
     const identity = draft.id ? { id: draft.id, code: draft.code } : nextPlanIdentity(plans);
     const saved: CheckpointPlan = {
@@ -635,6 +733,12 @@ export default function PatrolConfiguration({
 
   async function submitForApproval() {
     if (!draft || saving) return;
+    const basisErr = basisSelectionError();
+    if (basisErr) {
+      flash(basisErr, { type: "warning", title: "Reason / Basis required" });
+      setStep(1);
+      return;
+    }
     const errs = validateStep(6, draft);
     if (errs.length > 0) {
       flash(errs.join(" · "), { type: "warning" });
@@ -906,13 +1010,113 @@ export default function PatrolConfiguration({
                         />
                       </Field>
                       <Field label="Reason / Basis" required>
-                        <textarea
-                          value={draft.rationale}
-                          onChange={(e) => updateDraft({ rationale: e.target.value })}
-                          rows={2}
-                          placeholder="Justification, or tie to specific incidents / blotter entries…"
-                          className={textareaCls}
-                        />
+                        {resolvedIncidents.length === 0 && basisIncidentIds.length === 0 ? (
+                          <p className="rounded-lg border border-dashed border-stone-300 bg-stone-50 px-3 py-3 text-center text-[11px] font-medium text-stone-500">
+                            No resolved incidents available
+                          </p>
+                        ) : (
+                          <select
+                            value=""
+                            onChange={(e) => {
+                              handleBasisAdd(e.target.value);
+                              e.target.value = "";
+                            }}
+                            className={selectCls}
+                            disabled={basisAvailableToAdd.length === 0}
+                          >
+                            <option value="">
+                              {basisIncidentIds.length === 0
+                                ? "Select resolved incidents…"
+                                : basisAvailableToAdd.length === 0
+                                  ? "All resolved incidents selected"
+                                  : "Add another resolved incident…"}
+                            </option>
+                            {basisAvailableToAdd.map((inc) => (
+                              <option key={inc.id} value={inc.id}>
+                                {inc.id} · {inc.category} · {inc.purok || "Unknown location"} · Resolved{" "}
+                                {formatDay(inc.resolvedAt ?? inc.time)}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        <p className="mt-1 text-[9px] text-[#94A3B8]">
+                          Only incidents with a Resolved status can be selected. Pick one or more — details load
+                          automatically below. {basisIncidentIds.length > 0 && `${basisIncidentIds.length} selected.`}
+                        </p>
+                        {basisIncidents.length > 0 && (
+                          <div className="mt-2 space-y-2">
+                            {basisIncidents.map((inc) => {
+                              const stale = inc.status !== "resolved";
+                              return (
+                                <div
+                                  key={inc.id}
+                                  className={`rounded-lg border p-3 ${stale ? "border-amber-200 bg-amber-50/60" : "border-emerald-200 bg-emerald-50/60"}`}
+                                >
+                                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                                    <p className="font-mono text-[11px] font-bold text-stone-800">{inc.id}</p>
+                                    <button
+                                      onClick={() => handleBasisRemove(inc.id)}
+                                      title={`Remove ${inc.id}`}
+                                      aria-label={`Remove ${inc.id}`}
+                                      className="flex h-6 w-6 items-center justify-center rounded-lg text-stone-400 transition hover:bg-rose-50 hover:text-rose-600"
+                                    >
+                                      <X size={13} />
+                                    </button>
+                                  </div>
+                                  <dl className="grid grid-cols-1 gap-x-3 gap-y-1 text-[11px] sm:grid-cols-2">
+                                    <div>
+                                      <dt className="text-[9px] font-semibold uppercase tracking-wider text-[#94A3B8]">Incident ID</dt>
+                                      <dd className="font-mono font-semibold text-stone-800">{inc.id}</dd>
+                                    </div>
+                                    <div>
+                                      <dt className="text-[9px] font-semibold uppercase tracking-wider text-[#94A3B8]">Category / Type</dt>
+                                      <dd className="font-medium text-stone-800">{inc.category}</dd>
+                                    </div>
+                                    <div>
+                                      <dt className="text-[9px] font-semibold uppercase tracking-wider text-[#94A3B8]">Location</dt>
+                                      <dd className="font-medium text-stone-800">{inc.purok || "Unknown location"}</dd>
+                                    </div>
+                                    <div>
+                                      <dt className="text-[9px] font-semibold uppercase tracking-wider text-[#94A3B8]">Resolution date</dt>
+                                      <dd className="font-medium text-stone-800">
+                                        {formatDateTime(inc.resolvedAt ?? inc.time)}
+                                      </dd>
+                                    </div>
+                                  </dl>
+                                  {inc.description && (
+                                    <p className="mt-1.5 border-t border-emerald-200/60 pt-1.5 text-[10px] leading-relaxed text-stone-600">
+                                      {inc.description}
+                                    </p>
+                                  )}
+                                  {stale && (
+                                    <p className="mt-1.5 text-[10px] font-medium text-amber-700">
+                                      This incident is no longer resolved — remove it before saving.
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {basisMissingIds.length > 0 && (
+                          <div className="mt-2 space-y-1.5">
+                            {basisMissingIds.map((id) => (
+                              <div key={id} className="flex items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                                <p className="text-[10px] font-medium text-amber-700">
+                                  Previously selected incident {id} is no longer available as resolved.
+                                </p>
+                                <button
+                                  onClick={() => handleBasisRemove(id)}
+                                  title={`Remove ${id}`}
+                                  aria-label={`Remove ${id}`}
+                                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-amber-500 transition hover:bg-rose-50 hover:text-rose-600"
+                                >
+                                  <X size={13} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </Field>
                       <Field label="Target Area / Zone" required>
                         <input

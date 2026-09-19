@@ -1,4 +1,4 @@
-import { type CheckpointPlan, DAY_LABELS, formatDay } from "./patrolShared";
+import { type CheckpointPlan, DAY_LABELS, formatDay, scheduleOccurrences } from "./patrolShared";
 
 export type PatrolFrequency = "one_time" | "daily" | "nightly" | "specific_days" | "date_range" | "custom";
 export type ShiftType = "day" | "night" | "graveyard";
@@ -64,6 +64,10 @@ export interface PatrolSchedule {
   id: string;
   code: string;
   planId: string;
+  /** Linked Operational Schedule id (patrol_schedules.id as text).
+   *  The Schedule section is driven by this existing backend record — it is
+   *  read-only here after creation and managed in Patrol Configuration. */
+  operationalScheduleId: string;
   startDate: string;
   endDate: string;
   startTime: string;
@@ -156,6 +160,7 @@ export function emptySchedule(plan?: CheckpointPlan): PatrolSchedule {
     id: "",
     code: "",
     planId: plan?.id ?? "",
+    operationalScheduleId: plan?.schedule?.id != null ? String(plan.schedule.id) : "",
     startDate: start,
     endDate: end,
     startTime,
@@ -292,6 +297,56 @@ export function suggestLeader(plan: CheckpointPlan, roster: RosterMember[]): Ros
 
 export type ValidationIssue = { level: "error" | "warn"; message: string };
 
+/** Members already taken by an existing *active* team (excluding `excludeTeamId`).
+ *  Used to disable those members when creating a new team. Deleting,
+ *  deactivating, or removing a member from their team frees them again. */
+export function activeTeamAssignedIds(teams: PatrolTeam[], excludeTeamId?: string): Set<string> {
+  const assigned = new Set<string>();
+  for (const t of teams) {
+    if (!t.isActive) continue;
+    if (excludeTeamId && t.id === excludeTeamId) continue;
+    if (t.leaderId) assigned.add(t.leaderId);
+    for (const id of t.memberIds ?? []) {
+      if (id) assigned.add(id);
+    }
+  }
+  return assigned;
+}
+
+/** Subset of `candidateIds` that conflict with another active team. */
+export function findActiveTeamConflicts(
+  teams: PatrolTeam[],
+  candidateIds: string[],
+  excludeTeamId?: string
+): string[] {
+  const assigned = activeTeamAssignedIds(teams, excludeTeamId);
+  return [...new Set(candidateIds.filter(Boolean))].filter((id) => assigned.has(id));
+}
+
+/** Frontend guard for Create/Update team: rejects already-assigned members and
+ *  in-payload duplicates so a manual submit cannot bypass the disabled UI. */
+export function validateNewTeamMembers(
+  teams: PatrolTeam[],
+  candidateIds: string[],
+  opts: { excludeTeamId?: string; roster?: RosterMember[] } = {}
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const ids = candidateIds.filter(Boolean);
+  const dupes = ids.filter((id, i) => ids.indexOf(id) !== i);
+  if ([...new Set(dupes)].length > 0) {
+    issues.push({ level: "error", message: "Duplicate members selected — each tanod can only appear once per team." });
+  }
+  const conflicts = findActiveTeamConflicts(teams, ids, opts.excludeTeamId);
+  if (conflicts.length > 0) {
+    const names = conflicts.map((id) => opts.roster?.find((r) => r.id === id)?.name ?? id);
+    issues.push({
+      level: "error",
+      message: `${names.join(", ")} ${conflicts.length === 1 ? "is" : "are"} already assigned to another active team.`,
+    });
+  }
+  return issues;
+}
+
 export function timesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string) {
   return aStart < bEnd && bStart < aEnd;
 }
@@ -313,6 +368,172 @@ export function assignedTanodIds(s: PatrolSchedule, team: PatrolTeam | undefined
   return team?.memberIds ?? [];
 }
 
+/* ---------------- Operational Schedule linkage ---------------- */
+// The Schedule section is driven by the existing Operational Schedule
+// (the patrol_schedules row owned by the approved checkpoint plan) instead
+// of a separate free-form schedule list.
+
+/** Operational Schedule id for a plan ("" when the backend has none). */
+export function operationalScheduleIdForPlan(plan?: CheckpointPlan): string {
+  return plan?.schedule?.id != null ? String(plan.schedule.id) : "";
+}
+
+/** Whether the plan carries a usable Operational Schedule from the backend. */
+export function isOperationalScheduleUsable(plan?: CheckpointPlan): boolean {
+  const s = plan?.schedule;
+  if (!s || s.id == null) return false;
+  if (!s.operationDate || !s.startTime || !s.endTime) return false;
+  const end = s.endDate?.trim() ? s.endDate.trim() : s.operationDate;
+  if (!end || end < s.operationDate) return false;
+  return true;
+}
+
+/** One-line summary of the Operational Schedule for selectors and read-only views. */
+export function operationalScheduleSummary(plan?: CheckpointPlan): string {
+  const s = plan?.schedule;
+  if (!s?.operationDate) return "No Operational Schedule";
+  const end = s.endDate?.trim() ? s.endDate.trim() : s.operationDate;
+  const recur =
+    s.recurring === "specific_days" && s.recurringDays.length
+      ? ` · ${s.recurringDays.join(", ")}`
+      : s.recurring === "daily"
+        ? " · Daily"
+        : "";
+  return `${s.operationDate}${end !== s.operationDate ? ` → ${end}` : ""} · ${s.startTime}–${s.endTime}${recur}`;
+}
+
+/** Patrol frequencies allowed under the Operational Schedule's recurrence. */
+export function allowedPatrolFrequencies(plan?: CheckpointPlan): PatrolFrequency[] {
+  const r = plan?.schedule?.recurring ?? "none";
+  if (r === "none") return ["one_time"];
+  if (r === "daily") return ["one_time", "daily", "nightly", "date_range", "specific_days"];
+  return ["one_time", "specific_days"];
+}
+
+function patrolTimeToMinutes(t: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec((t || "").trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h < 0 || h > 23 || min < 0 || min > 59) return null;
+  return h * 60 + min;
+}
+
+function patrolTimeWithin(t: string, windowStart: string, windowEnd: string): boolean {
+  const tm = patrolTimeToMinutes(t);
+  const sm = patrolTimeToMinutes(windowStart);
+  const em = patrolTimeToMinutes(windowEnd);
+  if (tm === null || sm === null || em === null || sm === em) return false;
+  const spans: Array<[number, number]> = em > sm ? [[sm, em]] : [[sm, 1440], [0, em]];
+  return spans.some(([a, b]) => a <= tm && tm <= b);
+}
+
+function patrolDateToWeekday(ds: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((ds || "").trim());
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (Number.isNaN(d.getTime())) return null;
+  return DAY_LABELS[d.getDay()];
+}
+
+/** Concrete patrol dates implied by the draft (capped, for containment checks). */
+export function patrolDatesOf(s: PatrolSchedule, limit = 370): string[] {
+  const end = s.endDate?.trim() ? s.endDate.trim() : s.startDate;
+  if (!s.startDate || !end || end < s.startDate) return [];
+  const out: string[] = [];
+  const startD = new Date(`${s.startDate}T00:00:00`);
+  const endD = new Date(`${end}T00:00:00`);
+  const total = Math.round((endD.getTime() - startD.getTime()) / 86400000);
+  if (Number.isNaN(total) || total < 0 || total > limit) return [];
+  if (s.frequency === "one_time" || s.frequency === "custom") return [s.startDate];
+  const want = new Set(s.frequency === "specific_days" ? s.frequencyDays : []);
+  for (let i = 0; i <= total; i += 1) {
+    const d = new Date(startD.getTime() + i * 86400000);
+    const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (s.frequency === "specific_days") {
+      const w = patrolDateToWeekday(ds);
+      if (w && want.has(w)) out.push(ds);
+    } else {
+      out.push(ds);
+    }
+  }
+  return out;
+}
+
+/** Link-level issues: missing, deleted, or invalid Operational Schedule.
+ *  These block even draft saves — containment below is enforced on activation. */
+export function operationalLinkIssues(s: PatrolSchedule, plan?: CheckpointPlan): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  if (!s.operationalScheduleId) {
+    issues.push({
+      level: "error",
+      message: "Select an existing Operational Schedule — a patrol schedule cannot be created without one.",
+    });
+    return issues;
+  }
+  if (!plan) {
+    issues.push({
+      level: "error",
+      message: "The linked checkpoint plan is no longer available — its Operational Schedule can no longer be used.",
+    });
+    return issues;
+  }
+  if (!isOperationalScheduleUsable(plan) || operationalScheduleIdForPlan(plan) !== s.operationalScheduleId) {
+    issues.push({
+      level: "error",
+      message:
+        "The linked Operational Schedule is no longer available — it was deleted or is invalid. Manage Operational Schedules in Patrol Configuration.",
+    });
+  }
+  return issues;
+}
+
+/** Window containment: patrol dates/times must stay inside the linked
+ *  Operational Schedule's range, and patrol dates must be valid recurring
+ *  dates generated by that schedule. */
+export function operationalWindowIssues(s: PatrolSchedule, plan?: CheckpointPlan): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  if (!s.operationalScheduleId || !plan || !isOperationalScheduleUsable(plan)) return issues;
+  if (operationalScheduleIdForPlan(plan) !== s.operationalScheduleId) return issues;
+  const op = plan.schedule;
+  const opEnd = op.endDate?.trim() ? op.endDate.trim() : op.operationDate;
+  if (s.frequency === "custom") {
+    issues.push({
+      level: "error",
+      message: "Custom cadence cannot be verified against the Operational Schedule — pick a listed frequency within its dates.",
+    });
+    return issues;
+  }
+  const end = s.endDate?.trim() ? s.endDate.trim() : s.startDate;
+  if (!s.startDate || end < s.startDate || s.startDate < op.operationDate || end > opEnd) {
+    issues.push({
+      level: "error",
+      message: `Patrol dates must stay inside the Operational Schedule range ${op.operationDate} → ${opEnd}.`,
+    });
+    return issues;
+  }
+  if (
+    !patrolTimeWithin(s.startTime, op.startTime, op.endTime) ||
+    !patrolTimeWithin(s.endTime, op.startTime, op.endTime)
+  ) {
+    issues.push({
+      level: "error",
+      message: `Patrol times must stay inside the Operational Schedule window ${op.startTime}–${op.endTime}.`,
+    });
+  }
+  const occurrences = new Set(scheduleOccurrences(op));
+  for (const ds of patrolDatesOf(s)) {
+    if (!occurrences.has(ds)) {
+      issues.push({
+        level: "error",
+        message: `Patrol date ${ds} is not a valid recurring date of the Operational Schedule.`,
+      });
+      break;
+    }
+  }
+  return issues;
+}
+
 export function validateSchedule(
   s: PatrolSchedule,
   plan: CheckpointPlan | undefined,
@@ -323,6 +544,8 @@ export function validateSchedule(
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   if (!s.planId) issues.push({ level: "error", message: "Select an approved checkpoint plan." });
+  issues.push(...operationalLinkIssues(s, plan));
+  issues.push(...operationalWindowIssues(s, plan));
   if (!s.startDate) issues.push({ level: "error", message: "Start date is required." });
   if (!s.startTime || !s.endTime) issues.push({ level: "error", message: "Start and end times are required." });
   if (s.frequency === "specific_days" && s.frequencyDays.length === 0) {

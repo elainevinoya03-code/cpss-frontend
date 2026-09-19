@@ -33,6 +33,7 @@ export interface DrawableRoute {
 }
 
 export interface ScheduleForm {
+  id?: number | null;
   operationDate: string;
   endDate: string;
   startTime: string;
@@ -964,6 +965,10 @@ export function validateStep(step: number, d: CheckpointPlan): string[] {
     if (!d.purpose.trim()) errs.push("Purpose is required.");
     if (!d.objective.trim()) errs.push("Objective is required.");
     if (!d.targetArea.trim()) errs.push("Target area / zone is required.");
+    if (!d.linkedIncidentIds || d.linkedIncidentIds.length === 0)
+      errs.push("Reason / Basis is required — select at least one resolved incident.");
+    else if (new Set(d.linkedIncidentIds).size !== d.linkedIncidentIds.length)
+      errs.push("Reason / Basis contains a duplicate incident — each incident may only be selected once.");
   }
   if (step === 2) {
     if (d.points.length === 0) errs.push("Set at least one location on the map.");
@@ -977,8 +982,10 @@ export function validateStep(step: number, d: CheckpointPlan): string[] {
   }
   if (step === 6) {
     errs.push(...validateStep(1, d), ...validateStep(2, d), ...validateStep(4, d));
-    const hasBasis = d.rationale.trim().length > 0 || d.linkedIncidentIds.length > 0 || d.remarks.trim().length > 0;
-    if (!hasBasis) errs.push("Add at least one basis (rationale, linked incident, or justification).");
+    const hasBasis = d.linkedIncidentIds.length > 0 || d.rationale.trim().length > 0 || d.remarks.trim().length > 0;
+    if (!hasBasis) errs.push("Add at least one basis (resolved incident, rationale, or justification).");
+    else if (d.linkedIncidentIds.length === 0)
+      errs.push("Reason / Basis must be resolved incidents — select at least one from the dropdown.");
   }
   return errs;
 }

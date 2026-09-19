@@ -33,6 +33,7 @@ export interface CpRoute {
 }
 
 export interface ScheduleForm {
+  id?: number | null;
   operationDate: string;
   endDate: string;
   startTime: string;

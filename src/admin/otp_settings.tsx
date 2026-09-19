@@ -149,6 +149,7 @@ const OtpSettings = forwardRef<OtpSettingsHandle, Props>(function OtpSettings(
   const [form, setForm] = useState<OtpSettingsSnapshot>(DEFAULT_FORM);
   const [gmailAppPassword, setGmailAppPassword] = useState("");
   const [passwordDirty, setPasswordDirty] = useState(false);
+  const [formDirty, setFormDirty] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [testStatus, setTestStatus] = useState<{ ok: boolean; message: string } | null>(null);
 
@@ -161,6 +162,7 @@ const OtpSettings = forwardRef<OtpSettingsHandle, Props>(function OtpSettings(
       });
       setGmailAppPassword("");
       setPasswordDirty(false);
+      setFormDirty(false);
     } catch (err) {
       flash(err instanceof Error ? err.message : "Failed to load OTP settings", { type: "error" });
     } finally {
@@ -177,6 +179,7 @@ const OtpSettings = forwardRef<OtpSettingsHandle, Props>(function OtpSettings(
   function update<K extends keyof OtpSettingsSnapshot>(patch: Pick<OtpSettingsSnapshot, K>) {
     setForm((prev) => ({ ...prev, ...patch }));
     setTestStatus(null);
+    setFormDirty(true);
     markDirty();
   }
 
@@ -212,6 +215,7 @@ const OtpSettings = forwardRef<OtpSettingsHandle, Props>(function OtpSettings(
       setForm((prev) => ({ ...prev, gmailPasswordSet: saved.gmailPasswordSet }));
       setGmailAppPassword("");
       setPasswordDirty(false);
+      setFormDirty(false);
       onDirtyChange(false);
       flash("OTP settings saved", { type: "success" });
       return true;
@@ -235,6 +239,18 @@ const OtpSettings = forwardRef<OtpSettingsHandle, Props>(function OtpSettings(
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(recipient)) {
       setTestStatus({ ok: false, message: "Please enter a valid test recipient email address." });
       return;
+    }
+    // The test endpoint sends through the SAVED Gmail configuration.
+    // Auto-save unsaved changes first so the test reflects what's on screen.
+    if (passwordDirty || formDirty || !form.gmailPasswordSet) {
+      const saved = await saveSettings();
+      if (!saved) {
+        setTestStatus({
+          ok: false,
+          message: "Please save the Gmail configuration first, then send the test OTP.",
+        });
+        return;
+      }
     }
     setTesting(true);
     try {
@@ -262,7 +278,11 @@ const OtpSettings = forwardRef<OtpSettingsHandle, Props>(function OtpSettings(
           message: data.message + expiresText,
         });
       } else {
-        setTestStatus({ ok: false, message: data.message || "Failed to send the test OTP." });
+        const base = data.message || "Failed to send the test OTP.";
+        const hint = base.includes("could not be sent")
+          ? `${base} Verify the Gmail address, App Password (16-character Google App Password, not the account password), and that 2-Step Verification is on.`
+          : base;
+        setTestStatus({ ok: false, message: hint });
       }
     } catch (err) {
       setTestStatus({
@@ -417,8 +437,8 @@ const OtpSettings = forwardRef<OtpSettingsHandle, Props>(function OtpSettings(
           label="Gmail App Password"
           hint={
             form.gmailPasswordSet
-              ? "A password is configured. Leave blank to keep it, or type a new one to replace it."
-              : "16-character Google App Password for the sender account"
+              ? "A password is configured. Leave blank to keep it, or type a new one to replace it. Spaces are removed automatically."
+              : "16-character Google App Password for the sender account (spaces are removed automatically)"
           }
         >
           <div className="relative">
