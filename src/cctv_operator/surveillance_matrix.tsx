@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { useAlertSound } from "../hooks/useAlertSound";
+import Hls from "hls.js";
 import { formatTime } from "../utils/format";
 import { ConfirmModal, Modal } from "../components/ui";
 import { refreshIncidents } from "../desk_officer/incidentStore";
@@ -471,26 +472,19 @@ function HlsVideo({ src, retryKey, onLive, onError }: { src: string; retryKey: n
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = src;
       video.play().catch(() => {});
+    } else if (Hls.isSupported()) {
+      const instance = new Hls({ maxBufferLength: 30, liveSyncDurationCount: 3 });
+      hls = instance;
+      instance.on(Hls.Events.ERROR, (_e, data) => {
+        if (data?.fatal) handleError();
+      });
+      instance.loadSource(src);
+      instance.attachMedia(video);
+      video.play().catch(() => {});
     } else {
-      import("hls.js")
-        .then(({ default: Hls }) => {
-          if (cancelled || !videoRef.current) return;
-          if (Hls.isSupported()) {
-            const instance = new Hls({ maxBufferLength: 30, liveSyncDurationCount: 3 });
-            hls = instance;
-            instance.on(Hls.Events.ERROR, (_e, data) => {
-              if (data?.fatal) handleError();
-            });
-            instance.loadSource(src);
-            instance.attachMedia(video);
-            video.play().catch(() => {});
-          } else {
-            // Last resort: let the browser try the URL directly.
-            video.src = src;
-            video.play().catch(() => {});
-          }
-        })
-        .catch(handleError);
+      // Last resort: let the browser try the URL directly.
+      video.src = src;
+      video.play().catch(() => {});
     }
     return () => {
       cancelled = true;
