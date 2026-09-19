@@ -109,33 +109,42 @@ interface CameraFault {
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 function alternateApiBase() {
+  // Only relevant for local dev where the backend may run on 8000 or 8080.
+  // In production (https backend) there is no alternate port — return "" so
+  // callers skip the fallback instead of doubling every failed request.
+  if (!/^http:\/\/(localhost|127\.0\.0\.1)/.test(API_BASE)) return "";
   return API_BASE.includes("8080")
     ? API_BASE.replace("8080", "8000")
     : API_BASE.replace("8000", "8080");
 }
 
 async function cctvFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const hasBody = options?.body !== undefined && options?.body !== null;
   const doFetch = (base: string) =>
     fetch(`${base}${path}`, {
       ...options,
       headers: {
-        "Content-Type": "application/json",
+        // Only send Content-Type when there is a body. Sending it on GET
+        // forces an unnecessary CORS preflight (OPTIONS) on every poll.
+        ...(hasBody ? { "Content-Type": "application/json" } : {}),
         ...(options?.headers || {}),
       },
     });
+  const altBase = alternateApiBase();
   let res: Response;
   try {
     res = await doFetch(API_BASE);
-    if (!res.ok) {
+    if (!res.ok && altBase) {
       try {
-        const alt = await doFetch(alternateApiBase());
+        const alt = await doFetch(altBase);
         if (alt.ok) res = alt;
       } catch {
         // Keep the original response if the alternate backend is unreachable.
       }
     }
   } catch {
-    res = await doFetch(alternateApiBase());
+    if (!altBase) throw new Error("Request failed (network error)");
+    res = await doFetch(altBase);
   }
   if (!res.ok) {
     let detail = `Request failed (${res.status})`;
