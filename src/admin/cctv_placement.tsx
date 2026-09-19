@@ -1059,20 +1059,25 @@ export default function CctvPlacement() {
         // previously saved but incorrect registration — stops being displayed.
         const pending = rows.filter((r) => r && String(r.status ?? "") === "pending");
         const verified = rows.filter((r) => r && String(r.status ?? "") !== "pending");
-        const pendingIds = new Set(pending.map((r) => String(r.id ?? "")));
         const nextPending = pending.map(fromApiCamera);
         const nextCameras = verified.map(fromApiCamera);
 
         setPendingRegistrations((prev) => (sameCameras(prev, nextPending) ? prev : nextPending));
         setCameras((prev) => (sameCameras(prev, nextCameras) ? prev : nextCameras));
 
-        // Drop raw credentials cached from earlier registrations that are no
-        // longer awaiting verification, so stale data is never reused.
+        // Retain raw credentials for known cameras (pending AND verified) so a
+        // previously registered CCTV can still authenticate a reconnect probe
+        // after a temporary power loss. Only drop credentials for cameras that
+        // no longer exist in the database.
+        const knownIds = new Set([
+          ...pending.map((r) => String(r.id ?? "")),
+          ...verified.map((r) => String(r.id ?? "")),
+        ]);
         setPendingCredentials((prev) => {
           let pruned = false;
           const next: Record<string, { user: string; pass: string }> = {};
           Object.keys(prev).forEach((id) => {
-            if (pendingIds.has(id)) next[id] = prev[id];
+            if (knownIds.has(id)) next[id] = prev[id];
             else pruned = true;
           });
           return pruned ? next : prev;
@@ -1363,6 +1368,10 @@ export default function CctvPlacement() {
     setTestingId(cam.id);
     setTestResult(null);
     void (async () => {
+      // Re-check the camera's CURRENT reachability on every Test Connection
+      // click. A previous offline result is never treated as permanent — the
+      // endpoint is always probed live so Registered → Online → Offline →
+      // Online reconnects succeed when the CCTV is powered back on.
       const previous: CameraStatus = cam.status;
 
       // Real connectivity probe against the camera endpoint. A successful
@@ -1376,6 +1385,7 @@ export default function CctvPlacement() {
       let response = false;
       try {
         const diagPayload: Record<string, string> = {
+          camera_id: cam.id,
           ip: cam.ip,
           port: cam.port,
           stream_path: cam.streamPath,
@@ -1385,6 +1395,11 @@ export default function CctvPlacement() {
         if (pendingCred) {
           diagPayload.username = pendingCred.user;
           diagPayload.password = pendingCred.pass;
+        } else if (cam.credUser && !cam.credUser.includes("•") && cam.credUser !== "—") {
+          // Verified cameras no longer expose the raw password client-side.
+          // Send the known username + camera_id so the backend can apply its
+          // reconnect rule (previously-verified + TCP-reachable ⇒ Connected).
+          diagPayload.username = cam.credUser;
         }
         const diag = (await cctvFetch("/api/cctv/cameras/diagnose", {
           method: "POST",
@@ -1415,6 +1430,9 @@ export default function CctvPlacement() {
       }
 
       const timestamp = now();
+      // Offline is always temporary: a Failed test marks the camera Offline
+      // but preserves lastSuccessful, and the next Passed test flips
+      // Offline → Online (Registered → Connected → Offline → Connected).
       const resulting: CameraStatus = success
         ? "online"
         : previous === "pending"
@@ -1447,11 +1465,9 @@ export default function CctvPlacement() {
             testHistory: [record, ...cam.testHistory].slice(0, 10),
           };
           setPendingRegistrations((prev) => prev.filter((r) => r.id !== cam.id));
-          setPendingCredentials((prev) => {
-            const next = { ...prev };
-            delete next[cam.id];
-            return next;
-          });
+          // Keep the raw credentials cached so later Test Connection clicks
+          // can still authenticate a reconnect after a temporary power loss.
+          // They are only dropped when the camera itself is removed.
           setCameras((prev) => [...prev, admitted]);
           void (async () => {
             try {
