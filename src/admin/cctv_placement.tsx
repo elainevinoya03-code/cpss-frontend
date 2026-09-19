@@ -836,6 +836,23 @@ function fromApiCamera(row: any): Camera {
   };
 }
 
+// True when two camera lists carry the same identity/status/liveness so a
+// background sync never forces a re-render (and map redraw) for no change.
+function sameCameras(a: Camera[], b: Camera[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (
+      a[i].id !== b[i].id ||
+      a[i].status !== b[i].status ||
+      a[i].enabled !== b[i].enabled ||
+      a[i].lastHeartbeat !== b[i].lastHeartbeat
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function toApiPayload(c: Camera): Record<string, unknown> {
   return {
     name: c.name,
@@ -1025,12 +1042,14 @@ export default function CctvPlacement() {
 
   useEffect(() => subscribeCctvStorage(() => setStorage(getCctvStorageConfig())), []);
 
-  // Load registered cameras from the backend. Cameras that are still awaiting
-  // connectivity verification (status "pending") are restored to the Pending
-  // Verification list; only verified inventory rows go straight to the table.
+  // Load registered cameras from the backend, then keep syncing so automatic
+  // backend reconnect/offline flips appear live. Cameras that are still
+  // awaiting connectivity verification (status "pending") are restored to the
+  // Pending Verification list; only verified inventory rows go to the table.
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+
+    const loadCameras = async () => {
       try {
         const rows: any[] = await cctvFetch("/api/cctv/cameras");
         if (cancelled || !Array.isArray(rows)) return;
@@ -1041,25 +1060,35 @@ export default function CctvPlacement() {
         const pending = rows.filter((r) => r && String(r.status ?? "") === "pending");
         const verified = rows.filter((r) => r && String(r.status ?? "") !== "pending");
         const pendingIds = new Set(pending.map((r) => String(r.id ?? "")));
+        const nextPending = pending.map(fromApiCamera);
+        const nextCameras = verified.map(fromApiCamera);
 
-        setPendingRegistrations(pending.map(fromApiCamera));
-        setCameras(verified.map(fromApiCamera));
+        setPendingRegistrations((prev) => (sameCameras(prev, nextPending) ? prev : nextPending));
+        setCameras((prev) => (sameCameras(prev, nextCameras) ? prev : nextCameras));
 
         // Drop raw credentials cached from earlier registrations that are no
         // longer awaiting verification, so stale data is never reused.
         setPendingCredentials((prev) => {
+          let pruned = false;
           const next: Record<string, { user: string; pass: string }> = {};
           Object.keys(prev).forEach((id) => {
             if (pendingIds.has(id)) next[id] = prev[id];
+            else pruned = true;
           });
-          return next;
+          return pruned ? next : prev;
         });
       } catch {
         // Backend unreachable — keep the last known state.
       }
-    })();
+    };
+
+    void loadCameras();
+    const timer = window.setInterval(loadCameras, 15000);
+    window.addEventListener("focus", loadCameras);
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
+      window.removeEventListener("focus", loadCameras);
     };
   }, []);
 
