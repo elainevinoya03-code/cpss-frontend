@@ -1476,10 +1476,12 @@ export default function CctvPlacement() {
                 }),
               });
             } catch {
-              // Registration save failed earlier — persist the camera now.
-              await cctvFetch("/api/cctv/cameras", {
-                method: "POST",
-                body: JSON.stringify({ id: admitted.id, ...toApiPayload(admitted) }),
+              // The camera row already exists from registration — persist the
+              // verified status directly so a poll never drags it back to the
+              // Pending Verification list.
+              await cctvFetch(`/api/cctv/cameras/${encodeURIComponent(admitted.id)}`, {
+                method: "PUT",
+                body: JSON.stringify(toApiPayload({ ...admitted, status: "online" })),
               }).catch(() => {});
             }
           })();
@@ -1550,6 +1552,24 @@ export default function CctvPlacement() {
                 : r,
             ),
           );
+          void cctvFetch(`/api/cctv/cameras/${encodeURIComponent(cam.id)}/tests`, {
+            method: "POST",
+            body: JSON.stringify({
+              timestamp: record.timestamp,
+              result: record.result,
+              reason: record.reason,
+              latency: record.latency,
+              resulting_status: record.resultingStatus,
+              new_status: resulting,
+              last_tested: timestamp,
+              new_latency: "—",
+              last_heartbeat: cam.lastHeartbeat,
+              last_successful: cam.lastSuccessful,
+              last_failed: timestamp,
+              uptime: cam.uptime,
+              maintenance_status: "OK",
+            }),
+          }).catch(() => {});
         } else {
           setCameras((prev) =>
             prev.map((c) =>
