@@ -1802,18 +1802,14 @@ export default function CctvPlacement() {
         message: `${id} disabled. It will not appear as Online and remains dimmed until re-enabled.`,
       });
     } else {
-      setCameras((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, enabled: true, status: "pending" } : c)),
-      );
+      const reEnabled: Camera = { ...cam, enabled: true, status: "pending" };
+      setCameras((prev) => prev.map((c) => (c.id === id ? reEnabled : c)));
       void cctvFetch(`/api/cctv/cameras/${encodeURIComponent(id)}/toggle`, {
         method: "PATCH",
         body: JSON.stringify({ enabled: true, status: "pending" }),
       }).catch(() => {});
-      pushAuditLog("Camera Enabled", `Camera ${id} re-enabled — must pass a connection test before returning to Online`);
-      setModalMessage({
-        title: "Camera Enabled",
-        message: `${id} re-enabled in a Pending state. Run a connection test to bring it Online.`,
-      });
+      pushAuditLog("Camera Enabled", `Camera ${id} re-enabled — connection test running automatically to bring it back Online`);
+      testConnection(reEnabled);
     }
   }
 
