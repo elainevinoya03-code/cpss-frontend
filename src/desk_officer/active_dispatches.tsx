@@ -193,7 +193,7 @@ export default function ActiveDispatches() {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         {/* Header */}
         <header className="mb-6 border-b border-stone-200 pb-5">
@@ -214,7 +214,7 @@ export default function ActiveDispatches() {
               </span>
               <button
                 onClick={assignNext}
-                className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
               >
                 <Send size={13} /> Assign Next
               </button>
@@ -239,7 +239,7 @@ export default function ActiveDispatches() {
                       key={t}
                       onClick={() => setTab(t)}
                       className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition ${
-                        tab === t ? "bg-white text-[#0038A8] shadow-sm" : "text-stone-500 hover:text-stone-700"
+                        tab === t ? "bg-white text-[#15803D] shadow-sm" : "text-stone-500 hover:text-stone-700"
                       }`}
                     >
                       {label}
@@ -275,7 +275,7 @@ export default function ActiveDispatches() {
                   const cctv = cctvStatus(inc);
                   const assignedUnit = dispatch ? getTanods().find((t) => t.name === dispatch.team) : undefined;
                   return (
-                    <article key={inc.id} className={`px-5 py-4 transition hover:bg-[#E9EDFB]/30 ${isEmergency ? "bg-rose-50/50" : ""}`}>
+                    <article key={inc.id} className={`px-5 py-4 transition hover:bg-[#DCFCE7]/30 ${isEmergency ? "bg-rose-50/50" : ""}`}>
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${cat.bg} ${cat.text}`}>
@@ -321,7 +321,7 @@ export default function ActiveDispatches() {
                         {!dispatch ? (
                           <button
                             onClick={() => setAssignIncident(inc)}
-                            className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                            className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
                           >
                             <Send size={12} /> Assign Unit
                           </button>
@@ -365,7 +365,7 @@ export default function ActiveDispatches() {
           <section className="rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="border-b border-stone-100 px-5 py-4">
               <h2 className="flex items-center gap-1.5 text-[14px] font-semibold text-[#334155]">
-                <Navigation size={14} className="text-[#0038A8]" /> Live GPS Tracking
+                <Navigation size={14} className="text-[#15803D]" /> Live GPS Tracking
               </h2>
               <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[9px] font-medium text-stone-500">
                 <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Available</span>
@@ -399,8 +399,8 @@ export default function ActiveDispatches() {
                   const dispatch = dispatchFor(inc);
                   return (
                     <g key={inc.id} transform={`translate(${pos.x + 26}, ${pos.y - 6})`} className="cursor-pointer" onClick={() => openDetail(inc)}>
-                      <circle r="11" fill={isEmergency ? "#f43f5e" : dispatch ? "#f59e0b" : "#0038A8"} fillOpacity="0.18" />
-                      <circle r="5" fill={isEmergency ? "#f43f5e" : dispatch ? "#f59e0b" : "#0038A8"} stroke="#fff" strokeWidth="1.5" />
+                      <circle r="11" fill={isEmergency ? "#f43f5e" : dispatch ? "#f59e0b" : "#15803D"} fillOpacity="0.18" />
+                      <circle r="5" fill={isEmergency ? "#f43f5e" : dispatch ? "#f59e0b" : "#15803D"} stroke="#fff" strokeWidth="1.5" />
                     </g>
                   );
                 })}
@@ -464,7 +464,7 @@ export default function ActiveDispatches() {
                   const meta = TANOD_STATUS_META[t.status];
                   const incident = t.incidentId ? incidents.find((i) => i.id === t.incidentId) : undefined;
                   return (
-                    <tr key={t.id} className="hover:bg-[#E9EDFB]/30">
+                    <tr key={t.id} className="hover:bg-[#DCFCE7]/30">
                       <td className="px-5 py-3">
                         <p className="font-semibold text-stone-900">{t.name}</p>
                         <p className="text-[9px] text-stone-400">{t.members} members · {t.purok || "Unassigned"}</p>
@@ -476,7 +476,7 @@ export default function ActiveDispatches() {
                       </td>
                       <td className="px-3 py-3">
                         {incident ? (
-                          <span className="font-mono text-[11px] font-semibold text-[#0038A8]">{incident.id}</span>
+                          <span className="font-mono text-[11px] font-semibold text-[#15803D]">{incident.id}</span>
                         ) : (
                           <span className="text-stone-400">--</span>
                         )}
@@ -490,7 +490,7 @@ export default function ActiveDispatches() {
                                 if (!inc) { flash("No pending unassigned incident to assign.", { title: "Queue Empty" }); return; }
                                 setAssignIncident(inc);
                               }}
-                              className="flex items-center gap-1 rounded-lg border border-[#0038A8]/30 bg-[#E9EDFB] px-2.5 py-1 text-[10px] font-semibold text-[#0038A8] transition hover:bg-[#dfe6fa]"
+                              className="flex items-center gap-1 rounded-lg border border-[#15803D]/30 bg-[#DCFCE7] px-2.5 py-1 text-[10px] font-semibold text-[#15803D] transition hover:bg-[#dfe6fa]"
                             >
                               <Send size={11} /> Assign Incident
                             </button>
@@ -596,7 +596,7 @@ interface TimelineEntry {
 const KIND_DOT: Record<TimelineKind, string> = {
   submitted: "bg-stone-400",
   acknowledged: "bg-amber-400",
-  assigned: "bg-[#0038A8]",
+  assigned: "bg-[#15803D]",
   status: "bg-sky-400",
   cctv: "bg-violet-400",
   referred: "bg-rose-500",
@@ -697,7 +697,7 @@ function IncidentDetailDrawer({
       title={`Incident Detail — ${incident.id}`}
       subtitle={incident.category}
       icon={<MapPin size={18} />}
-      iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+      iconClass="bg-[#15803D]/10 text-[#15803D]"
     >
       {/* Summary header */}
       <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
@@ -735,8 +735,8 @@ function IncidentDetailDrawer({
       </div>
 
       {/* Source description */}
-      <div className="mt-3 flex items-start gap-2 rounded-lg border border-stone-100 bg-[#E9EDFB]/40 px-3 py-2.5">
-        <Info size={12} className="mt-0.5 shrink-0 text-[#0038A8]" />
+      <div className="mt-3 flex items-start gap-2 rounded-lg border border-stone-100 bg-[#DCFCE7]/40 px-3 py-2.5">
+        <Info size={12} className="mt-0.5 shrink-0 text-[#15803D]" />
         <p className="text-[11px] leading-relaxed text-stone-600">{SOURCE_META[incident.source].desc}</p>
       </div>
 
@@ -789,7 +789,7 @@ function IncidentDetailDrawer({
 
       {/* Footer actions */}
       <div className="mt-5 grid grid-cols-2 gap-2">
-        <button onClick={onAssign} className="flex items-center justify-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-2.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]">
+        <button onClick={onAssign} className="flex items-center justify-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-2.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]">
           <Send size={13} /> Assign Responder
         </button>
         <button onClick={onCctv} className="flex items-center justify-center gap-1.5 rounded-lg border border-violet-200 bg-white px-3 py-2.5 text-[11px] font-semibold text-violet-700 transition hover:bg-violet-50">
@@ -922,7 +922,7 @@ function AssignModal({ incident, onClose }: { incident: Incident; onClose: () =>
       title="Dispatch & Assignment"
       subtitle={`${incident.id} · ${incident.purok} · ${urgencyOf(incident)} urgency`}
       icon={<Send size={18} />}
-      iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+      iconClass="bg-[#15803D]/10 text-[#15803D]"
       size="lg"
       footer={
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
@@ -932,7 +932,7 @@ function AssignModal({ incident, onClose }: { incident: Incident; onClose: () =>
           <button
             onClick={() => setConfirmOpen(true)}
             disabled={selected.size === 0}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-40"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534] disabled:opacity-40"
           >
             <Send size={13} /> Confirm &amp; Dispatch
           </button>
@@ -967,11 +967,11 @@ function AssignModal({ incident, onClose }: { incident: Incident; onClose: () =>
                 key={u.id}
                 onClick={() => toggle(u.id)}
                 className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-left transition ${
-                  active ? "border-[#0038A8]/40 bg-[#E9EDFB] text-[#0038A8]" : "border-stone-200 bg-white text-stone-600 hover:bg-stone-50"
+                  active ? "border-[#15803D]/40 bg-[#DCFCE7] text-[#15803D]" : "border-stone-200 bg-white text-stone-600 hover:bg-stone-50"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  {active ? <CheckCircle2 size={16} className="text-[#0038A8]" /> : <span className="h-4 w-4 rounded-full border border-stone-300" />}
+                  {active ? <CheckCircle2 size={16} className="text-[#15803D]" /> : <span className="h-4 w-4 rounded-full border border-stone-300" />}
                   <div>
                     <p className="text-[12px] font-semibold">{u.name}</p>
                     <p className="text-[9px] text-stone-400">{u.members} members · {u.purok || "Unassigned"}</p>
@@ -994,7 +994,7 @@ function AssignModal({ incident, onClose }: { incident: Incident; onClose: () =>
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           placeholder="e.g. Approach from North entry; verify identities before engaging."
-          className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+          className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
         />
       </div>
 
@@ -1449,10 +1449,10 @@ function DirectMessageModal({ unit, onClose }: { unit: Tanod; onClose: () => voi
       title={`Direct Message — ${unit.name}`}
       subtitle="One-to-one operations message to a field unit"
       icon={<MessageSquare size={18} />}
-      iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+      iconClass="bg-[#15803D]/10 text-[#15803D]"
       size="sm"
       footer={
-        <button onClick={send} disabled={!msg.trim()} className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-40">
+        <button onClick={send} disabled={!msg.trim()} className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534] disabled:opacity-40">
           <Send size={13} /> Send Message
         </button>
       }
@@ -1460,7 +1460,7 @@ function DirectMessageModal({ unit, onClose }: { unit: Tanod; onClose: () => voi
       <div className="rounded-lg border border-stone-100 bg-stone-50 px-3 py-2 text-[11px] text-stone-600">
         {unit.name} · {TANOD_STATUS_META[unit.status].label} · {unit.purok || "—"} · {unit.assignment || "No active task"}
       </div>
-      <textarea value={msg} onChange={(e) => setMsg(e.target.value)} rows={3} placeholder="Type your direct message…" className="mt-3 w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10" />
+      <textarea value={msg} onChange={(e) => setMsg(e.target.value)} rows={3} placeholder="Type your direct message…" className="mt-3 w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10" />
     </Modal>
   );
 }

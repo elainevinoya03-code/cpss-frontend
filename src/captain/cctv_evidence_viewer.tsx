@@ -113,7 +113,7 @@ function PlaybackStation({ clip, onClose }: { clip: (typeof MOCK_CLIPS)[number] 
     <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
       <div className="flex items-center justify-between border-b border-stone-200 px-5 py-4">
         <div className="flex items-center gap-2">
-          <Video size={16} className="text-[#0038A8]" />
+          <Video size={16} className="text-[#15803D]" />
           <div>
             <h3 className="text-[14px] font-semibold text-stone-900">Evidence Playback</h3>
             <p className="text-[11px] text-stone-400">Read-only viewer â€” clips are authored by the CCTV Operator</p>
@@ -140,7 +140,7 @@ function PlaybackStation({ clip, onClose }: { clip: (typeof MOCK_CLIPS)[number] 
             ) : (
               <button
                 onClick={() => setPlaying(true)}
-                className="flex h-16 w-16 items-center justify-center rounded-full bg-[#0038A8] text-white shadow-lg transition hover:bg-[#002A8C]"
+                className="flex h-16 w-16 items-center justify-center rounded-full bg-[#15803D] text-white shadow-lg transition hover:bg-[#166534]"
                 aria-label="Play clip"
               >
                 <Play size={24} className="ml-1" />
@@ -160,7 +160,7 @@ function PlaybackStation({ clip, onClose }: { clip: (typeof MOCK_CLIPS)[number] 
               max={clip.duration}
               value={progress}
               onChange={(e) => setProgress(Number(e.target.value))}
-              className="w-full cursor-pointer accent-[#0038A8]"
+              className="w-full cursor-pointer accent-[#15803D]"
               aria-label="Seek"
             />
           </div>
@@ -206,7 +206,7 @@ function PlaybackStation({ clip, onClose }: { clip: (typeof MOCK_CLIPS)[number] 
           <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
             <p className="text-[9px] font-medium tracking-wider text-stone-400">PUROK</p>
             <p className="mt-0.5 flex items-center gap-1 text-[12px] font-medium text-stone-900">
-              <MapPin size={11} className="text-[#0038A8]" />
+              <MapPin size={11} className="text-[#15803D]" />
               {clip.purok}
             </p>
           </div>
@@ -219,8 +219,8 @@ function PlaybackStation({ clip, onClose }: { clip: (typeof MOCK_CLIPS)[number] 
         </div>
 
         {clip.incidentId && incidentTitle && (
-          <div className="rounded-lg border border-stone-200 bg-[#0038A8]/5 px-4 py-3">
-            <p className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wider text-[#0038A8]">
+          <div className="rounded-lg border border-stone-200 bg-[#15803D]/5 px-4 py-3">
+            <p className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wider text-[#15803D]">
               <FileText size={11} />
               LINKED INCIDENT
             </p>
@@ -295,7 +295,7 @@ export default function CCTVEvidenceViewer() {
   ];
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <div className="flex items-center justify-between">
@@ -306,7 +306,7 @@ export default function CCTVEvidenceViewer() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-2 text-[12px] font-bold tracking-widest text-white">
+              <span className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-4 py-2 text-[12px] font-bold tracking-widest text-white">
                 <Lock size={13} />
                 READ-ONLY
               </span>
@@ -323,11 +323,11 @@ export default function CCTVEvidenceViewer() {
             <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-medium tracking-wider text-stone-400">{label}</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                   <Icon size={15} />
                 </div>
               </div>
-              <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+              <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
               <div className="mt-1 text-[11px] text-stone-400">{sub}</div>
             </div>
           ))}
@@ -341,7 +341,7 @@ export default function CCTVEvidenceViewer() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search clip / incident / camera / operator..."
-              className="w-64 rounded-lg border border-black/10 bg-white py-1.5 pl-8 pr-3 text-[11px] text-stone-700 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+              className="w-64 rounded-lg border border-black/10 bg-white py-1.5 pl-8 pr-3 text-[11px] text-stone-700 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-300 hover:text-stone-500">
@@ -356,7 +356,7 @@ export default function CCTVEvidenceViewer() {
                 key={opt.key}
                 onClick={() => setTypeFilter(opt.key)}
                 className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${
-                  typeFilter === opt.key ? "bg-[#0038A8] text-white" : "text-stone-500 hover:bg-stone-100"
+                  typeFilter === opt.key ? "bg-[#15803D] text-white" : "text-stone-500 hover:bg-stone-100"
                 }`}
               >
                 {opt.label}
@@ -380,7 +380,7 @@ export default function CCTVEvidenceViewer() {
                     key={opt.key}
                     onClick={() => { setPrivacyFilter(opt.key); setFilterOpen(false); }}
                     className={`block w-full rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition ${
-                      privacyFilter === opt.key ? "bg-[#0038A8] text-white" : "text-stone-600 hover:bg-stone-100"
+                      privacyFilter === opt.key ? "bg-[#15803D] text-white" : "text-stone-600 hover:bg-stone-100"
                     }`}
                   >
                     {opt.label}
@@ -403,7 +403,7 @@ export default function CCTVEvidenceViewer() {
           <div className="xl:col-span-2 flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-stone-200 px-5 py-4">
               <div className="flex items-center gap-2">
-                <Camera size={16} className="text-[#0038A8]" />
+                <Camera size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-stone-900">Evidence Clips</h3>
                   <p className="text-[11px] text-stone-400">{filtered.length} clip{filtered.length !== 1 ? "s" : ""}</p>
@@ -426,7 +426,7 @@ export default function CCTVEvidenceViewer() {
                       onClick={() => setSelectedClip(clip)}
                       className={`cursor-pointer px-5 py-3 transition hover:bg-stone-50/80 ${
                         i < filtered.length - 1 ? "border-b border-black/5" : ""
-                      } ${selectedClip?.id === clip.id ? "bg-[#0038A8]/5" : ""}`}
+                      } ${selectedClip?.id === clip.id ? "bg-[#15803D]/5" : ""}`}
                     >
                       <div className="flex items-start gap-3">
                         <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${TAG_TYPE_BADGE[clip.tagType] ?? "bg-stone-100 text-stone-500"}`}>

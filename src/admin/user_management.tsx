@@ -23,7 +23,7 @@ function needsPurokFor(role: string) {
 const ROLE_STYLES: Record<string, string> = {
   Captain: "bg-stone-200 text-stone-700",
   "Desk Officer": "bg-orange-100 text-orange-700",
-  "CCTV Operator": "bg-blue-100 text-blue-700",
+  "CCTV Operator": "bg-green-100 text-green-700",
   "Chief Tanod": "bg-emerald-100 text-emerald-700",
   Tanod: "bg-teal-100 text-teal-700",
   "Purok Leader": "bg-violet-100 text-violet-700",
@@ -349,7 +349,7 @@ export default function UserManagement() {
   const needsPurok = needsPurokFor(form.role);
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-6 py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <h1 className="text-2xl font-bold text-stone-900">User Account Management</h1>
@@ -380,12 +380,12 @@ export default function UserManagement() {
                     setPage(1);
                   }}
                   placeholder="Search users..."
-                  className="w-full sm:w-56 rounded-md border border-stone-200 py-2 pl-9 pr-3 text-sm text-stone-700 outline-none placeholder:text-stone-400 focus:border-[#0038A8] focus:ring-1 focus:ring-[#0038A8]"
+                  className="w-full sm:w-56 rounded-md border border-stone-200 py-2 pl-9 pr-3 text-sm text-stone-700 outline-none placeholder:text-stone-400 focus:border-[#15803D] focus:ring-1 focus:ring-[#15803D]"
                 />
               </div>
               <button
                 onClick={openCreate}
-                className="flex items-center gap-1.5 rounded-md bg-[#0038A8] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#002A8C]"
+                className="flex items-center gap-1.5 rounded-md bg-[#15803D] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#166534]"
               >
                 <Plus size={16} />
                 Create New User
@@ -412,14 +412,14 @@ export default function UserManagement() {
                     setPage(1);
                   }}
                   className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${filter === f
-                      ? "border-[#0038A8] bg-[#0038A8]/5 text-[#0038A8]"
+                      ? "border-[#15803D] bg-[#15803D]/5 text-[#15803D]"
                       : "border-stone-200 text-stone-500 hover:border-stone-300 hover:bg-stone-50"
                     }`}
                 >
                   {f}
                   <span
                     className={`rounded-full px-1.5 py-0.5 text-[10px] ${filter === f
-                        ? "bg-[#0038A8]/10 text-[#0038A8]"
+                        ? "bg-[#15803D]/10 text-[#15803D]"
                         : "bg-stone-100 text-stone-400"
                       }`}
                   >
@@ -459,7 +459,7 @@ export default function UserManagement() {
                       <div className="flex items-center gap-3">
                         <div
                           className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold ${u.active
-                              ? "bg-[#0038A8] text-white"
+                              ? "bg-[#15803D] text-white"
                               : "bg-stone-200 text-stone-400"
                             }`}
                         >
@@ -630,7 +630,7 @@ export default function UserManagement() {
                       key={p}
                       onClick={() => setPage(p)}
                       className={`flex h-8 w-8 items-center justify-center rounded-md text-xs font-medium transition ${p === safePage
-                          ? "bg-[#0038A8] text-white"
+                          ? "bg-[#15803D] text-white"
                           : "border border-stone-200 text-stone-600 hover:bg-stone-50"
                         }`}
                     >
@@ -813,7 +813,7 @@ export default function UserManagement() {
             )}
 
             {modal.type === "create" && (
-              <div className="mb-4 flex items-start gap-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-2.5 text-[11px] text-blue-800">
+              <div className="mb-4 flex items-start gap-2 rounded-md border border-green-100 bg-green-50 px-3 py-2.5 text-[11px] text-green-800">
                 <Key size={14} className="mt-0.5 shrink-0" />
                 <span>
                   A unique <strong>User ID</strong> will be generated automatically from the assigned
@@ -829,7 +829,7 @@ export default function UserManagement() {
                     type="checkbox"
                     checked={form.sendInvite}
                     onChange={(e) => setForm((f) => ({ ...f, sendInvite: e.target.checked }))}
-                    className="h-4 w-4 rounded border-stone-300 text-[#0038A8] focus:ring-[#0038A8]"
+                    className="h-4 w-4 rounded border-stone-300 text-[#15803D] focus:ring-[#15803D]"
                   />
                   <div className="flex items-center gap-2">
                     <Mail size={14} className="text-stone-400" />
@@ -852,7 +852,7 @@ export default function UserManagement() {
               </button>
               <button
                 type="submit"
-                className="rounded-md bg-[#0038A8] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#002A8C]"
+                className="rounded-md bg-[#15803D] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#166534]"
               >
                 {modal.type === "create" ? "Create User" : "Save Changes"}
               </button>
@@ -916,7 +916,7 @@ export default function UserManagement() {
             <div className="flex items-center gap-4">
               <div
                 className={`flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold ${detailUser.active
-                    ? "bg-[#0038A8] text-white"
+                    ? "bg-[#15803D] text-white"
                     : "bg-stone-200 text-stone-400"
                   }`}
               >

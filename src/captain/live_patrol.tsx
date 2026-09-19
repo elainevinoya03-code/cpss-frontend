@@ -172,7 +172,7 @@ function PatrolCoverageMap({ coverage, showCheckpoints, showIncidents, showIoT, 
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
-          <Map size={16} className="text-[#0038A8]" />
+          <Map size={16} className="text-[#15803D]" />
           <div>
             <h3 className="text-[14px] font-semibold text-stone-900">Patrol Coverage Map</h3>
             <p className="text-[11px] text-stone-400">
@@ -357,7 +357,7 @@ function TeamDetailDrawer({ team, onClose, onRecommend }: { team: any; onClose: 
       footer={
         <button
           onClick={() => onRecommend(team)}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#002A8C]"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#166534]"
         >
           <Compass size={14} />
           Recommend Patrol Adjustment
@@ -384,14 +384,14 @@ function TeamDetailDrawer({ team, onClose, onRecommend }: { team: any; onClose: 
             </div>
             <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
               <p className="text-[10px] font-medium tracking-wider text-stone-400">CHECKPOINT PROGRESS</p>
-              <p className="mt-1 text-[12px] font-semibold text-[#0038A8]">{clearedPct}%</p>
+              <p className="mt-1 text-[12px] font-semibold text-[#15803D]">{clearedPct}%</p>
             </div>
           </div>
 
           <div className="mb-5">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-[11px] font-semibold text-stone-900">Route Progress</p>
-              <span className="text-[11px] font-semibold text-[#0038A8]">{clearedPct}%</span>
+              <span className="text-[11px] font-semibold text-[#15803D]">{clearedPct}%</span>
             </div>
             <div className="h-2.5 w-full overflow-hidden rounded-full bg-stone-100">
               <div
@@ -407,12 +407,12 @@ function TeamDetailDrawer({ team, onClose, onRecommend }: { team: any; onClose: 
             <div className="space-y-1.5">
               {team.members.map((m) => (
                 <div key={m} className="flex items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#E9EDFB] text-[10px] font-bold text-[#0038A8]">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#DCFCE7] text-[10px] font-bold text-[#15803D]">
                     {m.split(" ").pop()?.[0]}
                   </div>
                   <span className="text-[11px] font-medium text-stone-900">{m}</span>
                   {m === team.leader && (
-                    <span className="ml-auto rounded-full bg-[#0038A8]/10 px-1.5 py-0.5 text-[9px] font-medium text-[#0038A8]">Leader</span>
+                    <span className="ml-auto rounded-full bg-[#15803D]/10 px-1.5 py-0.5 text-[9px] font-medium text-[#15803D]">Leader</span>
                   )}
                 </div>
               ))}
@@ -476,7 +476,7 @@ function RecommendationModal({ preset, onClose, onSend }: {
         footer={
           <button
             onClick={() => { onSend({ purok, coverage, reason, recommendation }); onClose(); }}
-            className="mt-5 w-full rounded-lg bg-[#0038A8] px-6 py-2 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+            className="mt-5 w-full rounded-lg bg-[#15803D] px-6 py-2 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
           >
             Done
           </button>
@@ -490,7 +490,7 @@ function RecommendationModal({ preset, onClose, onSend }: {
             </div>
             <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
               <p className="text-[10px] font-medium tracking-wider text-stone-400">CURRENT COVERAGE</p>
-              <p className="mt-1 text-[12px] font-semibold text-[#0038A8]">{coverage ? `${coverage}%` : "—"}</p>
+              <p className="mt-1 text-[12px] font-semibold text-[#15803D]">{coverage ? `${coverage}%` : "—"}</p>
             </div>
           </div>
           <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
@@ -510,7 +510,7 @@ function RecommendationModal({ preset, onClose, onSend }: {
     <Modal
       size="md"
       onClose={onClose}
-      icon={<Compass size={16} className="text-[#0038A8]" />}
+      icon={<Compass size={16} className="text-[#15803D]" />}
       title="Recommend Patrol Adjustment"
       subtitle="Send an operational recommendation to the Desk Officer"
       footer={
@@ -518,7 +518,7 @@ function RecommendationModal({ preset, onClose, onSend }: {
           <button type="button" onClick={onClose} className="rounded-lg px-3 py-1.5 text-[11px] font-medium text-stone-500 hover:bg-stone-100">
             Cancel
           </button>
-          <button type="submit" form="recommendation-form" className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]">
+          <button type="submit" form="recommendation-form" className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]">
             <Send size={12} />
             Send Recommendation
           </button>
@@ -533,7 +533,7 @@ function RecommendationModal({ preset, onClose, onSend }: {
               <select
                 value={purok}
                 onChange={(e) => setPurok(e.target.value)}
-                className="w-full appearance-none rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-8 text-[12px] text-stone-900 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                className="w-full appearance-none rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-8 text-[12px] text-stone-900 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
               >
                 <option value="All Puroks">All Puroks — Barangay-wide</option>
                 {PUROK_ZONES.map((z) => (
@@ -552,7 +552,7 @@ function RecommendationModal({ preset, onClose, onSend }: {
               value={coverage}
               onChange={(e) => setCoverage(e.target.value)}
               placeholder="e.g. 20"
-              className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+              className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
             />
           </div>
 
@@ -563,7 +563,7 @@ function RecommendationModal({ preset, onClose, onSend }: {
               onChange={(e) => setReason(e.target.value)}
               rows={3}
               placeholder="e.g. Low coverage in the zone — checkpoint clears are below target this shift."
-              className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+              className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
               required
             />
           </div>
@@ -575,7 +575,7 @@ function RecommendationModal({ preset, onClose, onSend }: {
               onChange={(e) => setRecommendation(e.target.value)}
               rows={3}
               placeholder="e.g. Increase patrol frequency in this zone or assign an available team to sweep it."
-              className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+              className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
               required
             />
           </div>
@@ -653,7 +653,7 @@ export default function LivePatrol() {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <div className="flex items-center justify-between">
@@ -682,7 +682,7 @@ export default function LivePatrol() {
                 key={tr.key}
                 onClick={() => setTimeRange(tr.key)}
                 className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
-                  timeRange === tr.key ? "bg-[#0038A8] text-white" : "text-stone-500 hover:bg-stone-100"
+                  timeRange === tr.key ? "bg-[#15803D] text-white" : "text-stone-500 hover:bg-stone-100"
                 }`}
               >
                 {tr.label}
@@ -733,11 +733,11 @@ export default function LivePatrol() {
             <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-medium tracking-wider text-stone-400">{label}</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                   <Icon size={15} />
                 </div>
               </div>
-              <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+              <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
               <div className="mt-1 text-[11px] text-stone-400">{sub}</div>
             </div>
           ))}
@@ -760,7 +760,7 @@ export default function LivePatrol() {
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
-                <Users size={16} className="text-[#0038A8]" />
+                <Users size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-stone-900">Patrol Teams</h3>
                   <p className="text-[11px] text-stone-400">{activeUnits} active</p>
@@ -838,7 +838,7 @@ export default function LivePatrol() {
           <div className="xl:col-span-1">
             <div className="flex h-full flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
               <div className="flex items-center gap-2 px-5 py-4">
-                <AlertTriangle size={16} className="text-[#0038A8]" />
+                <AlertTriangle size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-stone-900">Low Coverage Zones</h3>
                   <p className="text-[11px] text-stone-400">Zones below the {COVERAGE_THRESHOLD}% coverage target</p>
@@ -890,7 +890,7 @@ export default function LivePatrol() {
           <div className="xl:col-span-2 rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
-                <Clock size={16} className="text-[#0038A8]" />
+                <Clock size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-stone-900">Activity Feed</h3>
                   <p className="text-[11px] text-stone-400">Checkpoint clears, check-ins &amp; system events</p>
@@ -925,7 +925,7 @@ export default function LivePatrol() {
         {timeRange !== "live" && (
           <div className="mt-5 rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center gap-2 px-5 py-4">
-              <TrendingUp size={16} className="text-[#0038A8]" />
+              <TrendingUp size={16} className="text-[#15803D]" />
               <div>
                 <h3 className="text-[14px] font-semibold text-stone-900">Historical Trend Comparison</h3>
                 <p className="text-[11px] text-stone-400">
@@ -993,13 +993,13 @@ export default function LivePatrol() {
         <Modal
           size="md"
           onClose={() => setShowExportModal(false)}
-          icon={<FileText size={16} className="text-[#0038A8]" />}
+          icon={<FileText size={16} className="text-[#15803D]" />}
           title="Export Patrol Report"
           footer={
             <div className="flex items-center gap-2">
               <button
                 onClick={() => { setShowExportModal(false); flash("Report exported as PDF"); }}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-2 text-[12px] font-medium text-white transition hover:bg-[#002A8C]"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-2 text-[12px] font-medium text-white transition hover:bg-[#166534]"
               >
                 <Download size={13} />
                 Download PDF

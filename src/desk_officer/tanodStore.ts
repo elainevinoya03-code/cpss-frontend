@@ -78,7 +78,7 @@ const SEED_TANODS: Tanod[] = [
     signal: "strong",
     dutyStarted: isoAgo(180),
     lastStatusChange: isoAgo(133),
-    markerColor: "#0038A8",
+    markerColor: "#15803D",
     messages: [
       { id: "m1", from: "tanod", text: "On scene, heavy smoke visible. No casualties.", at: isoAgo(131) },
       { id: "m2", from: "chief", text: "Copy. Hold position, backup en route.", at: isoAgo(130) },

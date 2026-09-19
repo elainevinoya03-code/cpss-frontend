@@ -83,13 +83,13 @@ const NEXT_ACTION: Record<
   pending: {
     label: "Acknowledge & Start Review",
     next: "under_review",
-    tone: "bg-[#0038A8] hover:bg-[#002A8C]",
+    tone: "bg-[#15803D] hover:bg-[#166534]",
     ends: false,
   },
   under_review: {
     label: "Assign / Start Work",
     next: "assigned",
-    tone: "bg-[#0038A8] hover:bg-[#002A8C]",
+    tone: "bg-[#15803D] hover:bg-[#166534]",
     ends: false,
   },
   assigned: {
@@ -332,7 +332,7 @@ const selectedReport = selected;
     : { bg: "bg-stone-100", text: "text-stone-600" };
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-5 border-b border-stone-200 pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -361,8 +361,8 @@ const selectedReport = selected;
             <button
               key={c.key}
               onClick={() => setFilter(c.key as FilterKey)}
-              className={`flex flex-col gap-1 rounded-xl border border-stone-200 bg-white px-4 py-3 text-left transition hover:border-[#0038A8]/30 ${
-                filter === c.key ? "border-[#0038A8]/40" : ""
+              className={`flex flex-col gap-1 rounded-xl border border-stone-200 bg-white px-4 py-3 text-left transition hover:border-[#15803D]/30 ${
+                filter === c.key ? "border-[#15803D]/40" : ""
               }`}
             >
               <span className="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8]">
@@ -386,7 +386,7 @@ const selectedReport = selected;
                 onClick={() => setFilter(f.key)}
                 className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition ${
                   active
-                    ? "bg-[#0038A8] text-white"
+                    ? "bg-[#15803D] text-white"
                     : "bg-white text-stone-500 ring-1 ring-stone-200 hover:bg-stone-50"
                 }`}
               >
@@ -411,7 +411,7 @@ const selectedReport = selected;
             </div>
           ) : queue.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-stone-200 bg-white/60 px-4 py-14 text-center">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#E9EDFB] text-[#0038A8]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#DCFCE7] text-[#15803D]">
                 <ClipboardList size={20} />
               </div>
               <p className="text-[13px] font-semibold text-stone-700">
@@ -432,7 +432,7 @@ const selectedReport = selected;
                 <button
                   key={r.id}
                   onClick={() => setSelected(r)}
-                  className="group flex w-full flex-col gap-3 rounded-xl border border-stone-200 bg-white p-3.5 text-left transition hover:border-[#0038A8]/30 hover:shadow-sm sm:flex-row sm:items-center"
+                  className="group flex w-full flex-col gap-3 rounded-xl border border-stone-200 bg-white p-3.5 text-left transition hover:border-[#15803D]/30 hover:shadow-sm sm:flex-row sm:items-center"
                 >
                   <div className="flex min-w-0 flex-1 items-start gap-3">
                     <div
@@ -446,7 +446,7 @@ const selectedReport = selected;
                           {r.tracking_id}
                         </span>
                         {incidentByReportId.has(r.id) && (
-                          <span className="flex items-center gap-1 rounded-full bg-[#0038A8]/10 px-2 py-px text-[9px] font-semibold text-[#0038A8]">
+                          <span className="flex items-center gap-1 rounded-full bg-[#15803D]/10 px-2 py-px text-[9px] font-semibold text-[#15803D]">
                             <Activity size={10} />
                             Linked · {incidentByReportId.get(r.id)!.id}
                           </span>
@@ -505,7 +505,7 @@ const selectedReport = selected;
                     </span>
                     <ChevronRight
                       size={16}
-                      className="text-stone-300 transition group-hover:text-[#0038A8]"
+                      className="text-stone-300 transition group-hover:text-[#15803D]"
                     />
                   </div>
                 </button>
@@ -518,9 +518,9 @@ const selectedReport = selected;
         <div className="mt-6">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Camera size={15} className="text-[#0038A8]" />
+              <Camera size={15} className="text-[#15803D]" />
               <h2 className="text-[14px] font-semibold text-[#334155]">CCTV Tagged Events</h2>
-              <span className="rounded-full bg-[#0038A8]/10 px-2.5 py-0.5 text-[10px] font-semibold text-[#0038A8]">
+              <span className="rounded-full bg-[#15803D]/10 px-2.5 py-0.5 text-[10px] font-semibold text-[#15803D]">
                 {cctvIncidents.length}
               </span>
             </div>
@@ -548,7 +548,7 @@ const selectedReport = selected;
                     className="flex flex-col gap-2 rounded-xl border border-stone-200 bg-white p-3.5 sm:flex-row sm:items-center"
                   >
                     <div className="flex min-w-0 flex-1 items-start gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#0038A8]/10 text-[#0038A8]">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#15803D]/10 text-[#15803D]">
                         <Camera size={16} />
                       </div>
                       <div className="min-w-0 flex-1">
@@ -701,7 +701,7 @@ const selectedReport = selected;
             </div>
 
             {/* Operations link — Incident → incident.report_id → Original Report */}
-            <section className="rounded-xl border border-[#0038A8]/15 bg-[#E9EDFB]/60 p-3">
+            <section className="rounded-xl border border-[#15803D]/15 bg-[#DCFCE7]/60 p-3">
               <SectionLabel>Operations link</SectionLabel>
               {linkedIncident ? (
                 <div className="space-y-1.5">
@@ -709,7 +709,7 @@ const selectedReport = selected;
                     label="Linked incident"
                     value={
                       <span className="flex items-center justify-end gap-1.5">
-                        <Activity size={11} className="shrink-0 text-[#0038A8]" />
+                        <Activity size={11} className="shrink-0 text-[#15803D]" />
                         <span className="font-mono">{linkedIncident.id}</span>
                       </span>
                     }
@@ -771,7 +771,7 @@ const selectedReport = selected;
                   value={
                     selectedReport.place ? (
                       <span className="flex items-center gap-1.5">
-                        <MapPin size={12} className="shrink-0 text-[#0038A8]" />
+                        <MapPin size={12} className="shrink-0 text-[#15803D]" />
                         {selectedReport.place}
                       </span>
                     ) : (
@@ -828,7 +828,7 @@ const selectedReport = selected;
                       label="Contact"
                       value={
                         <span className="flex items-center justify-end gap-1.5">
-                          <Phone size={11} className="shrink-0 text-[#0038A8]" />
+                          <Phone size={11} className="shrink-0 text-[#15803D]" />
                           {selectedReport.respondent_contact}
                         </span>
                       }
@@ -849,7 +849,7 @@ const selectedReport = selected;
                       className="rounded-lg border border-stone-100 bg-stone-50/60 px-3 py-2.5"
                     >
                       <div className="flex items-center gap-2">
-                        <Users size={12} className="shrink-0 text-[#0038A8]" />
+                        <Users size={12} className="shrink-0 text-[#15803D]" />
                         <span className="text-[12px] font-semibold text-stone-800">
                           {w.name || `Witness ${idx + 1}`}
                         </span>
@@ -883,7 +883,7 @@ const selectedReport = selected;
                         label={k}
                         value={
                           <span className="flex items-center justify-end gap-1.5">
-                            <Icon size={11} className="shrink-0 text-[#0038A8]" />
+                            <Icon size={11} className="shrink-0 text-[#15803D]" />
                             {display || (v === false ? "No" : "—")}
                           </span>
                         }
@@ -905,7 +905,7 @@ const selectedReport = selected;
                       label="Photo"
                       value={
                         <span className="flex items-center justify-end gap-1.5">
-                          <ImageIcon size={11} className="shrink-0 text-[#0038A8]" />
+                          <ImageIcon size={11} className="shrink-0 text-[#15803D]" />
                           {p.file_name}
                         </span>
                       }
@@ -917,7 +917,7 @@ const selectedReport = selected;
                       label="Video"
                       value={
                         <span className="flex items-center justify-end gap-1.5">
-                          <Camera size={11} className="shrink-0 text-[#0038A8]" />
+                          <Camera size={11} className="shrink-0 text-[#15803D]" />
                           {v.file_name}
                         </span>
                       }
@@ -994,7 +994,7 @@ const selectedReport = selected;
               onChange={(e) => setResolutionNote(e.target.value)}
               rows={4}
               placeholder="Summary of what happened and what action was taken…"
-              className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+              className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
             />
             <p className="mt-2 text-[11px] leading-relaxed text-stone-500">
               The note is appended to the report's status timeline and preserved in the report

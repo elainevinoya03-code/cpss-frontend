@@ -161,7 +161,7 @@ function BlotterDetail({
                 "Request Correction: In production this would open a correction request form routed to the Barangay Captain for approval. No direct edits to archival records are permitted."
               )
             }
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-4 py-2.5 text-[12px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#15803D]/20 bg-[#15803D]/5 px-4 py-2.5 text-[12px] font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white"
           >
             <Shield size={13} />
             Request Correction
@@ -195,7 +195,7 @@ function BlotterDetail({
           </span>
         )}
         <span className="flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-1 text-[10px] font-medium text-stone-600">
-          <MapPin size={10} className="text-[#0038A8]" />
+          <MapPin size={10} className="text-[#15803D]" />
           GPS {blotter.lat !== 0 || blotter.lng !== 0 ? "Verified" : "Not Available"}
         </span>
         {blotter.fieldNotes.length > 0 && (
@@ -222,7 +222,7 @@ function BlotterDetail({
       {/* SECTION A — Official Record                                      */}
       {/* ================================================================ */}
       <div className="mb-5">
-        <p className="mb-2 text-[10px] font-semibold tracking-wider text-[#0038A8]">
+        <p className="mb-2 text-[10px] font-semibold tracking-wider text-[#15803D]">
           SECTION A — OFFICIAL RECORD
         </p>
         <div className="grid grid-cols-2 gap-3">
@@ -270,7 +270,7 @@ function BlotterDetail({
       {/* SECTION B — Incident Information                                 */}
       {/* ================================================================ */}
       <div className="mb-5">
-        <p className="mb-2 text-[10px] font-semibold tracking-wider text-[#0038A8]">
+        <p className="mb-2 text-[10px] font-semibold tracking-wider text-[#15803D]">
           SECTION B — INCIDENT INFORMATION
         </p>
         <div className="grid grid-cols-2 gap-3">
@@ -305,7 +305,7 @@ function BlotterDetail({
           <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
             <p className="text-[9px] font-medium tracking-wider text-stone-400">PUROK</p>
             <p className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-stone-900">
-              <MapPin size={10} className="text-[#0038A8]" />
+              <MapPin size={10} className="text-[#15803D]" />
               {blotter.purok}
             </p>
           </div>
@@ -338,7 +338,7 @@ function BlotterDetail({
             : null;
         return (
           <div className="mb-5">
-            <p className="mb-2 text-[10px] font-semibold tracking-wider text-[#0038A8]">
+            <p className="mb-2 text-[10px] font-semibold tracking-wider text-[#15803D]">
               SECTION C — RESPONSE
             </p>
             <div className="grid grid-cols-2 gap-3">
@@ -408,12 +408,12 @@ function BlotterDetail({
       {/* SECTION D — GPS / Location — Part 27: Restricted access          */}
       {/* ================================================================ */}
       <div className="mb-5">
-        <p className="mb-2 text-[10px] font-semibold tracking-wider text-[#0038A8]">
+        <p className="mb-2 text-[10px] font-semibold tracking-wider text-[#15803D]">
           SECTION D — GPS / LOCATION
         </p>
         <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
           <div className="flex items-center gap-2">
-            <MapPin size={13} className="text-[#0038A8]" />
+            <MapPin size={13} className="text-[#15803D]" />
             <span className="font-mono text-[11px] font-medium text-stone-900">
               {blotter.lat}, {blotter.lng}
             </span>
@@ -437,7 +437,7 @@ function BlotterDetail({
       {/* SECTION E — Evidence                                             */}
       {/* ================================================================ */}
       <div className="mb-5">
-        <p className="mb-2 text-[10px] font-semibold tracking-wider text-[#0038A8]">
+        <p className="mb-2 text-[10px] font-semibold tracking-wider text-[#15803D]">
           SECTION E — EVIDENCE
         </p>
         {blotter.photoCount === 0 && blotter.evidenceReferences.length === 0 && blotter.fieldNotes.length === 0 ? (
@@ -498,7 +498,7 @@ function BlotterDetail({
                 <ul className="space-y-1">
                   {blotter.fieldNotes.map((n, i) => (
                     <li key={i} className="flex items-start gap-1.5 text-[11px] text-stone-700">
-                      <span className="mt-0.5 h-1 w-1 shrink-0 rounded-full bg-[#0038A8]" />
+                      <span className="mt-0.5 h-1 w-1 shrink-0 rounded-full bg-[#15803D]" />
                       {n}
                     </li>
                   ))}
@@ -513,7 +513,7 @@ function BlotterDetail({
       {/* SECTION F — Citizen Feedback                                     */}
       {/* ================================================================ */}
       <div className="mb-5">
-        <p className="mb-2 text-[10px] font-semibold tracking-wider text-[#0038A8]">
+        <p className="mb-2 text-[10px] font-semibold tracking-wider text-[#15803D]">
           SECTION F — CITIZEN FEEDBACK
         </p>
         {blotter.citizenFeedback || blotter.citizenRating > 0 ? (
@@ -549,7 +549,7 @@ function BlotterDetail({
       {/* SECTION G — Record History                                       */}
       {/* ================================================================ */}
       <div className="mb-5">
-        <p className="mb-2 text-[10px] font-semibold tracking-wider text-[#0038A8]">
+        <p className="mb-2 text-[10px] font-semibold tracking-wider text-[#15803D]">
           SECTION G — RECORD HISTORY
         </p>
         <RecordHistory blotterId={blotter.id} incidentId={blotter.originalIncidentId} />
@@ -1015,7 +1015,7 @@ export default function DigitalBlotter() {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         {/* ============================================================= */}
         {/* A. HEADER                                                     */}
@@ -1048,7 +1048,7 @@ export default function DigitalBlotter() {
               <button
                 onClick={handleConvertNext}
                 disabled={pendingCount === 0}
-                className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-40"
+                className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534] disabled:opacity-40"
               >
                 <FileText size={13} />
                 Convert Next
@@ -1056,7 +1056,7 @@ export default function DigitalBlotter() {
               <button
                 onClick={exportBlotters}
                 disabled={filteredBlotters.length === 0 || exporting}
-                className="flex items-center gap-1.5 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-3 py-1.5 text-[11px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white disabled:opacity-40"
+                className="flex items-center gap-1.5 rounded-lg border border-[#15803D]/20 bg-[#15803D]/5 px-3 py-1.5 text-[11px] font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white disabled:opacity-40"
               >
                 {exporting ? (
                   <>
@@ -1096,11 +1096,11 @@ export default function DigitalBlotter() {
                 <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">
                   {label}
                 </span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                   <Icon size={15} />
                 </div>
               </div>
-              <div className="mt-2 text-[26px] font-bold text-[#0038A8]">
+              <div className="mt-2 text-[26px] font-bold text-[#15803D]">
                 {value}
               </div>
               <div className="mt-1 text-[11px] text-[#94A3B8]">{sub}</div>
@@ -1119,7 +1119,7 @@ export default function DigitalBlotter() {
           <div className="xl:col-span-2 flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
-                <ClipboardList size={16} className="text-[#0038A8]" />
+                <ClipboardList size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">
                     Resolved Cases — Pending Archival
@@ -1265,7 +1265,7 @@ export default function DigitalBlotter() {
                       {/* Row 6: Convert button */}
                       <button
                         onClick={() => setConfirmTarget(inc)}
-                        className="mt-2.5 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-[#0038A8] px-3 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                        className="mt-2.5 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-[#15803D] px-3 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
                       >
                         <Archive size={12} />
                         Convert to Blotter
@@ -1281,7 +1281,7 @@ export default function DigitalBlotter() {
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
-                <Star size={16} className="text-[#0038A8]" />
+                <Star size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">
                     Resolution &amp; Feedback Analyzer
@@ -1299,7 +1299,7 @@ export default function DigitalBlotter() {
                 <p className="text-[10px] font-medium tracking-wider text-stone-400">
                   AVERAGE SATISFACTION
                 </p>
-                <p className="mt-1 text-[30px] font-bold text-[#0038A8]">
+                <p className="mt-1 text-[30px] font-bold text-[#15803D]">
                   {avgRating !== null ? avgRating.toFixed(1) : "N/A"}
                 </p>
                 <div className="mt-1 flex justify-center">
@@ -1430,7 +1430,7 @@ export default function DigitalBlotter() {
           <div className="xl:col-span-2 flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
-                <Archive size={16} className="text-[#0038A8]" />
+                <Archive size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">
                     Blotter Archive
@@ -1453,7 +1453,7 @@ export default function DigitalBlotter() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search by ID, incident ID, type, location or officer…"
-                  className="w-full rounded-lg border border-stone-200 bg-stone-50 py-1.5 pl-7 pr-2.5 text-[11px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                  className="w-full rounded-lg border border-stone-200 bg-stone-50 py-1.5 pl-7 pr-2.5 text-[11px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                 />
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -1463,7 +1463,7 @@ export default function DigitalBlotter() {
                     onClick={() => setCategoryFilter(c)}
                     className={`rounded-full border px-2.5 py-1 text-[10px] font-medium transition ${
                       categoryFilter === c
-                        ? "border-[#0038A8]/30 bg-[#0038A8]/5 text-[#0038A8]"
+                        ? "border-[#15803D]/30 bg-[#15803D]/5 text-[#15803D]"
                         : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                     }`}
                   >
@@ -1479,7 +1479,7 @@ export default function DigitalBlotter() {
                     onClick={() => setStatusFilter(s)}
                     className={`rounded-full border px-2 py-1 text-[10px] font-medium capitalize transition ${
                       statusFilter === s
-                        ? "border-[#0038A8]/30 bg-[#0038A8]/5 text-[#0038A8]"
+                        ? "border-[#15803D]/30 bg-[#15803D]/5 text-[#15803D]"
                         : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                     }`}
                   >
@@ -1494,7 +1494,7 @@ export default function DigitalBlotter() {
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
                   title="From date"
-                  className="rounded-lg border border-stone-200 bg-stone-50 px-2 py-1 text-[10px] text-stone-700 outline-none focus:border-[#0038A8]"
+                  className="rounded-lg border border-stone-200 bg-stone-50 px-2 py-1 text-[10px] text-stone-700 outline-none focus:border-[#15803D]"
                 />
                 <span className="text-[10px] text-stone-400">–</span>
                 <input
@@ -1502,7 +1502,7 @@ export default function DigitalBlotter() {
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
                   title="To date"
-                  className="rounded-lg border border-stone-200 bg-stone-50 px-2 py-1 text-[10px] text-stone-700 outline-none focus:border-[#0038A8]"
+                  className="rounded-lg border border-stone-200 bg-stone-50 px-2 py-1 text-[10px] text-stone-700 outline-none focus:border-[#15803D]"
                 />
               </div>
               <span className="text-[10px] text-stone-400">
@@ -1551,7 +1551,7 @@ export default function DigitalBlotter() {
                       setDateFrom("");
                       setDateTo("");
                     }}
-                    className="mt-3 inline-flex items-center gap-1 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-3 py-1.5 text-[11px] font-medium text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white"
+                    className="mt-3 inline-flex items-center gap-1 rounded-lg border border-[#15803D]/20 bg-[#15803D]/5 px-3 py-1.5 text-[11px] font-medium text-[#15803D] transition hover:bg-[#15803D] hover:text-white"
                   >
                     Clear Filters
                   </button>
@@ -1564,7 +1564,7 @@ export default function DigitalBlotter() {
                       className={`flex flex-wrap items-center justify-between gap-2 px-5 py-3 ${i < paginatedBlotters.length - 1 ? "border-b border-black/5" : ""}`}
                     >
                       <div className="flex items-center gap-3">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0038A8]/5 text-[#0038A8]">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#15803D]/5 text-[#15803D]">
                           <FileText size={15} />
                         </span>
                         <div>
@@ -1642,7 +1642,7 @@ export default function DigitalBlotter() {
                             onClick={() => setArchivePage(pg)}
                             className={`h-6 w-6 rounded-md text-[10px] font-medium transition ${
                               pg === archivePageClamped
-                                ? "bg-[#0038A8] text-white"
+                                ? "bg-[#15803D] text-white"
                                 : "border border-stone-200 bg-white text-stone-600 hover:bg-stone-50"
                             }`}
                           >
@@ -1672,7 +1672,7 @@ export default function DigitalBlotter() {
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
-                <TrendingUp size={16} className="text-[#0038A8]" />
+                <TrendingUp size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">
                     Executive Review &amp; Oversight
@@ -1682,7 +1682,7 @@ export default function DigitalBlotter() {
                   </p>
                 </div>
               </div>
-              <span className="flex items-center gap-1 text-[10px] text-[#0038A8]">
+              <span className="flex items-center gap-1 text-[10px] text-[#15803D]">
                 <Users size={11} />
                 Captain
               </span>
@@ -1794,11 +1794,11 @@ export default function DigitalBlotter() {
                       {w.count}
                     </span>
                     <div
-                      className="w-full rounded-t bg-[#0038A8]/15"
+                      className="w-full rounded-t bg-[#15803D]/15"
                       style={{ height: `${maxTrend > 0 ? (w.count / maxTrend) * 56 : 0}px` }}
                     >
                       <div
-                        className="h-full w-full rounded-t bg-[#0038A8]/70"
+                        className="h-full w-full rounded-t bg-[#15803D]/70"
                         style={{ height: "100%" }}
                       />
                     </div>
@@ -1823,7 +1823,7 @@ export default function DigitalBlotter() {
                   }, 1500);
                 }}
                 disabled={reportGenerating}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-4 py-2.5 text-[12px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#15803D]/20 bg-[#15803D]/5 px-4 py-2.5 text-[12px] font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white disabled:opacity-60"
               >
                 {reportGenerating ? (
                   <>
@@ -1914,7 +1914,7 @@ function ConversionConfirmModal({
       <div className="w-full max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl sm:p-6 modal-panel-in">
         {/* Header */}
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0038A8]/10 text-[#0038A8]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#15803D]/10 text-[#15803D]">
             <Archive size={20} />
           </div>
           <div className="min-w-0 flex-1">
@@ -1998,7 +1998,7 @@ function ConversionConfirmModal({
                 LOCATION
               </p>
               <p className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-stone-900">
-                <MapPin size={10} className="text-[#0038A8]" />
+                <MapPin size={10} className="text-[#15803D]" />
                 {incident.lat}, {incident.lng}
               </p>
             </div>
@@ -2045,8 +2045,8 @@ function ConversionConfirmModal({
         </div>
 
         {/* Part 7 — Formal explanation */}
-        <div className="mt-4 rounded-lg border border-[#0038A8]/10 bg-[#0038A8]/5 px-4 py-3">
-          <p className="text-[11px] leading-relaxed text-[#0038A8]">
+        <div className="mt-4 rounded-lg border border-[#15803D]/10 bg-[#15803D]/5 px-4 py-3">
+          <p className="text-[11px] leading-relaxed text-[#15803D]">
             Converting this resolved incident will create an{" "}
             <span className="font-semibold">
               official permanent blotter record
@@ -2068,7 +2068,7 @@ function ConversionConfirmModal({
           </button>
           <button
             onClick={onConfirm}
-            className="w-full rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-medium text-white hover:bg-[#002A8C] sm:flex-1"
+            className="w-full rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-medium text-white hover:bg-[#166534] sm:flex-1"
           >
             <span className="flex items-center justify-center gap-1.5">
               <Archive size={13} />
@@ -2184,7 +2184,7 @@ function ConversionSuccessModal({
           </button>
           <button
             onClick={onView}
-            className="w-full rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-medium text-white hover:bg-[#002A8C] sm:flex-1"
+            className="w-full rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-medium text-white hover:bg-[#166534] sm:flex-1"
           >
             <span className="flex items-center justify-center gap-1.5">
               <Eye size={13} />

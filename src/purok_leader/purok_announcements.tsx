@@ -182,7 +182,7 @@ function AnnouncementForm({
           className={`w-full rounded-lg border px-3 py-2.5 text-[12px] text-stone-900 placeholder:text-stone-300 focus:outline-none focus:ring-1 ${
             errors.headline
               ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/30"
-              : "border-stone-200 focus:border-[#0038A8] focus:ring-[#0038A8]/30"
+              : "border-stone-200 focus:border-[#15803D] focus:ring-[#15803D]/30"
           }`}
         />
         {errors.headline && <p className="mt-1 text-[10px] font-medium text-rose-600">{errors.headline}</p>}
@@ -200,7 +200,7 @@ function AnnouncementForm({
           className={`w-full resize-none rounded-lg border px-3 py-2.5 text-[12px] text-stone-900 placeholder:text-stone-300 focus:outline-none focus:ring-1 ${
             errors.message
               ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/30"
-              : "border-stone-200 focus:border-[#0038A8] focus:ring-[#0038A8]/30"
+              : "border-stone-200 focus:border-[#15803D] focus:ring-[#15803D]/30"
           }`}
         />
         {errors.message && <p className="mt-1 text-[10px] font-medium text-rose-600">{errors.message}</p>}
@@ -236,7 +236,7 @@ function AnnouncementForm({
             type="date"
             value={form.publishDate}
             onChange={(e) => onChange({ publishDate: e.target.value })}
-            className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-900 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-900 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
           />
         </div>
         <div>
@@ -251,7 +251,7 @@ function AnnouncementForm({
             className={`w-full rounded-lg border px-3 py-2 text-[12px] text-stone-900 focus:outline-none focus:ring-1 ${
               errors.expiryDate
                 ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/30"
-                : "border-stone-200 focus:border-[#0038A8] focus:ring-[#0038A8]/30"
+                : "border-stone-200 focus:border-[#15803D] focus:ring-[#15803D]/30"
             }`}
           />
           {errors.expiryDate && <p className="mt-1 text-[10px] font-medium text-rose-600">{errors.expiryDate}</p>}
@@ -389,7 +389,7 @@ export default function PurokAnnouncements() {
   const editingExisting = editingId ? announcements.find((a) => a.id === editingId) : null;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-5 border-b border-stone-200 pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -397,16 +397,16 @@ export default function PurokAnnouncements() {
               <h1 className="text-2xl font-bold text-stone-900">Purok Announcements</h1>
               <p className="mt-1 text-sm text-stone-500">Publish local announcements for your assigned purok only</p>
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-[#0038A8]/20 bg-white px-3.5 py-2 shadow-sm">
-              <MapPin size={15} className="text-[#0038A8]" />
+            <div className="flex items-center gap-2 rounded-lg border border-[#15803D]/20 bg-white px-3.5 py-2 shadow-sm">
+              <MapPin size={15} className="text-[#15803D]" />
               <div>
                 <p className="text-[9px] font-semibold tracking-wider text-stone-400">AUDIENCE (LOCKED)</p>
-                <p className="text-[12px] font-bold text-[#0038A8]">{JURISDICTION_LABEL}</p>
+                <p className="text-[12px] font-bold text-[#15803D]">{JURISDICTION_LABEL}</p>
               </div>
             </div>
           </div>
-          <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#0038A8]/15 bg-[#0038A8]/5 px-3.5 py-2.5">
-            <Info size={14} className="mt-0.5 shrink-0 text-[#0038A8]" />
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#15803D]/15 bg-[#15803D]/5 px-3.5 py-2.5">
+            <Info size={14} className="mt-0.5 shrink-0 text-[#15803D]" />
             <p className="text-[11px] leading-relaxed text-stone-600">
               Every announcement you publish is addressed exclusively to <span className="font-semibold text-stone-800">{JURISDICTION_LABEL}</span>. You can <span className="font-semibold text-stone-800">edit an announcement any time before its expiry date</span>, then unpublish or let it expire.
             </p>
@@ -417,7 +417,7 @@ export default function PurokAnnouncements() {
           {/* Compose panel */}
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center gap-2 border-b border-stone-100 px-5 py-4">
-              <Megaphone size={16} className="text-[#0038A8]" />
+              <Megaphone size={16} className="text-[#15803D]" />
               <div>
                 <h3 className="text-[14px] font-semibold text-[#334155]">New Announcement</h3>
                 <p className="text-[11px] text-[#94A3B8]">Delivered to {JURISDICTION_NAME} residents only</p>
@@ -427,7 +427,7 @@ export default function PurokAnnouncements() {
               <div className="flex-1 px-5 py-4">
                 <button
                   onClick={openCompose}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
                 >
                   <Send size={13} />
                   Compose Announcement
@@ -453,13 +453,13 @@ export default function PurokAnnouncements() {
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm xl:col-span-2">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-5 py-4">
               <div className="flex items-center gap-2">
-                <Bell size={16} className="text-[#0038A8]" />
+                <Bell size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Published Announcements</h3>
                   <p className="text-[11px] text-[#94A3B8]">Visible only to {JURISDICTION_NAME} residents</p>
                 </div>
               </div>
-              <span className="rounded-full bg-[#0038A8]/5 px-2.5 py-1 text-[10px] font-semibold text-[#0038A8]">
+              <span className="rounded-full bg-[#15803D]/5 px-2.5 py-1 text-[10px] font-semibold text-[#15803D]">
                 {live.length} live
               </span>
             </div>
@@ -471,7 +471,7 @@ export default function PurokAnnouncements() {
                   onClick={() => setListFilter(t.key)}
                   className={`rounded-full border px-2.5 py-1 text-[10px] font-medium transition ${
                     listFilter === t.key
-                      ? "border-[#0038A8] bg-[#0038A8] text-white"
+                      ? "border-[#15803D] bg-[#15803D] text-white"
                       : "border-stone-200 text-stone-500 hover:border-stone-300 hover:bg-stone-50"
                   }`}
                 >
@@ -532,7 +532,7 @@ export default function PurokAnnouncements() {
                         <p className="flex items-center gap-1.5 text-[10px] text-stone-500">
                           <CalendarClock size={11} className="text-stone-400" />
                           Runs {toDateInput(a.publishDate)} → expires {toDateInput(a.expiryDate)}
-                          <span className="ml-1 inline-flex items-center gap-1 rounded-md bg-white px-1.5 py-0.5 text-[9px] font-medium text-[#0038A8]">
+                          <span className="ml-1 inline-flex items-center gap-1 rounded-md bg-white px-1.5 py-0.5 text-[9px] font-medium text-[#15803D]">
                             <MapPin size={8} />
                             {JURISDICTION_NAME} only
                           </span>
@@ -583,7 +583,7 @@ export default function PurokAnnouncements() {
               : `Audience locked to ${JURISDICTION_LABEL}`
           }
           icon={<Megaphone size={15} />}
-          iconClass="bg-[#0038A8]/5 text-[#0038A8]"
+          iconClass="bg-[#15803D]/5 text-[#15803D]"
           size="lg"
           footer={
             <div className="flex items-center justify-end gap-2">
@@ -592,7 +592,7 @@ export default function PurokAnnouncements() {
               </button>
               <button
                 onClick={submit}
-                className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
               >
                 <Send size={12} />
                 {editingId ? "Save Changes" : "Publish"}

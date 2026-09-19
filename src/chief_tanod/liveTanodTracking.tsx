@@ -406,7 +406,7 @@ function LiveTrackingMap({
        // And a polyline connecting them
        const routePts = progress.checkpoints.map((cp, idx) => toGeoPoint(tanod.gps!.lat + idx * 0.001, tanod.gps!.lng + idx * 0.001));
        if (routePts.length > 1) {
-          L.polyline(routePts, { color: "#3b82f6", weight: 3, dashArray: "5 5" }).addTo(routesLayerRef.current!);
+          L.polyline(routePts, { color: "#22c55e", weight: 3, dashArray: "5 5" }).addTo(routesLayerRef.current!);
        }
      }
   }, [selectedTanodId, tanods]);
@@ -522,16 +522,16 @@ function TanodRoster({
       <div className="border-b border-stone-100 px-5 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Users size={16} className="text-[#0038A8]" />
+            <Users size={16} className="text-[#15803D]" />
             <h3 className="text-[14px] font-semibold text-[#334155]">Tanod Roster</h3>
-            <span className="rounded-full bg-[#0038A8]/10 px-2 py-0.5 text-[10px] font-semibold text-[#0038A8]">
+            <span className="rounded-full bg-[#15803D]/10 px-2 py-0.5 text-[10px] font-semibold text-[#15803D]">
               {filtered.length}
             </span>
           </div>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-[11px] text-stone-600 outline-none focus:border-[#0038A8]/50"
+            className="rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-[11px] text-stone-600 outline-none focus:border-[#15803D]/50"
           >
             <option value="all">All On Duty</option>
             <option value="available">Available</option>
@@ -557,14 +557,14 @@ function TanodRoster({
               <button
                 key={t.id}
                 onClick={() => onSelectTanod(t)}
-                className={`flex w-full items-center gap-3 border-b border-black/5 px-5 py-3 text-left transition last:border-0 hover:bg-stone-50/50 ${isSelected ? "bg-[#E9EDFB]/60" : ""}`}
+                className={`flex w-full items-center gap-3 border-b border-black/5 px-5 py-3 text-left transition last:border-0 hover:bg-stone-50/50 ${isSelected ? "bg-[#DCFCE7]/60" : ""}`}
               >
                 <span className={`h-2.5 w-2.5 rounded-full ${meta.dot}`} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="text-[12px] font-semibold text-stone-800">{t.name}</p>
                     {t.assignment && (
-                      <span className="truncate rounded bg-[#0038A8]/10 px-1.5 py-px text-[8px] font-semibold text-[#0038A8]">
+                      <span className="truncate rounded bg-[#15803D]/10 px-1.5 py-px text-[8px] font-semibold text-[#15803D]">
                         {t.incidentId ?? "Assigned"}
                       </span>
                     )}
@@ -643,13 +643,13 @@ function TanodDetailPanel({
   ];
 
   return (
-    <section className="mt-6 rounded-xl border border-[#0038A8]/20 bg-white shadow-sm overflow-hidden">
+    <section className="mt-6 rounded-xl border border-[#15803D]/20 bg-white shadow-sm overflow-hidden">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-stone-100 px-5 py-4">
         <div className="flex items-center gap-3">
           <div
             className="flex h-12 w-12 items-center justify-center rounded-full text-[18px] font-bold text-white"
-            style={{ backgroundColor: tanod.markerColor ?? "#0038A8" }}
+            style={{ backgroundColor: tanod.markerColor ?? "#15803D" }}
           >
             {tanod.name.charAt(0)}
           </div>
@@ -663,13 +663,13 @@ function TanodDetailPanel({
               {tanod.assignment && (
                 <>
                   <span>·</span>
-                  <span className="font-medium text-[#0038A8]">{tanod.assignment}</span>
+                  <span className="font-medium text-[#15803D]">{tanod.assignment}</span>
                 </>
               )}
               {tanod.incidentId && (
                 <>
                   <span>·</span>
-                  <span className="rounded bg-[#0038A8]/10 px-1.5 py-px text-[9px] font-semibold text-[#0038A8]">{tanod.incidentId}</span>
+                  <span className="rounded bg-[#15803D]/10 px-1.5 py-px text-[9px] font-semibold text-[#15803D]">{tanod.incidentId}</span>
                 </>
               )}
             </div>
@@ -726,14 +726,14 @@ function TanodDetailPanel({
               onClick={() => setActiveTab(tab.id)}
               className={`relative flex items-center gap-1.5 border-b-2 px-4 py-3 text-[11px] font-medium transition ${
                 isActive
-                  ? "border-[#0038A8] text-[#0038A8]"
+                  ? "border-[#15803D] text-[#15803D]"
                   : "border-transparent text-stone-400 hover:text-stone-600"
               }`}
             >
               <Icon size={13} />
               {tab.label}
               {tab.badge !== undefined && tab.badge > 0 && (
-                <span className="ml-0.5 rounded-full bg-[#0038A8] px-1.5 py-px text-[8px] font-bold text-white">
+                <span className="ml-0.5 rounded-full bg-[#15803D] px-1.5 py-px text-[8px] font-bold text-white">
                   {tab.badge}
                 </span>
               )}
@@ -780,15 +780,15 @@ function TanodDetailPanel({
             </div>
 
             {tanod.assignment && (
-              <div className="rounded-lg border border-[#0038A8]/15 bg-[#E9EDFB]/40 px-4 py-3">
+              <div className="rounded-lg border border-[#15803D]/15 bg-[#DCFCE7]/40 px-4 py-3">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <Target size={13} className="text-[#0038A8]" />
-                  <p className="text-[11px] font-semibold text-[#0038A8]">Current Assignment</p>
+                  <Target size={13} className="text-[#15803D]" />
+                  <p className="text-[11px] font-semibold text-[#15803D]">Current Assignment</p>
                 </div>
                 <p className="text-[12px] font-medium text-stone-800">{tanod.assignment}</p>
                 {tanod.incidentId && (
                   <p className="mt-1 text-[10px] text-stone-500">
-                    Linked to <span className="font-semibold text-[#0038A8]">{tanod.incidentId}</span>
+                    Linked to <span className="font-semibold text-[#15803D]">{tanod.incidentId}</span>
                   </p>
                 )}
               </div>
@@ -856,7 +856,7 @@ function TanodDetailPanel({
                   <button
                     key={qm}
                     onClick={() => handleQuickMessage(qm)}
-                    className="rounded-full border border-stone-200 bg-white px-2.5 py-1 text-[10px] text-stone-600 transition hover:border-[#0038A8]/30 hover:bg-[#E9EDFB]/50 hover:text-[#0038A8]"
+                    className="rounded-full border border-stone-200 bg-white px-2.5 py-1 text-[10px] text-stone-600 transition hover:border-[#15803D]/30 hover:bg-[#DCFCE7]/50 hover:text-[#15803D]"
                   >
                     {qm}
                   </button>
@@ -878,12 +878,12 @@ function TanodDetailPanel({
                       <div
                         className={`max-w-[80%] rounded-lg px-3 py-2 text-[11px] ${
                           msg.from === "chief"
-                            ? "bg-[#0038A8] text-white"
+                            ? "bg-[#15803D] text-white"
                             : "border border-stone-200 bg-white text-stone-700"
                         }`}
                       >
                         <p>{msg.text}</p>
-                        <p className={`mt-0.5 text-[9px] ${msg.from === "chief" ? "text-blue-200" : "text-stone-400"}`}>
+                        <p className={`mt-0.5 text-[9px] ${msg.from === "chief" ? "text-green-200" : "text-stone-400"}`}>
                           {formatTimeFull(msg.at)} · {msg.from === "chief" ? "You" : tanod.name}
                         </p>
                       </div>
@@ -901,12 +901,12 @@ function TanodDetailPanel({
                 onChange={(e) => setMessageText(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
                 placeholder={`Message ${tanod.name}...`}
-                className="flex-1 rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+                className="flex-1 rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
               />
               <button
                 onClick={handleSendMessage}
                 disabled={!messageText.trim()}
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0038A8] text-white transition hover:bg-[#002A8C] disabled:opacity-40"
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#15803D] text-white transition hover:bg-[#166534] disabled:opacity-40"
               >
                 <Send size={14} />
               </button>
@@ -974,7 +974,7 @@ function RouteProgressPanel() {
         >
           <div
             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white`}
-            style={{ backgroundColor: entry.status === "completed" ? "#10b981" : "#0038A8" }}
+            style={{ backgroundColor: entry.status === "completed" ? "#10b981" : "#15803D" }}
           >
             {entry.tanodName.charAt(0)}
           </div>
@@ -999,7 +999,7 @@ function RouteProgressPanel() {
             <div className="w-24 h-1.5 rounded-full bg-stone-100 overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
-                  entry.status === "completed" ? "bg-emerald-500" : "bg-[#0038A8]"
+                  entry.status === "completed" ? "bg-emerald-500" : "bg-[#15803D]"
                 }`}
                 style={{ width: `${pct}%` }}
               />
@@ -1016,7 +1016,7 @@ function RouteProgressPanel() {
               <div className="flex-1 h-1.5 rounded-full bg-stone-200 overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${
-                    entry.status === "completed" ? "bg-emerald-500" : "bg-[#0038A8]"
+                    entry.status === "completed" ? "bg-emerald-500" : "bg-[#15803D]"
                   }`}
                   style={{ width: `${pct}%` }}
                 />
@@ -1081,11 +1081,11 @@ function RouteProgressPanel() {
     <section className="mt-6">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Route size={16} className="text-[#0038A8]" />
+          <Route size={16} className="text-[#15803D]" />
           <h2 className="text-[13px] font-semibold uppercase tracking-wider text-[#334155]">
             Route Progress
           </h2>
-          <span className="rounded-full bg-[#0038A8]/10 px-2 py-0.5 text-[10px] font-semibold text-[#0038A8]">
+          <span className="rounded-full bg-[#15803D]/10 px-2 py-0.5 text-[10px] font-semibold text-[#15803D]">
             {onDutyProgress.length} active
           </span>
         </div>
@@ -1307,7 +1307,7 @@ export default function LiveTanodTracking({ onNavigate }: { onNavigate?: (page: 
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         {/* Header */}
         <header className="mb-6 border-b border-stone-200 pb-5">
@@ -1341,7 +1341,7 @@ export default function LiveTanodTracking({ onNavigate }: { onNavigate?: (page: 
 
         {/* KPI Row */}
         <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
-          <KpiCard label="ON DUTY" value={onDuty.length} color="text-[#0038A8]" icon={Users} />
+          <KpiCard label="ON DUTY" value={onDuty.length} color="text-[#15803D]" icon={Users} />
           <KpiCard label="AVAILABLE" value={availableCount} color="text-emerald-600" icon={UserCheck} />
           <KpiCard label="DEPLOYED" value={deployedCount} color="text-amber-600" icon={Waypoints} />
           <KpiCard label="OFF DUTY" value={offlineCount} color="text-stone-400" icon={Shield} />
@@ -1354,7 +1354,7 @@ export default function LiveTanodTracking({ onNavigate }: { onNavigate?: (page: 
           <div className="xl:col-span-2 rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 px-5 py-4">
               <div className="flex items-center gap-2">
-                <Map size={16} className="text-[#0038A8]" />
+                <Map size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Live Map</h3>
                   <p className="text-[11px] text-[#94A3B8]">Tanod GPS positions across purok zones — authorized duty periods only</p>
@@ -1387,7 +1387,7 @@ export default function LiveTanodTracking({ onNavigate }: { onNavigate?: (page: 
                   {onNavigate && (
                     <button
                       onClick={() => onNavigate("patrol_scheduling")}
-                      className="mt-3 rounded-lg bg-[#0038A8] px-3 py-2 text-[11px] font-semibold text-white hover:bg-[#002A8C]"
+                      className="mt-3 rounded-lg bg-[#15803D] px-3 py-2 text-[11px] font-semibold text-white hover:bg-[#166534]"
                     >
                       Go to Patrol Scheduling
                     </button>

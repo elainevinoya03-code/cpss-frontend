@@ -168,7 +168,7 @@ export default function OtpVerification({ onVerify, onBack, userData }: OtpProps
   return (
     <div className="flex min-h-screen w-full bg-white" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       {/* Left panel - decorative */}
-      <div className="relative hidden md:flex md:flex-1 bg-gradient-to-br from-[#0038A8] to-[#06122B]">
+      <div className="relative hidden md:flex md:flex-1 bg-gradient-to-br from-[#15803D] to-[#052E16]">
         <div className="relative z-10 flex h-full flex-col justify-center px-8 lg:px-20 xl:px-[120px]">
           <div
             className="max-w-[460px]"
@@ -208,7 +208,7 @@ export default function OtpVerification({ onVerify, onBack, userData }: OtpProps
           <button
             type="button"
             onClick={onBack}
-            className="mb-6 flex items-center gap-2 text-[15px] font-semibold text-[#6B788C] transition-colors hover:text-[#0038A8] disabled:opacity-50"
+            className="mb-6 flex items-center gap-2 text-[15px] font-semibold text-[#6B788C] transition-colors hover:text-[#15803D] disabled:opacity-50"
             disabled={loading}
           >
             <ArrowLeft size={18} />
@@ -218,16 +218,16 @@ export default function OtpVerification({ onVerify, onBack, userData }: OtpProps
           {/* Header */}
           <div className="mb-8 text-center sm:mb-10">
             <div className="mb-4 flex justify-center">
-              <div className="rounded-full bg-[#0038A8]/10 p-4">
-                <Shield size={32} className="text-[#0038A8]" />
+              <div className="rounded-full bg-[#15803D]/10 p-4">
+                <Shield size={32} className="text-[#15803D]" />
               </div>
             </div>
-            <h2 className="m-0 text-[clamp(28px,5vw,40px)] font-extrabold text-[#0038A8]">
+            <h2 className="m-0 text-[clamp(28px,5vw,40px)] font-extrabold text-[#15803D]">
               Verify Your Identity
             </h2>
             <p className="m-0 mt-3 text-center text-[clamp(14px,2vw,18px)] text-[#6B788C]">
               Enter the 6-digit code sent to{" "}
-              <span className="font-semibold text-[#33437A]">{userData.email}</span>
+              <span className="font-semibold text-[#14532D]">{userData.email}</span>
             </p>
           </div>
 
@@ -243,7 +243,7 @@ export default function OtpVerification({ onVerify, onBack, userData }: OtpProps
           <form onSubmit={handleSubmit}>
             {/* OTP Input */}
             <div className="mb-8">
-              <label className="mb-4 block text-[clamp(15px,2vw,18px)] font-bold text-[#33437A]">
+              <label className="mb-4 block text-[clamp(15px,2vw,18px)] font-bold text-[#14532D]">
                 Verification Code
               </label>
               <div className="flex gap-2 sm:gap-3">
@@ -261,9 +261,9 @@ export default function OtpVerification({ onVerify, onBack, userData }: OtpProps
                     onPaste={handlePaste}
                     onFocus={() => setFocusedIndex(index)}
                     onBlur={() => setFocusedIndex(null)}
-                    className="aspect-square w-full rounded-xl border-[2px] bg-[#F1F5F9] text-center text-[clamp(20px,3vw,32px)] font-bold text-[#33437A] outline-none transition-all duration-200 focus:border-[#0038A8] focus:bg-white focus:shadow-lg focus:shadow-[#0038A8]/10 disabled:opacity-50"
+                    className="aspect-square w-full rounded-xl border-[2px] bg-[#F1F5F9] text-center text-[clamp(20px,3vw,32px)] font-bold text-[#14532D] outline-none transition-all duration-200 focus:border-[#15803D] focus:bg-white focus:shadow-lg focus:shadow-[#15803D]/10 disabled:opacity-50"
                     style={{
-                      borderColor: focusedIndex === index ? "#0038A8" : error ? "#dc2626" : "#E2E8F0",
+                      borderColor: focusedIndex === index ? "#15803D" : error ? "#dc2626" : "#E2E8F0",
                       boxShadow: focusedIndex === index ? "0 0 0 3px rgba(0,56,168,0.1)" : "none",
                     }}
                     disabled={loading}
@@ -277,13 +277,13 @@ export default function OtpVerification({ onVerify, onBack, userData }: OtpProps
               {resendDisabled ? (
                 <>
                   <span>Resend code in</span>
-                  <span className="font-semibold text-[#0038A8]">{formatTime(timeLeft)}</span>
+                  <span className="font-semibold text-[#15803D]">{formatTime(timeLeft)}</span>
                 </>
               ) : (
                 <button
                   type="button"
                   onClick={handleResend}
-                  className="flex items-center gap-2 font-semibold text-[#0038A8] transition-colors hover:text-[#0052CC] disabled:opacity-50"
+                  className="flex items-center gap-2 font-semibold text-[#15803D] transition-colors hover:text-[#16A34A] disabled:opacity-50"
                   disabled={loading}
                 >
                   <RefreshCw size={16} />
@@ -297,7 +297,7 @@ export default function OtpVerification({ onVerify, onBack, userData }: OtpProps
               type="submit"
               className="w-full overflow-hidden rounded-xl border-none px-4 py-4 text-[clamp(16px,2vw,20px)] font-bold text-white transition-all duration-200 hover:opacity-90 sm:py-[22px] disabled:opacity-80"
               style={{
-                background: "#0038A8",
+                background: "#15803D",
                 transform: loading ? "scale(0.98)" : "scale(1)",
               }}
               disabled={loading || otp.join("").length !== 6}

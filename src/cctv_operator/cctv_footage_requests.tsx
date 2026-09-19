@@ -321,7 +321,7 @@ const ACTION_STYLE: Record<EvidenceAction, { badge: string }> = {
   Viewed: { badge: "bg-sky-100 text-sky-700" },
   Generated: { badge: "bg-violet-100 text-violet-700" },
   Redacted: { badge: "bg-amber-100 text-amber-700" },
-  Attached: { badge: "bg-[#0038A8]/10 text-[#0038A8]" },
+  Attached: { badge: "bg-[#15803D]/10 text-[#15803D]" },
   Exported: { badge: "bg-emerald-100 text-emerald-700" },
 };
 
@@ -347,7 +347,7 @@ function EvidenceActivityPanel() {
     <div className="mb-6 rounded-xl border border-black/5 bg-white shadow-sm">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
-          <History size={16} className="text-[#0038A8]" />
+          <History size={16} className="text-[#15803D]" />
           <div>
             <h3 className="text-[14px] font-semibold text-[#334155]">Evidence Activity — Audit Log</h3>
             <p className="text-[11px] text-[#94A3B8]">Every view, download, export and privacy-processing is recorded</p>
@@ -369,7 +369,7 @@ function EvidenceActivityPanel() {
               </span>
               <span className="font-mono text-[11px] font-semibold text-stone-900">{a.clipId}</span>
               {a.incidentId && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#0038A8]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#15803D]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#15803D]">
                   <Link2 size={8} />
                   {a.incidentId}
                 </span>
@@ -433,7 +433,7 @@ function AttachModal({ clip, onClose, onAttach }: { clip: Clip; onClose: () => v
       title={step === "select" ? "Attach Clip to Incident" : "Attach Evidence"}
       subtitle={step === "select" ? `${clip.id} · ${clip.cameraName}` : undefined}
       icon={<Link2 size={18} />}
-      iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+      iconClass="bg-[#15803D]/10 text-[#15803D]"
       size="md"
       footer={
         step === "select" ? (
@@ -444,7 +444,7 @@ function AttachModal({ clip, onClose, onAttach }: { clip: Clip; onClose: () => v
             <button
               onClick={() => selectedId && setStep("confirm")}
               disabled={!selectedId}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-40"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534] disabled:opacity-40"
             >
               <Link2 size={13} />
               Continue
@@ -457,7 +457,7 @@ function AttachModal({ clip, onClose, onAttach }: { clip: Clip; onClose: () => v
             </button>
             <button
               onClick={handleConfirm}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
             >
               <Link2 size={13} />
               Attach Evidence
@@ -476,7 +476,7 @@ function AttachModal({ clip, onClose, onAttach }: { clip: Clip; onClose: () => v
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search by incident ID, title, category, or purok…"
-                className="w-full rounded-lg border border-stone-200 bg-stone-50 py-2 pl-8 pr-3 text-[11px] text-stone-700 placeholder:text-stone-400 focus:border-[#0038A8] focus:bg-white focus:outline-none"
+                className="w-full rounded-lg border border-stone-200 bg-stone-50 py-2 pl-8 pr-3 text-[11px] text-stone-700 placeholder:text-stone-400 focus:border-[#15803D] focus:bg-white focus:outline-none"
               />
             </div>
             <p className="mt-1 text-[9px] text-stone-400">
@@ -495,7 +495,7 @@ function AttachModal({ clip, onClose, onAttach }: { clip: Clip; onClose: () => v
                 key={inc.id}
                 onClick={() => setSelectedId(inc.id)}
                 className={`flex w-full items-start gap-3 rounded-lg border px-3.5 py-3 text-left transition ${
-                  selectedId === inc.id ? "border-[#0038A8] bg-[#0038A8]/5" : "border-stone-200 bg-white hover:bg-stone-50"
+                  selectedId === inc.id ? "border-[#15803D] bg-[#15803D]/5" : "border-stone-200 bg-white hover:bg-stone-50"
                 }`}
               >
                 <span className={`mt-0.5 flex h-2 w-2 shrink-0 rounded-full ${inc.severity === "critical" ? "bg-rose-500" : inc.severity === "warning" ? "bg-amber-400" : "bg-sky-400"}`} />
@@ -533,20 +533,20 @@ function AttachModal({ clip, onClose, onAttach }: { clip: Clip; onClose: () => v
             <p className="mt-0.5 text-[10px] text-stone-500">{clip.id} · {fmtClock(clip.durationSec)} · {clip.fileType}</p>
           </div>
           {selectedIncident && (
-            <div className="rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-4 py-3">
-              <p className="text-[9px] font-semibold tracking-wider text-[#0038A8]">ATTACH TO</p>
+            <div className="rounded-lg border border-[#15803D]/20 bg-[#15803D]/5 px-4 py-3">
+              <p className="text-[9px] font-semibold tracking-wider text-[#15803D]">ATTACH TO</p>
               <p className="mt-1 text-[12px] font-bold text-stone-900">{selectedIncident.id} — {selectedIncident.title}</p>
               <p className="mt-0.5 text-[10px] text-stone-500">{selectedIncident.category} · {selectedIncident.purok}</p>
             </div>
           )}
-          <div className="flex items-start gap-2 rounded-lg border border-[#0038A8]/15 bg-[#0038A8]/5 px-3 py-2.5">
-            <Link2 size={12} className="mt-0.5 shrink-0 text-[#0038A8]" />
+          <div className="flex items-start gap-2 rounded-lg border border-[#15803D]/15 bg-[#15803D]/5 px-3 py-2.5">
+            <Link2 size={12} className="mt-0.5 shrink-0 text-[#15803D]" />
             <p className="text-[10px] font-semibold leading-relaxed text-stone-700">
               This clip will be added as supplementary CCTV evidence.
             </p>
           </div>
           <div className="flex items-start gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
-            <CalendarClock size={12} className="mt-0.5 shrink-0 text-[#0038A8]" />
+            <CalendarClock size={12} className="mt-0.5 shrink-0 text-[#15803D]" />
             <p className="text-[10px] leading-relaxed text-stone-500">
               Linking starts the official <span className="font-semibold">{RETENTION_YEARS}-year retention</span> clock.
               The clip becomes reviewable by the Barangay Desk Officer and Barangay Captain.
@@ -839,7 +839,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
   const selectedCamera = selected ? CAMERAS.find((c) => c.id === selected.cameraId) : null;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -851,11 +851,11 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#0038A8]/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#0038A8]">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#15803D]/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#15803D]">
                 <User size={12} /> Operator: {operatorName}
               </span>
               <SoundToggle muted={muted} onToggle={() => setMuted((m) => !m)} />
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0038A8]/5 px-3 py-1.5 text-[11px] font-medium text-[#0038A8]">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#15803D]/5 px-3 py-1.5 text-[11px] font-medium text-[#15803D]">
                 <Lock size={12} /> Authorized access only
               </span>
             </div>
@@ -868,11 +868,11 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
             <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">{label}</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                   <Icon size={15} />
                 </div>
               </div>
-              <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+              <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
               <div className="mt-1 text-[11px] text-[#94A3B8]">{sub}</div>
             </div>
           ))}
@@ -882,7 +882,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
         <div className={`mb-6 rounded-xl border px-5 py-3 shadow-sm ${archiveCritical ? "border-rose-200 bg-rose-50/50" : "border-black/5 bg-white"}`}>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <div className="flex min-w-0 flex-1 items-center gap-2.5">
-              <HardDrive size={15} className={archiveCritical ? "shrink-0 text-rose-600" : "shrink-0 text-[#0038A8]"} />
+              <HardDrive size={15} className={archiveCritical ? "shrink-0 text-rose-600" : "shrink-0 text-[#15803D]"} />
               <div className="min-w-0">
                 <h3 className="text-[13px] font-semibold text-[#334155]">Archive Storage Capacity</h3>
                 <p className="truncate text-[10px] text-[#94A3B8]">
@@ -890,7 +890,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                 </p>
               </div>
               <div className="h-2 w-40 min-w-[100px] overflow-hidden rounded-full bg-stone-200">
-                <div className={`h-full rounded-full transition-all ${archiveCritical ? "bg-rose-500" : "bg-[#0038A8]"}`} style={{ width: `${archivePct}%` }} />
+                <div className={`h-full rounded-full transition-all ${archiveCritical ? "bg-rose-500" : "bg-[#15803D]"}`} style={{ width: `${archivePct}%` }} />
               </div>
             </div>
             <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold ${archiveCritical ? "bg-rose-100 text-rose-700" : "bg-emerald-50 text-emerald-700"}`}>
@@ -905,7 +905,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
-                <ClipboardList size={16} className="text-[#0038A8]" />
+                <ClipboardList size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Desk Officer Requests</h3>
                   <p className="text-[11px] text-[#94A3B8]">Select a request to load its search criteria</p>
@@ -929,7 +929,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                       key={r.id}
                       onClick={() => applyRequest(r)}
                       className={`w-full rounded-xl border p-3.5 text-left transition ${
-                        isSelected ? "border-[#0038A8] bg-[#0038A8]/5 shadow-sm" : "border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm"
+                        isSelected ? "border-[#15803D] bg-[#15803D]/5 shadow-sm" : "border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -948,7 +948,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
 
                       <div className="mt-2.5 space-y-1">
                         {r.incidentId && (
-                          <p className="flex items-center gap-1.5 text-[10px] font-semibold text-[#0038A8]">
+                          <p className="flex items-center gap-1.5 text-[10px] font-semibold text-[#15803D]">
                             <Link2 size={9} /> {r.incidentId}
                           </p>
                         )}
@@ -985,7 +985,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
               <div className="border-t border-stone-100 bg-[#F8FAFF]">
                 <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-4">
                   <div className="flex items-start gap-2.5">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0038A8]/10 text-[#0038A8]">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#15803D]/10 text-[#15803D]">
                       <ClipboardList size={15} />
                     </span>
                     <div>
@@ -1056,7 +1056,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                   <button
                     onClick={fulfillRequest}
                     disabled={selectedRequest.status === "fulfilled"}
-                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#0038A8] px-2 text-[10px] font-bold text-white transition hover:bg-[#002A8C] disabled:cursor-not-allowed disabled:opacity-40"
+                    className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#15803D] px-2 text-[10px] font-bold text-white transition hover:bg-[#166534] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <CheckCircle size={12} />
                     {selectedRequest.status === "fulfilled" ? "Fulfilled" : "Provide Footage"}
@@ -1079,7 +1079,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
             <div className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Filter size={15} className="text-[#0038A8]" />
+                  <Filter size={15} className="text-[#15803D]" />
                   <div>
                     <h3 className="text-[14px] font-semibold text-[#334155]">Search the Available Archive</h3>
                     <p className="text-[11px] text-[#94A3B8]">
@@ -1102,7 +1102,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                   <select
                     value={cameraFilter}
                     onChange={(e) => setCameraFilter(e.target.value)}
-                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                   >
                     <option value="all">All cameras</option>
                     {CAMERAS.filter((c) => c.hasArchive).map((c) => (
@@ -1129,7 +1129,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                     type="date"
                     value={dateFilter}
                     onChange={(e) => setDateFilter(e.target.value)}
-                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                   />
                 </div>
                 <div>
@@ -1140,7 +1140,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                     type="time"
                     value={startTimeFilter}
                     onChange={(e) => setStartTimeFilter(e.target.value)}
-                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                   />
                 </div>
                 <div>
@@ -1151,7 +1151,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                     type="time"
                     value={endTimeFilter}
                     onChange={(e) => setEndTimeFilter(e.target.value)}
-                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                   />
                 </div>
                 <div>
@@ -1161,7 +1161,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                   <select
                     value={incidentFilter}
                     onChange={(e) => setIncidentFilter(e.target.value)}
-                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                   >
                     <option value="all">All incidents</option>
                     {[...new Set(RECORDINGS.filter((r) => r.incidentId).map((r) => r.incidentId))].map((incId) => {
@@ -1181,7 +1181,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                   <select
                     value={eventTagFilter}
                     onChange={(e) => setEventTagFilter(e.target.value)}
-                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                    className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                   >
                     <option value="all">All tags</option>
                     {EVENT_TAGS.map((tag) => (
@@ -1194,39 +1194,39 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-stone-100 pt-3">
                 <div className="flex flex-wrap items-center gap-1.5">
                   {cameraFilter !== "all" && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#15803D]/20 bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-semibold text-[#15803D]">
                       Camera: {CAMERAS.find((c) => c.id === cameraFilter)?.name ?? cameraFilter}
-                      <button onClick={() => setCameraFilter("all")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                      <button onClick={() => setCameraFilter("all")} className="ml-0.5 rounded-full hover:bg-[#15803D]/10">&times;</button>
                     </span>
                   )}
                   {dateFilter && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#15803D]/20 bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-semibold text-[#15803D]">
                       Date: {dateFilter}
-                      <button onClick={() => setDateFilter("")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                      <button onClick={() => setDateFilter("")} className="ml-0.5 rounded-full hover:bg-[#15803D]/10">&times;</button>
                     </span>
                   )}
                   {startTimeFilter && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#15803D]/20 bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-semibold text-[#15803D]">
                       From: {startTimeFilter}
-                      <button onClick={() => setStartTimeFilter("")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                      <button onClick={() => setStartTimeFilter("")} className="ml-0.5 rounded-full hover:bg-[#15803D]/10">&times;</button>
                     </span>
                   )}
                   {endTimeFilter && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#15803D]/20 bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-semibold text-[#15803D]">
                       To: {endTimeFilter}
-                      <button onClick={() => setEndTimeFilter("")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                      <button onClick={() => setEndTimeFilter("")} className="ml-0.5 rounded-full hover:bg-[#15803D]/10">&times;</button>
                     </span>
                   )}
                   {incidentFilter !== "all" && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#15803D]/20 bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-semibold text-[#15803D]">
                       Incident: {incidentFilter}
-                      <button onClick={() => setIncidentFilter("all")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                      <button onClick={() => setIncidentFilter("all")} className="ml-0.5 rounded-full hover:bg-[#15803D]/10">&times;</button>
                     </span>
                   )}
                   {eventTagFilter !== "all" && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#15803D]/20 bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-semibold text-[#15803D]">
                       Tag: {eventTagFilter}
-                      <button onClick={() => setEventTagFilter("all")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                      <button onClick={() => setEventTagFilter("all")} className="ml-0.5 rounded-full hover:bg-[#15803D]/10">&times;</button>
                     </span>
                   )}
                 </div>
@@ -1236,7 +1236,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                   </button>
                   <button
                     onClick={() => flash(`Footage search — ${filteredRecordings.length} recording(s) found`)}
-                    className="flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[#0038A8] px-4 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                    className="flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[#15803D] px-4 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
                   >
                     <Search size={12} /> Find Footage
                   </button>
@@ -1249,7 +1249,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
               <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
                 <div className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-2">
-                    <Camera size={16} className="text-[#0038A8]" />
+                    <Camera size={16} className="text-[#15803D]" />
                     <div>
                       <h3 className="text-[14px] font-semibold text-[#334155]">Find Footage</h3>
                       <p className="text-[11px] text-[#94A3B8]">Found recordings matching the request filters</p>
@@ -1274,13 +1274,13 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                           key={rec.id}
                           className={`rounded-xl border p-4 transition ${
                             selected?.id === rec.id
-                              ? "border-[#0038A8] bg-[#0038A8]/5 shadow-sm"
+                              ? "border-[#15803D] bg-[#15803D]/5 shadow-sm"
                               : "border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm"
                           }`}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2">
-                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0038A8]/10 text-[#0038A8]">
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#15803D]/10 text-[#15803D]">
                                 <Video size={14} />
                               </span>
                               <div>
@@ -1313,7 +1313,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                             </div>
                             <div className="rounded-lg border border-stone-200 bg-white px-3 py-2">
                               <p className="text-[9px] font-semibold tracking-wider text-stone-400">DURATION</p>
-                              <p className="mt-0.5 text-[11px] font-bold text-[#0038A8]">{fmtClock(rec.duration)}</p>
+                              <p className="mt-0.5 text-[11px] font-bold text-[#15803D]">{fmtClock(rec.duration)}</p>
                             </div>
                           </div>
                           <div className="mt-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2">
@@ -1323,7 +1323,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
 
                           <div className="mt-2 flex flex-wrap items-center gap-1.5">
                             {isLinked ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-bold text-[#0038A8]">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-bold text-[#15803D]">
                                 <Link2 size={8} /> {rec.incidentId}
                               </span>
                             ) : (
@@ -1341,14 +1341,14 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                           <div className="mt-3 flex items-center gap-2">
                             <button
                               onClick={() => loadRecording(rec)}
-                              className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#0038A8] text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                              className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#15803D] text-[11px] font-semibold text-white transition hover:bg-[#166534]"
                             >
                               <Play size={12} />
                               {selected?.id === rec.id ? "Playing" : "Review"}
                             </button>
                             <button
                               onClick={() => loadRecording(rec)}
-                              className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 text-[11px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white"
+                              className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#15803D]/20 bg-[#15803D]/5 text-[11px] font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white"
                             >
                               <Scissors size={12} /> Select Clip
                             </button>
@@ -1365,7 +1365,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                 <div className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
                   <div className="flex items-center justify-between px-5 py-4">
                     <div className="flex items-center gap-2">
-                      <MonitorPlay size={16} className="text-[#0038A8]" />
+                      <MonitorPlay size={16} className="text-[#15803D]" />
                       <div>
                         <h3 className="text-[14px] font-semibold text-[#334155]">Review &amp; Playback</h3>
                         <p className="text-[11px] text-[#94A3B8]">
@@ -1382,7 +1382,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                         </span>
                       )}
                       {selectedRequest && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#0038A8] ring-1 ring-[#0038A8]/20">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#15803D] ring-1 ring-[#15803D]/20">
                           <ClipboardList size={10} /> {selectedRequest.id}
                         </span>
                       )}
@@ -1412,7 +1412,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                             <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                               <button
                                 onClick={() => setPlaying(true)}
-                                className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-[#0038A8] shadow-xl transition hover:scale-105"
+                                className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-[#15803D] shadow-xl transition hover:scale-105"
                               >
                                 <Play size={26} className="ml-1" />
                               </button>
@@ -1447,9 +1447,9 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                             <p className="text-[9px] font-semibold tracking-wider text-stone-400">START</p>
                             <p className="mt-0.5 font-mono text-[11px] font-bold text-stone-700">{fmtTimestamp(selected.startISO)}</p>
                           </div>
-                          <div className="rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-3 py-2 text-center">
-                            <p className="text-[9px] font-semibold tracking-wider text-[#0038A8]">CURRENT</p>
-                            <p className="mt-0.5 font-mono text-[11px] font-bold text-[#0038A8]">
+                          <div className="rounded-lg border border-[#15803D]/20 bg-[#15803D]/5 px-3 py-2 text-center">
+                            <p className="text-[9px] font-semibold tracking-wider text-[#15803D]">CURRENT</p>
+                            <p className="mt-0.5 font-mono text-[11px] font-bold text-[#15803D]">
                               {new Date(new Date(selected.startISO).getTime() + currentSec * 1000).toLocaleTimeString("en-US", { hour12: false })}
                             </p>
                           </div>
@@ -1471,13 +1471,13 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                           max={selected.duration}
                           value={currentSec}
                           onChange={(e) => setCurrentSec(Number(e.target.value))}
-                          className="w-full accent-[#0038A8]"
+                          className="w-full accent-[#15803D]"
                         />
 
                         <div className="mt-3 mb-2 flex flex-wrap items-center gap-2">
                           <button
                             onClick={() => setPlaying((p) => !p)}
-                            className="flex h-8 items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                            className="flex h-8 items-center gap-1.5 rounded-lg bg-[#15803D] px-3 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
                           >
                             {playing ? <Pause size={12} /> : <Play size={12} />}
                             {playing ? "Pause" : "Play"}
@@ -1492,7 +1492,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                               max={100}
                               value={volume}
                               onChange={(e) => setVolume(Number(e.target.value))}
-                              className="w-16 accent-[#0038A8]"
+                              className="w-16 accent-[#15803D]"
                             />
                             <span className="w-7 text-right font-mono text-[9px] text-stone-400">{volume}%</span>
                           </div>
@@ -1504,7 +1504,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                         <div className="mt-4 rounded-xl border border-stone-200 bg-white p-4">
                           <div className="mb-3 flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <Scissors size={14} className="text-[#0038A8]" />
+                              <Scissors size={14} className="text-[#15803D]" />
                               <span className="text-[11px] font-bold tracking-wider text-[#334155]">SELECT FOOTAGE TO PROVIDE</span>
                               {previewingSegment && (
                                 <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-1.5 py-0.5 text-[9px] font-semibold text-rose-600">
@@ -1514,12 +1514,12 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                             </div>
                             <div className="flex items-center gap-2">
                               {selectedRequest && (
-                                <span className="rounded-full bg-white px-2 py-0.5 text-[9px] font-semibold text-[#0038A8] ring-1 ring-[#0038A8]/20">
+                                <span className="rounded-full bg-white px-2 py-0.5 text-[9px] font-semibold text-[#15803D] ring-1 ring-[#15803D]/20">
                                   will link {selectedRequest.incidentId ?? "request"}
                                 </span>
                               )}
                               {canCreateClip && (
-                                <span className="font-mono text-[11px] font-bold text-[#0038A8]">{fmtClock(clipDuration)}</span>
+                                <span className="font-mono text-[11px] font-bold text-[#15803D]">{fmtClock(clipDuration)}</span>
                               )}
                             </div>
                           </div>
@@ -1528,7 +1528,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                             <div className="relative h-7 rounded-md bg-stone-100">
                               {clipStart != null && clipEnd != null && clipEnd > clipStart && (
                                 <div
-                                  className="absolute top-0 h-7 rounded-md bg-[#0038A8]/20 border-y border-[#0038A8]/40"
+                                  className="absolute top-0 h-7 rounded-md bg-[#15803D]/20 border-y border-[#15803D]/40"
                                   style={{ left: `${(clipStart / selected.duration) * 100}%`, width: `${((clipEnd - clipStart) / selected.duration) * 100}%` }}
                                 />
                               )}
@@ -1548,8 +1548,8 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                                   </div>
                                 </div>
                               )}
-                              <div className="absolute top-0 z-20 h-7 w-px bg-[#0038A8]" style={{ left: `${(currentSec / selected.duration) * 100}%` }}>
-                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded bg-[#0038A8] px-1 py-px text-[7px] font-bold text-white whitespace-nowrap">NOW</div>
+                              <div className="absolute top-0 z-20 h-7 w-px bg-[#15803D]" style={{ left: `${(currentSec / selected.duration) * 100}%` }}>
+                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded bg-[#15803D] px-1 py-px text-[7px] font-bold text-white whitespace-nowrap">NOW</div>
                               </div>
                             </div>
                             <div className="mt-7 flex justify-between">
@@ -1607,7 +1607,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                                 setPreviewingSegment(true);
                               }}
                               disabled={!canCreateClip}
-                              className="flex h-8 items-center gap-1.5 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-3 text-[10px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                              className="flex h-8 items-center gap-1.5 rounded-lg border border-[#15803D]/20 bg-[#15803D]/5 px-3 text-[10px] font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               <Eye size={11} /> Preview Segment
                             </button>
@@ -1633,7 +1633,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                             <button
                               onClick={generateClip}
                               disabled={!canCreateClip}
-                              className="flex h-9 items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 text-[11px] font-bold text-white shadow-sm transition hover:bg-[#002A8C] disabled:cursor-not-allowed disabled:opacity-40"
+                              className="flex h-9 items-center gap-1.5 rounded-lg bg-[#15803D] px-4 text-[11px] font-bold text-white shadow-sm transition hover:bg-[#166534] disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               <CloudUpload size={12} /> Retrieve / Generate Clip
                             </button>
@@ -1675,7 +1675,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
           <div className="xl:col-span-2 flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
-                <Database size={16} className="text-[#0038A8]" />
+                <Database size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Provided Footage / Clip Records</h3>
                   <p className="text-[11px] text-[#94A3B8]">clip_id · camera_id · incident_id · start/end · storage_reference · type/size · uploader · retention/legal-hold</p>
@@ -1711,7 +1711,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                               </span>
                             )}
                             {clip.incidentId ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#0038A8]">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#15803D]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#15803D]">
                                 <Link2 size={9} /> Linked {clip.incidentId}
                               </span>
                             ) : (
@@ -1766,7 +1766,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                           <button
                             onClick={() => setAttachTarget(clip)}
                             disabled={!!clip.incidentId}
-                            className="flex h-7 items-center gap-1 rounded-md border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 text-[11px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                            className="flex h-7 items-center gap-1 rounded-md border border-[#15803D]/20 bg-[#15803D]/5 px-2 text-[11px] font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             <Link2 size={11} /> {clip.incidentId ? "Attached" : "Attach"}
                           </button>
@@ -1783,7 +1783,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
-                <Shield size={16} className="text-[#0038A8]" />
+                <Shield size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Control &amp; Retention</h3>
                   <p className="text-[11px] text-[#94A3B8]">Barangay record-keeping &amp; access policy</p>
@@ -1791,10 +1791,10 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
               </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
-              <div className="mb-3 rounded-xl border border-[#0038A8]/15 bg-[#0038A8]/5 px-4 py-3">
+              <div className="mb-3 rounded-xl border border-[#15803D]/15 bg-[#15803D]/5 px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <Link2 size={14} className="text-[#0038A8]" />
-                  <p className="text-[11px] font-bold text-[#0038A8]">INCIDENT-LINKED ({linkedClips})</p>
+                  <Link2 size={14} className="text-[#15803D]" />
+                  <p className="text-[11px] font-bold text-[#15803D]">INCIDENT-LINKED ({linkedClips})</p>
                 </div>
                 <p className="mt-1.5 text-[10px] leading-relaxed text-stone-600">
                   Once attached to an official incident, footage is retained for exactly {RETENTION_YEARS} year
@@ -1812,7 +1812,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                     <div key={c.id} className="rounded-lg border border-stone-200 bg-white px-3.5 py-2.5">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-bold text-stone-900">{c.id}</span>
-                        <span className="rounded-full bg-[#0038A8]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#0038A8]">{c.incidentId}</span>
+                        <span className="rounded-full bg-[#15803D]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#15803D]">{c.incidentId}</span>
                       </div>
                       <div className="mt-1.5 flex items-center justify-between text-[10px] text-stone-500">
                         <span className="flex items-center gap-1">
@@ -1925,7 +1925,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
               <label
                 key={r.value}
                 className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition ${
-                  cannotFulfillReason === r.value ? "border-[#0038A8] bg-[#0038A8]/5" : "border-stone-200 hover:border-stone-300"
+                  cannotFulfillReason === r.value ? "border-[#15803D] bg-[#15803D]/5" : "border-stone-200 hover:border-stone-300"
                 }`}
               >
                 <input
@@ -1934,7 +1934,7 @@ export default function CctvFootageRequests({ operatorName = "CO-01" }: { operat
                   value={r.value}
                   checked={cannotFulfillReason === r.value}
                   onChange={() => setCannotFulfillReason(r.value)}
-                  className="mt-0.5 accent-[#0038A8]"
+                  className="mt-0.5 accent-[#15803D]"
                 />
                 <div>
                   <p className="text-[12px] font-medium text-stone-800">{r.label}</p>

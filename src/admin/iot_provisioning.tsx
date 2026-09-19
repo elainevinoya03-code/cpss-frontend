@@ -200,7 +200,7 @@ const STATUS_CONFIG: Record<
   pending: {
     dot: "bg-sky-500",
     badge: "bg-sky-50 text-sky-700 border-sky-200",
-    pin: "#1d4ed8",
+    pin: "#15803D",
     label: "Pending",
     icon: Clock,
   },
@@ -606,7 +606,7 @@ function MapPinMarker({
       className="absolute flex -translate-x-1/2 -translate-y-full flex-col items-center"
       style={{ top: `${device.top}%`, left: `${device.left}%` }}
     >
-      <span className="mb-1 whitespace-nowrap rounded px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm bg-[#0038A8]">
+      <span className="mb-1 whitespace-nowrap rounded px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm bg-[#15803D]">
         {device.id}
       </span>
       <div className="relative">
@@ -724,7 +724,7 @@ function FormSection({
   return (
     <div className="border-t border-stone-100 pt-5">
       <div className="mb-1 flex items-center gap-2">
-        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0038A8]/10 text-[10px] font-bold text-[#0038A8]">
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#15803D]/10 text-[10px] font-bold text-[#15803D]">
           {step}
         </span>
         <h3 className="text-[13px] font-bold text-stone-800">{title}</h3>
@@ -911,7 +911,7 @@ function DeviceDetailModal({
     >
       <div className="space-y-5">
         <div>
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#0038A8]">
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">
             Overview
           </p>
           <DetailRow label="OPERATIONAL STATUS">
@@ -1002,7 +1002,7 @@ function DeviceDetailModal({
         </div>
 
         <div>
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#0038A8]">
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">
             Maintenance Records
           </p>
           <DetailRow label="INSTALLATION DATE">
@@ -1085,7 +1085,7 @@ function ThresholdSlider({
       <div className="relative py-2">
         <div className="h-1.5 rounded-full bg-stone-200">
           <div
-            className="h-1.5 rounded-full bg-[#0038A8]"
+            className="h-1.5 rounded-full bg-[#15803D]"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -1097,10 +1097,10 @@ function ThresholdSlider({
           onChange={(e) => onChange(Number(e.target.value))}
           className="absolute inset-x-0 top-0 h-full w-full cursor-pointer appearance-none bg-transparent
             [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none
-            [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#0038A8]
+            [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#15803D]
             [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow
             [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:rounded-full
-            [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-[#0038A8]"
+            [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-[#15803D]"
         />
       </div>
 
@@ -1311,7 +1311,7 @@ function DeviceRegistrationSection({
             <button
               onClick={onRegenerateDeviceId}
               title="Regenerate Device ID from hardware type + purok"
-              className="flex h-[42px] shrink-0 items-center gap-1.5 rounded-md border border-stone-200 bg-white px-3 text-[12px] font-medium text-stone-500 transition hover:bg-stone-50 hover:text-[#0038A8]"
+              className="flex h-[42px] shrink-0 items-center gap-1.5 rounded-md border border-stone-200 bg-white px-3 text-[12px] font-medium text-stone-500 transition hover:bg-stone-50 hover:text-[#15803D]"
             >
               <RefreshCw size={13} />
               Regenerate
@@ -1357,7 +1357,7 @@ function DeviceRegistrationSection({
             <button
               onClick={onSimulateMac}
               title="Generate a simulated hardware MAC for prototyping (ESP32 OUI prefix)"
-              className="flex h-[42px] shrink-0 items-center gap-1.5 rounded-md border border-stone-200 bg-white px-3 text-[12px] font-medium text-stone-500 transition hover:bg-stone-50 hover:text-[#0038A8]"
+              className="flex h-[42px] shrink-0 items-center gap-1.5 rounded-md border border-stone-200 bg-white px-3 text-[12px] font-medium text-stone-500 transition hover:bg-stone-50 hover:text-[#15803D]"
             >
               <Cpu size={13} />
               Simulate MAC
@@ -1421,7 +1421,7 @@ function DeviceRegistrationSection({
               onClick={onTogglePickingPin}
               className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
                 pickingPin
-                  ? "bg-[#0038A8] text-white"
+                  ? "bg-[#15803D] text-white"
                   : "border border-stone-200 text-stone-500 hover:bg-stone-50"
               }`}
             >
@@ -1459,7 +1459,7 @@ function DeviceRegistrationSection({
           </div>
           <p
             className={`mt-2 text-[10px] ${
-              pickingPin ? "font-medium text-[#0038A8] animate-pulse" : "text-stone-400"
+              pickingPin ? "font-medium text-[#15803D] animate-pulse" : "text-stone-400"
             }`}
           >
             {pickingPin
@@ -1703,7 +1703,7 @@ function DeviceRegisteredModal({
       footer={
         <button
           onClick={onClose}
-          className="w-full rounded-lg bg-[#0038A8] py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#002A8C]"
+          className="w-full rounded-lg bg-[#15803D] py-2.5 text-[13px] font-semibold text-white transition hover:bg-[#166534]"
         >
           Done
         </button>
@@ -1711,7 +1711,7 @@ function DeviceRegisteredModal({
     >
       <div className="space-y-5">
         <div>
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#0038A8]">
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">
             Registration Summary
           </p>
           <DetailRow label="DEVICE NAME">{device.name}</DetailRow>
@@ -1785,7 +1785,7 @@ function RotateConfirmModal({
           </button>
           <button
             onClick={onConfirm}
-            className="w-full rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-medium text-white hover:bg-[#002A8C] sm:flex-1"
+            className="w-full rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-medium text-white hover:bg-[#166534] sm:flex-1"
           >
             Rotate Credential
           </button>
@@ -1853,7 +1853,7 @@ function ProvisionCredentialModal({
       subtitle={isRevoked ? `${device.id} · recover revoked credential` : `${device.id} · no credential was created at registration`}
       size="md"
       icon={<KeyRound size={18} />}
-      iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+      iconClass="bg-[#15803D]/10 text-[#15803D]"
       footer={
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
           <button
@@ -1864,7 +1864,7 @@ function ProvisionCredentialModal({
           </button>
           <button
             onClick={onConfirm}
-            className="w-full rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-medium text-white hover:bg-[#002A8C] sm:flex-1"
+            className="w-full rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-medium text-white hover:bg-[#166534] sm:flex-1"
           >
             Provision Credential
           </button>
@@ -2034,8 +2034,8 @@ function CredentialProcessingModal({
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 px-3 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0038A8]/10">
-            <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#0038A8]/30 border-t-[#0038A8]" />
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#15803D]/10">
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-[#15803D]/30 border-t-[#15803D]" />
           </div>
           <div>
             <h3 className="text-[14px] font-semibold text-stone-900">{title}</h3>
@@ -2048,7 +2048,7 @@ function CredentialProcessingModal({
               {i < step ? (
                 <CheckCircle2 size={14} className="shrink-0 text-emerald-500" />
               ) : i === step ? (
-                <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-[#0038A8]/30 border-t-[#0038A8]" />
+                <span className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-[#15803D]/30 border-t-[#15803D]" />
               ) : (
                 <span className="h-3.5 w-3.5 shrink-0 rounded-full border-2 border-stone-200" />
               )}
@@ -2083,7 +2083,7 @@ function CredentialsRotatedModal({
       footer={
         <button
           onClick={onClose}
-          className="w-full rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-medium text-white hover:bg-[#002A8C]"
+          className="w-full rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-medium text-white hover:bg-[#166534]"
         >
           Close
         </button>
@@ -2158,7 +2158,7 @@ function CredentialProvisionedModal({
       footer={
         <button
           onClick={onClose}
-          className="w-full rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-medium text-white hover:bg-[#002A8C]"
+          className="w-full rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-medium text-white hover:bg-[#166534]"
         >
           Close
         </button>
@@ -2223,7 +2223,7 @@ function DeviceMapSection({
       headerRight={
         <div className="flex items-center gap-2">
           {pickingPin && (
-            <span className="rounded-md bg-[#0038A8] px-2.5 py-1 text-[11px] font-medium text-white animate-pulse">
+            <span className="rounded-md bg-[#15803D] px-2.5 py-1 text-[11px] font-medium text-white animate-pulse">
               Click map to place pin
             </span>
           )}
@@ -2391,7 +2391,7 @@ function DeviceTableSection({
                       <button
                         onClick={() => onView(d)}
                         title="View device details & maintenance records"
-                        className="flex h-7 w-7 items-center justify-center rounded-md border border-stone-200 text-stone-400 transition hover:border-[#0038A8] hover:bg-[#0038A8]/5 hover:text-[#0038A8]"
+                        className="flex h-7 w-7 items-center justify-center rounded-md border border-stone-200 text-stone-400 transition hover:border-[#15803D] hover:bg-[#15803D]/5 hover:text-[#15803D]"
                       >
                         <Info size={13} />
                       </button>
@@ -2416,7 +2416,7 @@ function DeviceTableSection({
                           className={`flex h-7 w-7 items-center justify-center rounded-md border transition ${
                             d.decommissionedAt
                               ? "cursor-not-allowed border-stone-100 text-stone-300"
-                              : "border-sky-200 text-sky-500 hover:border-[#0038A8] hover:bg-[#0038A8]/5 hover:text-[#0038A8]"
+                              : "border-sky-200 text-sky-500 hover:border-[#15803D] hover:bg-[#15803D]/5 hover:text-[#15803D]"
                           }`}
                         >
                           <KeyRound size={13} />
@@ -2433,7 +2433,7 @@ function DeviceTableSection({
                           className={`flex h-7 w-7 items-center justify-center rounded-md border transition ${
                             d.decommissionedAt
                               ? "cursor-not-allowed border-stone-100 text-stone-300"
-                              : "border-stone-200 text-stone-400 hover:border-[#0038A8] hover:bg-[#0038A8]/5 hover:text-[#0038A8]"
+                              : "border-stone-200 text-stone-400 hover:border-[#15803D] hover:bg-[#15803D]/5 hover:text-[#15803D]"
                           }`}
                         >
                           <RefreshCw size={13} />
@@ -2537,7 +2537,7 @@ function ConnectionTestSection({
         >
           {testingDevice ? (
             <>
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-stone-300 border-t-[#0038A8]" />
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-stone-300 border-t-[#15803D]" />
               Pinging...
             </>
           ) : (
@@ -2760,7 +2760,7 @@ function ThresholdSection({
         <button
           onClick={onApply}
           disabled={!justification.trim()}
-          className="flex items-center gap-1.5 rounded-md bg-[#0038A8] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#002A8C] disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-md bg-[#15803D] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#166534] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <CheckCircle2 size={14} />
           Apply Thresholds
@@ -2796,7 +2796,7 @@ function EditDeviceModal({
         </button>
         <button
           onClick={onSave}
-          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#002A8C]"
+          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#166534]"
         >
           <Save className="h-4 w-4" /> Save Changes
         </button>
@@ -3642,7 +3642,7 @@ export default function IotProvisioning() {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <style>{`
         .db-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
         .db-scroll::-webkit-scrollbar-track { background: transparent; }

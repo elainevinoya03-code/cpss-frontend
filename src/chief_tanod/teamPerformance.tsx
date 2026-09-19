@@ -52,7 +52,7 @@ export default function TeamPerformance({ onNavigate }: { onNavigate?: (page: st
   const topPerformer = MOCK_PERF.reduce((best, p) => (p.complianceRate > best.complianceRate ? p : best), MOCK_PERF[0]);
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <div>
@@ -66,7 +66,7 @@ export default function TeamPerformance({ onNavigate }: { onNavigate?: (page: st
           <div className="rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm">
             <div className="flex items-start justify-between">
               <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">AVG COMPLIANCE</span>
-              <Target size={14} className="text-[#0038A8]" />
+              <Target size={14} className="text-[#15803D]" />
             </div>
             <div className={`mt-1 text-[22px] font-bold ${avgCompliance >= 80 ? "text-emerald-600" : "text-amber-600"}`}>{avgCompliance}%</div>
           </div>
@@ -80,9 +80,9 @@ export default function TeamPerformance({ onNavigate }: { onNavigate?: (page: st
           <div className="rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm">
             <div className="flex items-start justify-between">
               <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">TOTAL INCIDENTS</span>
-              <AlertTriangle size={14} className="text-[#0038A8]" />
+              <AlertTriangle size={14} className="text-[#15803D]" />
             </div>
-            <div className="mt-1 text-[22px] font-bold text-[#0038A8]">{totalIncidents}</div>
+            <div className="mt-1 text-[22px] font-bold text-[#15803D]">{totalIncidents}</div>
           </div>
           <div className="rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm">
             <div className="flex items-start justify-between">
@@ -101,7 +101,7 @@ export default function TeamPerformance({ onNavigate }: { onNavigate?: (page: st
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-[11px] text-stone-600 outline-none focus:border-[#0038A8]/50"
+              className="rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-[11px] text-stone-600 outline-none focus:border-[#15803D]/50"
             >
               <option value="incidents">Sort by Incidents</option>
               <option value="response">Sort by Response Time</option>

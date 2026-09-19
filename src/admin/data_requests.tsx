@@ -27,7 +27,7 @@ interface DataRequest {
 }
 
 const TYPE_STYLES: Record<RequestType, string> = {
-  Access: "bg-blue-50 text-blue-700",
+  Access: "bg-green-50 text-green-700",
   Correction: "bg-amber-50 text-amber-700",
   Anonymization: "bg-violet-50 text-violet-700",
   Deletion: "bg-rose-50 text-rose-700",
@@ -35,7 +35,7 @@ const TYPE_STYLES: Record<RequestType, string> = {
 
 const STATUS_STYLES: Record<RequestStatus, string> = {
   Pending: "bg-amber-50 text-amber-700",
-  "In Review": "bg-blue-50 text-blue-700",
+  "In Review": "bg-green-50 text-green-700",
   Verified: "bg-emerald-50 text-emerald-700",
   Approved: "bg-emerald-50 text-emerald-700",
   Denied: "bg-rose-50 text-rose-600",
@@ -200,7 +200,7 @@ export default function DataRequests() {
   const denyReady = retentionDeny || denyReason.trim().length > 0;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <h1 className="text-2xl font-bold text-stone-900">Data Requests</h1>
@@ -209,7 +209,7 @@ export default function DataRequests() {
           </p>
         </header>
 
-        <div className="mb-5 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        <div className="mb-5 flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
           <ShieldCheck size={16} className="mt-0.5 shrink-0" />
           <p className="text-xs">
             Each request moves <strong>Pending → In Review → Verified</strong> before it can be
@@ -240,14 +240,14 @@ export default function DataRequests() {
                   onClick={() => setFilter(f)}
                   className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
                     filter === f
-                      ? "border-[#0038A8] bg-[#0038A8]/5 text-[#0038A8]"
+                      ? "border-[#15803D] bg-[#15803D]/5 text-[#15803D]"
                       : "border-stone-200 text-stone-500 hover:border-stone-300 hover:bg-stone-50"
                   }`}
                 >
                   {f}
                   <span
                     className={`rounded-full px-1.5 py-0.5 text-[10px] ${
-                      filter === f ? "bg-[#0038A8]/10 text-[#0038A8]" : "bg-stone-100 text-stone-400"
+                      filter === f ? "bg-[#15803D]/10 text-[#15803D]" : "bg-stone-100 text-stone-400"
                     }`}
                   >
                     {count}
@@ -276,7 +276,7 @@ export default function DataRequests() {
                   <tr key={r.id} className="border-t border-stone-100">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0038A8]/10 text-[#0038A8]">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#15803D]/10 text-[#15803D]">
                           <ClipboardCheck size={13} />
                         </span>
                         <span className="font-mono text-xs font-semibold text-stone-700">{r.id}</span>

@@ -168,14 +168,14 @@ export default function Sidebar({ activeKey = "dashboard", onNavigate = () => {}
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className={`relative hidden md:flex md:flex-col md:h-screen md:flex-shrink-0 bg-[#06122B] text-white transition-all duration-300 ${collapsed ? "md:w-[68px]" : "md:w-[260px]"}`}>
+      <aside className={`relative hidden md:flex md:flex-col md:h-screen md:flex-shrink-0 bg-[#052E16] text-white transition-all duration-300 ${collapsed ? "md:w-[68px]" : "md:w-[260px]"}`}>
         <SidebarContent items={items} sectionLabel={sectionLabel} activeKey={activeKey} onNavigate={onNavigate} collapsed={collapsed} />
       </aside>
 
       {/* Mobile overlay sidebar */}
       <div className={`fixed inset-0 z-50 transition-opacity md:hidden ${!collapsed ? "visible opacity-100" : "invisible opacity-0"}`}>
         <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-        <aside className={`relative h-screen w-[260px] bg-[#06122B] text-white transition-transform duration-300 ${!collapsed ? "translate-x-0" : "-translate-x-full"}`}>
+        <aside className={`relative h-screen w-[260px] bg-[#052E16] text-white transition-transform duration-300 ${!collapsed ? "translate-x-0" : "-translate-x-full"}`}>
           <SidebarContent items={items} sectionLabel={sectionLabel} activeKey={activeKey} onNavigate={onNavigate} collapsed={false} />
         </aside>
       </div>

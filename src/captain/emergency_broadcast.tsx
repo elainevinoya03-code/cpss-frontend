@@ -159,7 +159,7 @@ export function ComposeBroadcastModal({ onClose, onSend, incidentHint, onDraftRe
         footer={
           <button
             onClick={onClose}
-            className="mt-5 w-full rounded-lg bg-[#0038A8] px-6 py-2 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+            className="mt-5 w-full rounded-lg bg-[#15803D] px-6 py-2 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
           >
             Done
           </button>
@@ -205,7 +205,7 @@ export function ComposeBroadcastModal({ onClose, onSend, incidentHint, onDraftRe
           <button
             onClick={handleSubmit}
             disabled={!title.trim() || !message.trim()}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534] disabled:opacity-50"
           >
             <Send size={13} />
             Submit for Authorization
@@ -240,7 +240,7 @@ export function ComposeBroadcastModal({ onClose, onSend, incidentHint, onDraftRe
               <select
                 value={purok}
                 onChange={(e) => setPurok(e.target.value)}
-                className="w-full appearance-none rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-8 text-[12px] text-stone-900 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                className="w-full appearance-none rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-8 text-[12px] text-stone-900 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
               >
                 <option value="All Puroks">All Puroks â€” Community-wide</option>
                 {PUROK_ZONES.map((z) => (
@@ -260,7 +260,7 @@ export function ComposeBroadcastModal({ onClose, onSend, incidentHint, onDraftRe
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Flash Flood Warning â€” Immediate Evacuation"
-                className="w-full rounded-lg border border-stone-200 bg-stone-50 py-2 pl-8 pr-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                className="w-full rounded-lg border border-stone-200 bg-stone-50 py-2 pl-8 pr-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
               />
             </div>
           </div>
@@ -272,7 +272,7 @@ export function ComposeBroadcastModal({ onClose, onSend, incidentHint, onDraftRe
               onChange={(e) => setMessage(e.target.value)}
               rows={4}
               placeholder="Type the emergency broadcast message..."
-              className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+              className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
             />
           </div>
 
@@ -298,7 +298,7 @@ export function AuthorizeBroadcastModal({ alert, onConfirm, onClose }: { alert: 
     <Modal
       size="md"
       onClose={onClose}
-      icon={<ShieldCheck size={16} className="text-[#0038A8]" />}
+      icon={<ShieldCheck size={16} className="text-[#15803D]" />}
       title="Authorize Emergency Broadcast"
       footer={
         <div className="flex gap-3">
@@ -310,7 +310,7 @@ export function AuthorizeBroadcastModal({ alert, onConfirm, onClose }: { alert: 
           </button>
           <button
             onClick={onConfirm}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
           >
             <ShieldCheck size={14} />
             Confirm &amp; Blast
@@ -409,7 +409,7 @@ function BroadcastFollowUpModal({ broadcast, summary, onClose, onSubmit }: { bro
             <select
               value={purok}
               onChange={(e) => setPurok(e.target.value)}
-              className="w-full appearance-none rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-8 text-[12px] text-stone-900 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+              className="w-full appearance-none rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-8 text-[12px] text-stone-900 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
             >
               <option value="All Puroks">All Puroks â€” Community-wide</option>
               {PUROK_ZONES.map((z) => (
@@ -427,7 +427,7 @@ function BroadcastFollowUpModal({ broadcast, summary, onClose, onSubmit }: { bro
             onChange={(e) => setNote(e.target.value)}
             rows={3}
             placeholder="e.g. Priority check on the low-lying area â€” please verify residents are accounted for."
-            className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+            className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
           />
         </div>
 
@@ -500,15 +500,15 @@ function BroadcastDetailDrawer({ broadcast, onClose, onFollowUp }: { broadcast: 
             <p className="text-[10px] font-medium tracking-wider text-stone-400">DELIVERY STATS</p>
             <div className="mt-2 grid grid-cols-3 gap-3">
               <div className="text-center">
-                <p className="text-[18px] font-bold text-[#0038A8]">{broadcast.smsCount.toLocaleString()}</p>
+                <p className="text-[18px] font-bold text-[#15803D]">{broadcast.smsCount.toLocaleString()}</p>
                 <p className="text-[10px] text-stone-400">SMS Sent</p>
               </div>
               <div className="text-center">
-                <p className="text-[18px] font-bold text-[#0038A8]">{broadcast.pushCount.toLocaleString()}</p>
+                <p className="text-[18px] font-bold text-[#15803D]">{broadcast.pushCount.toLocaleString()}</p>
                 <p className="text-[10px] text-stone-400">Push Sent</p>
               </div>
               <div className="text-center">
-                <p className="text-[18px] font-bold text-[#0038A8]">{broadcast.helpCount}</p>
+                <p className="text-[18px] font-bold text-[#15803D]">{broadcast.helpCount}</p>
                 <p className="text-[10px] text-stone-400">Need Help</p>
               </div>
             </div>
@@ -521,7 +521,7 @@ function BroadcastDetailDrawer({ broadcast, onClose, onFollowUp }: { broadcast: 
             </p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               <div className="text-center">
-                <p className="text-[18px] font-bold text-[#0038A8]">{summary.totalReached.toLocaleString()}</p>
+                <p className="text-[18px] font-bold text-[#15803D]">{summary.totalReached.toLocaleString()}</p>
                 <p className="text-[10px] text-stone-400">Total Reached</p>
               </div>
               <div className="text-center">
@@ -537,7 +537,7 @@ function BroadcastDetailDrawer({ broadcast, onClose, onFollowUp }: { broadcast: 
                 <p className="text-[10px] text-stone-400">No Response</p>
               </div>
               <div className="text-center">
-                <p className="text-[18px] font-bold text-[#0038A8]">{summary.ackRate}%</p>
+                <p className="text-[18px] font-bold text-[#15803D]">{summary.ackRate}%</p>
                 <p className="text-[10px] text-stone-400">Ack Rate</p>
               </div>
             </div>
@@ -729,7 +729,7 @@ export default function EmergencyBroadcast() {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <div className="flex items-center justify-between">
@@ -742,7 +742,7 @@ export default function EmergencyBroadcast() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowCompose(true)}
-                className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
               >
                 <Megaphone size={13} />
                 New Broadcast
@@ -758,7 +758,7 @@ export default function EmergencyBroadcast() {
                 key={tr.key}
                 onClick={() => setTimeRange(tr.key)}
                 className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
-                  timeRange === tr.key ? "bg-[#0038A8] text-white" : "text-stone-500 hover:bg-stone-100"
+                  timeRange === tr.key ? "bg-[#15803D] text-white" : "text-stone-500 hover:bg-stone-100"
                 }`}
               >
                 {tr.label}
@@ -785,7 +785,7 @@ export default function EmergencyBroadcast() {
                         key={opt.key}
                         onClick={() => { setSeverityFilter(opt.key); setFilterOpen(false); }}
                         className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${
-                          severityFilter === opt.key ? "bg-[#0038A8] text-white" : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+                          severityFilter === opt.key ? "bg-[#15803D] text-white" : "bg-stone-100 text-stone-500 hover:bg-stone-200"
                         }`}
                       >
                         {opt.label}
@@ -811,11 +811,11 @@ export default function EmergencyBroadcast() {
             <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-medium tracking-wider text-stone-400">{label}</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                   <Icon size={15} />
                 </div>
               </div>
-              <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+              <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
               <div className="mt-1 text-[11px] text-stone-400">{sub}</div>
             </div>
           ))}
@@ -824,7 +824,7 @@ export default function EmergencyBroadcast() {
         {pendingAlerts.length > 0 && (
           <div className="mb-6">
             <div className="mb-3 flex items-center gap-2">
-              <Shield size={16} className="text-[#0038A8]" />
+              <Shield size={16} className="text-[#15803D]" />
               <div>
                 <h3 className="text-[14px] font-semibold text-stone-900">Pending Authorization</h3>
                 <p className="text-[11px] text-stone-400">{pendingAlerts.length} draft{pendingAlerts.length !== 1 ? "s" : ""} awaiting executive approval</p>
@@ -865,7 +865,7 @@ export default function EmergencyBroadcast() {
                     <div className="mt-3 flex items-center gap-2 pl-11">
                       <button
                         onClick={() => setAuthorizeTarget(alert)}
-                        className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+                        className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
                       >
                         <ShieldCheck size={14} />
                         Authorize &amp; Blast
@@ -888,7 +888,7 @@ export default function EmergencyBroadcast() {
         <div className="rounded-xl border border-black/5 bg-white shadow-sm">
           <div className="flex items-center justify-between px-5 py-4">
             <div className="flex items-center gap-2">
-              <Radio size={16} className="text-[#0038A8]" />
+              <Radio size={16} className="text-[#15803D]" />
               <div>
                 <h3 className="text-[14px] font-semibold text-stone-900">Broadcast History</h3>
                 <p className="text-[11px] text-stone-400">{filteredHistory.length} broadcast{filteredHistory.length !== 1 ? "s" : ""} sent</p>
@@ -992,7 +992,7 @@ export default function EmergencyBroadcast() {
                     {showAckPanel === broadcast.id && summary.ackData && (
                       <div className="mt-3 ml-11 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
                         <div className="mb-2 flex items-center gap-2">
-                          <Users size={12} className="text-[#0038A8]" />
+                          <Users size={12} className="text-[#15803D]" />
                           <span className="text-[11px] font-semibold text-stone-900">Acknowledgement Roll-Call</span>
                         </div>
                         <div className="space-y-1.5">

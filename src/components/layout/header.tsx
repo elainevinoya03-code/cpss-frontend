@@ -38,7 +38,7 @@ export default function Header({ onToggleSidebar = () => {}, initials = "BA", la
   }, [menuOpen]);
 
   return (
-    <header className="flex items-center justify-between border-b border-black/5 bg-[#E9EDFB] px-3 py-3 sm:px-6 sm:py-4">
+    <header className="flex items-center justify-between border-b border-black/5 bg-[#DCFCE7] px-3 py-3 sm:px-6 sm:py-4">
       <div className="flex items-center gap-4">
         <button
           onClick={onToggleSidebar}
@@ -59,7 +59,7 @@ export default function Header({ onToggleSidebar = () => {}, initials = "BA", la
             onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
             className="flex items-center gap-2 rounded-lg p-1 hover:bg-stone-200/60"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0038A8]/10 text-[11px] font-semibold text-[#0038A8]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#15803D]/10 text-[11px] font-semibold text-[#15803D]">
               {initials}
             </div>
             <div className="hidden sm:block leading-tight text-left">

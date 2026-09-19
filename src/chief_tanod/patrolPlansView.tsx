@@ -67,7 +67,7 @@ export function ApprovalModal({ plan, onDecide, onClose }: {
             onClick={() => onDecide(decision, comment.trim())}
             disabled={decision !== "approve" && comment.length === 0}
             className={`flex-1 rounded-lg px-4 py-2 text-[12px] font-semibold text-white transition disabled:opacity-40 ${
-              decision === "approve" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-[#0038A8] hover:bg-[#002A8C]"
+              decision === "approve" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-[#15803D] hover:bg-[#166534]"
             }`}
           >
             {decision === "approve" ? "Approve & Finalize" : "Reject Plan"}
@@ -93,7 +93,7 @@ export function ApprovalModal({ plan, onDecide, onClose }: {
           </div>
           <div className="rounded-lg border border-stone-100 bg-stone-50/60 px-3 py-2">
             <p className="text-[9px] font-semibold tracking-wider text-[#94A3B8]">COVERAGE</p>
-            <p className="mt-0.5 text-[11px] font-semibold text-[#0038A8]">
+            <p className="mt-0.5 text-[11px] font-semibold text-[#15803D]">
               {plan.coverage.pct}% ({plan.coverage.covered}/{plan.coverage.total})
             </p>
           </div>
@@ -177,7 +177,7 @@ export function PlanDetailModal({ plan, onClose, allIncidents }: {
       title={`${plan.code} — ${plan.name}`}
       subtitle="Complete checkpoint plan"
       icon={<FileText size={18} />}
-      iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+      iconClass="bg-[#15803D]/10 text-[#15803D]"
       size="3xl"
       footer={
         <div className="flex justify-end gap-2">
@@ -225,7 +225,7 @@ export function PlanDetailModal({ plan, onClose, allIncidents }: {
           </div>
           <div className="rounded-lg border border-stone-100 bg-stone-50/60 p-3">
             <p className="text-[9px] font-semibold tracking-wider text-[#94A3B8]">COVERAGE</p>
-            <p className="mt-0.5 text-[11px] font-bold text-[#0038A8]">
+            <p className="mt-0.5 text-[11px] font-bold text-[#15803D]">
               {plan.coverage.pct}% <span className="font-normal text-[#94A3B8]">({plan.coverage.covered}/{plan.coverage.total})</span>
             </p>
           </div>
@@ -253,18 +253,18 @@ export function PlanDetailModal({ plan, onClose, allIncidents }: {
           <p className="text-[10px] font-semibold uppercase tracking-wider text-[#94A3B8]">Schedule</p>
           <div className="mt-1.5 flex flex-wrap gap-3 text-[11px] font-medium text-stone-600">
             <span className="inline-flex items-center gap-1">
-              <Calendar size={11} className="text-[#0038A8]" />
+              <Calendar size={11} className="text-[#15803D]" />
               {plan.schedule.operationDate ? formatDay(plan.schedule.operationDate) : "—"}
               {plan.schedule.endDate && plan.schedule.endDate !== plan.schedule.operationDate
                 ? ` → ${formatDay(plan.schedule.endDate)}`
                 : ""}
             </span>
             <span className="inline-flex items-center gap-1">
-              <Clock size={11} className="text-[#0038A8]" />
+              <Clock size={11} className="text-[#15803D]" />
               {plan.schedule.startTime}–{plan.schedule.endTime}
             </span>
             <span className="inline-flex items-center gap-1">
-              <RefreshCw size={11} className="text-[#0038A8]" />
+              <RefreshCw size={11} className="text-[#15803D]" />
               {plan.schedule.recurring === "daily"
                 ? "Daily"
                 : plan.schedule.recurring === "specific_days"
@@ -273,7 +273,7 @@ export function PlanDetailModal({ plan, onClose, allIncidents }: {
             </span>
             {plan.schedule.expectedDuration && (
               <span className="inline-flex items-center gap-1">
-                <Clock size={11} className="text-[#0038A8]" />
+                <Clock size={11} className="text-[#15803D]" />
                 {plan.schedule.expectedDuration}
               </span>
             )}
@@ -285,7 +285,7 @@ export function PlanDetailModal({ plan, onClose, allIncidents }: {
           <div className="space-y-1.5">
             {plan.points.map((p, i) => (
               <div key={p.id} className="flex items-start gap-2 rounded-lg border border-stone-100 bg-stone-50/50 px-3 py-2">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0038A8] text-[8px] font-bold text-white">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#15803D] text-[8px] font-bold text-white">
                   {p.label}
                 </span>
                 <div className="min-w-0 flex-1">
@@ -456,19 +456,19 @@ export function CheckpointPlansView({
 ).map((s) => (
             <div key={s.key} className="rounded-xl border border-black/5 bg-white px-4 py-4 shadow-sm">
               <span className="text-[9px] font-semibold tracking-wider text-[#94A3B8]">{s.label.toUpperCase()}</span>
-              <div className="mt-1.5 text-[24px] font-bold leading-none text-[#0038A8]">{statusCounts[s.key]}</div>
+              <div className="mt-1.5 text-[24px] font-bold leading-none text-[#15803D]">{statusCounts[s.key]}</div>
             </div>
           ))}
       </div>
 
       {plans.length > 0 && (
         <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-stone-200 bg-white px-4 py-3 shadow-sm">
-          <Filter size={14} className="text-[#0038A8]" />
+          <Filter size={14} className="text-[#15803D]" />
           <span className="text-[11px] font-semibold text-stone-600">Filters:</span>
           <select
             value={planTypeFilter}
             onChange={(e) => onPlanTypeFilter(e.target.value as "all" | PlanType)}
-            className="w-auto rounded-lg border border-stone-200 bg-white px-3 py-2 text-[11px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+            className="w-auto rounded-lg border border-stone-200 bg-white px-3 py-2 text-[11px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
           >
             <option value="all">All types</option>
             <option value="fixed">Fixed Checkpoint</option>
@@ -477,7 +477,7 @@ export function CheckpointPlansView({
           <select
             value={planAreaFilter}
             onChange={(e) => onPlanAreaFilter(e.target.value)}
-            className="w-auto rounded-lg border border-stone-200 bg-white px-3 py-2 text-[11px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+            className="w-auto rounded-lg border border-stone-200 bg-white px-3 py-2 text-[11px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
           >
             <option value="all">All areas</option>
             {planAreaOptions.map((a) => (
@@ -524,7 +524,7 @@ export function CheckpointPlansView({
               >
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-4 py-3">
                   <div className="flex items-center gap-2.5">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                       {p.type === "fixed" ? <MapPin size={14} /> : <Route size={14} />}
                     </span>
                     <div>
@@ -560,7 +560,7 @@ export function CheckpointPlansView({
                     <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-[9px] font-semibold text-stone-600">
                       <MapPin size={9} /> {p.targetArea}
                     </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-semibold text-[#15803D]">
                       {p.coverage.pct}% coverage
                     </span>
                   </div>
@@ -619,7 +619,7 @@ export function CheckpointPlansView({
                   {isPending && onDecide && (
                     <button
                       onClick={() => onDecide(p)}
-                      className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3.5 py-2 text-[11px] font-bold text-white transition hover:bg-[#002A8C]"
+                      className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3.5 py-2 text-[11px] font-bold text-white transition hover:bg-[#166534]"
                     >
                       <Shield size={12} /> Review &amp; Decide
                     </button>

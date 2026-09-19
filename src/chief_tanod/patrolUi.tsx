@@ -46,7 +46,7 @@ export function Field({
 }
 
 export const inputCls =
-  "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30";
+  "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30";
 export const selectCls = inputCls;
 export const textareaCls = `${inputCls} resize-none`;
 
@@ -68,7 +68,7 @@ export function Stepper({ step, onSelect }: { step: number; onSelect: (s: number
             onClick={() => onSelect(s.n)}
             className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1 text-[10px] font-semibold transition ${
               step === s.n
-                ? "bg-[#0038A8] text-white shadow-sm"
+                ? "bg-[#15803D] text-white shadow-sm"
                 : step > s.n
                   ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                   : "text-stone-400 hover:bg-stone-100"
@@ -76,7 +76,7 @@ export function Stepper({ step, onSelect }: { step: number; onSelect: (s: number
           >
             <span
               className={`flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold ${
-                step === s.n ? "bg-white text-[#0038A8]" : step > s.n ? "bg-emerald-600 text-white" : "bg-stone-200"
+                step === s.n ? "bg-white text-[#15803D]" : step > s.n ? "bg-emerald-600 text-white" : "bg-stone-200"
               }`}
             >
               {step > s.n ? <Check size={8} strokeWidth={3} /> : s.n}

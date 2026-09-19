@@ -21,7 +21,7 @@ import { useToast } from "../hooks/useToast";
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
 const INPUT_CLASS =
-  "w-full rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none placeholder:text-stone-400 focus:border-[#0038A8] focus:ring-1 focus:ring-[#0038A8]";
+  "w-full rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none placeholder:text-stone-400 focus:border-[#15803D] focus:ring-1 focus:ring-[#15803D]";
 
 const PURPOSES = [
   { key: "login", label: "Login" },
@@ -125,7 +125,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       type="button"
       onClick={() => onChange(!checked)}
       className={`relative h-6 w-11 rounded-full transition-colors ${
-        checked ? "bg-[#0038A8]" : "bg-stone-300"
+        checked ? "bg-[#15803D]" : "bg-stone-300"
       }`}
     >
       <span
@@ -302,7 +302,7 @@ const OtpSettings = forwardRef<OtpSettingsHandle, Props>(function OtpSettings(
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-3 rounded-xl border border-stone-200 bg-white px-6 py-16 shadow-sm">
-        <span className="h-5 w-5 animate-spin rounded-full border-2 border-stone-300 border-t-[#0038A8]" />
+        <span className="h-5 w-5 animate-spin rounded-full border-2 border-stone-300 border-t-[#15803D]" />
         <p className="text-sm text-stone-500">Loading OTP settings…</p>
       </div>
     );
@@ -495,7 +495,7 @@ const OtpSettings = forwardRef<OtpSettingsHandle, Props>(function OtpSettings(
           </select>
         </Row>
 
-        <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
           <ShieldCheck size={16} className="mt-0.5 shrink-0" />
           <div>
             <p className="font-medium">Credentials stay secure</p>
@@ -527,7 +527,7 @@ const OtpSettings = forwardRef<OtpSettingsHandle, Props>(function OtpSettings(
             type="button"
             onClick={() => void sendTest()}
             disabled={testing}
-            className="flex items-center justify-center gap-2 rounded-md bg-[#0038A8] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-md bg-[#15803D] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#166534] disabled:opacity-50"
           >
             {testing ? (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
@@ -569,7 +569,7 @@ const OtpSettings = forwardRef<OtpSettingsHandle, Props>(function OtpSettings(
           type="button"
           onClick={() => void saveSettings()}
           disabled={saving}
-          className="flex items-center gap-1.5 rounded-md bg-[#0038A8] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-md bg-[#15803D] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#166534] disabled:opacity-50"
         >
           {saving ? (
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />

@@ -82,7 +82,7 @@ const ACTIVITY_ICON: Record<ActivityEvent["kind"], typeof Clock> = {
 };
 
 const ACTIVITY_KIND_COLOR: Record<ActivityEvent["kind"], string> = {
-  incident: "bg-[#0038A8]/10 text-[#0038A8]",
+  incident: "bg-[#15803D]/10 text-[#15803D]",
   tanod: "bg-emerald-100 text-emerald-700",
   cctv: "bg-sky-100 text-sky-700",
   request: "bg-violet-100 text-violet-700",
@@ -142,7 +142,7 @@ function SectionTitle({
       {onAction && (
         <button
           onClick={onAction}
-          className="flex items-center gap-1 text-[11px] font-medium text-[#0038A8] hover:underline"
+          className="flex items-center gap-1 text-[11px] font-medium text-[#15803D] hover:underline"
         >
           {actionLabel}
           <ArrowRight size={11} />
@@ -159,7 +159,7 @@ function SectionTitle({
 function LoadingSkeleton() {
   const block = "animate-pulse rounded-xl border border-black/5 bg-white/80";
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <div className="mb-6 border-b border-stone-200 pb-5">
           <div className={`${block} h-7 w-72`} />
@@ -241,7 +241,7 @@ function LiveOperationsMap({
               {/* Incident count badge */}
               {zoneIncidents.length > 0 && (
                 <g className="pointer-events-none">
-                  <circle cx={zone.labelX + 32} cy={zone.labelY - 8} r={8} fill="#0038A8" opacity={0.9} />
+                  <circle cx={zone.labelX + 32} cy={zone.labelY - 8} r={8} fill="#15803D" opacity={0.9} />
                   <text x={zone.labelX + 32} y={zone.labelY - 4.5} textAnchor="middle" fontSize="8" fontWeight="700" fill="white">
                     {zoneIncidents.length}
                   </text>
@@ -353,7 +353,7 @@ function IncidentDetailModal({
       title={`${incident.id} — ${incident.category}`}
       subtitle={`${incident.purok} · ${formatTimeAgo(incident.time)}`}
       icon={<AlertTriangle size={18} />}
-      iconClass={isEmergency ? "bg-rose-100 text-rose-600" : "bg-[#0038A8]/10 text-[#0038A8]"}
+      iconClass={isEmergency ? "bg-rose-100 text-rose-600" : "bg-[#15803D]/10 text-[#15803D]"}
       size="lg"
       footer={
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
@@ -369,7 +369,7 @@ function IncidentDetailModal({
                 onNavigate("incident_triage");
                 onClose();
               }}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
             >
               Open in Incident Triage <ArrowUpRight size={13} />
             </button>
@@ -479,7 +479,7 @@ function ZoneNoticeModal({
               onClick={() => setTarget("barangay")}
               className={`rounded-lg border px-3 py-2 text-[12px] font-medium transition ${
                 target === "barangay"
-                  ? "border-[#0038A8]/40 bg-[#E9EDFB] text-[#0038A8]"
+                  ? "border-[#15803D]/40 bg-[#DCFCE7] text-[#15803D]"
                   : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
               }`}
             >
@@ -489,7 +489,7 @@ function ZoneNoticeModal({
               onClick={() => setTarget("purok")}
               className={`rounded-lg border px-3 py-2 text-[12px] font-medium transition ${
                 target === "purok"
-                  ? "border-[#0038A8]/40 bg-[#E9EDFB] text-[#0038A8]"
+                  ? "border-[#15803D]/40 bg-[#DCFCE7] text-[#15803D]"
                   : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
               }`}
             >
@@ -502,7 +502,7 @@ function ZoneNoticeModal({
                 value={purok}
                 onChange={(e) => setPurok(e.target.value)}
                 list="purok-list"
-                className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+                className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
               />
               <datalist id="purok-list">
                 {PUROK_ZONES.map((z) => (
@@ -518,7 +518,7 @@ function ZoneNoticeModal({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Zone awareness notice"
-            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
           />
         </div>
         <div>
@@ -528,7 +528,7 @@ function ZoneNoticeModal({
             onChange={(e) => setMessage(e.target.value)}
             rows={3}
             placeholder="Instruct volunteers to observe and report without approaching situations"
-            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
           />
         </div>
       </div>
@@ -631,7 +631,7 @@ function RetaskUnitModal({
                       <Siren size={12} />
                     </span>
                   ) : (
-                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#E9EDFB] text-[#0038A8]">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#DCFCE7] text-[#15803D]">
                       <AlertTriangle size={12} />
                     </span>
                   )}
@@ -745,7 +745,7 @@ export default function ChiefTanodDashboard({
   if (!booted) return <LoadingSkeleton />;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         {/* Header */}
         <header className="mb-6 border-b border-stone-200 pb-5">
@@ -788,7 +788,7 @@ export default function ChiefTanodDashboard({
                   <Users size={13} />
                 </div>
               </div>
-              <div className="mt-1.5 text-[24px] font-bold text-[#0038A8]">
+              <div className="mt-1.5 text-[24px] font-bold text-[#15803D]">
                 {onDutyTanods.length}
               </div>
               <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#94A3B8]">
@@ -806,17 +806,17 @@ export default function ChiefTanodDashboard({
             {/* Active Incidents */}
             <div
               onClick={() => go("incident_triage")}
-              className="group cursor-pointer rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm transition hover:border-[#0038A8]/30 hover:bg-[#E9EDFB]/50"
+              className="group cursor-pointer rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm transition hover:border-[#15803D]/30 hover:bg-[#DCFCE7]/50"
             >
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">
                   ACTIVE INCIDENTS
                 </span>
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                   <AlertTriangle size={13} />
                 </div>
               </div>
-              <div className="mt-1.5 text-[24px] font-bold text-[#0038A8]">
+              <div className="mt-1.5 text-[24px] font-bold text-[#15803D]">
                 {activeIncidentsCount}
               </div>
               <div className="mt-0.5 text-[10px] text-[#94A3B8]">
@@ -872,7 +872,7 @@ export default function ChiefTanodDashboard({
           <div className="xl:col-span-2 rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 px-5 py-4">
               <div className="flex items-center gap-2">
-                <Map size={16} className="text-[#0038A8]" />
+                <Map size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Live Operations Map</h3>
                   <p className="text-[11px] text-[#94A3B8]">Tanod positions, incidents &amp; patrol coverage</p>
@@ -909,8 +909,8 @@ export default function ChiefTanodDashboard({
                 onSelectIncident={setSelectedIncident}
               />
               {selectedIncident ? (
-                <div className="mt-3 flex items-start gap-3 rounded-lg border border-[#0038A8]/20 bg-[#E9EDFB]/40 px-4 py-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0038A8]/10 text-[#0038A8]">
+                <div className="mt-3 flex items-start gap-3 rounded-lg border border-[#15803D]/20 bg-[#DCFCE7]/40 px-4 py-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#15803D]/10 text-[#15803D]">
                     <AlertTriangle size={14} />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -924,7 +924,7 @@ export default function ChiefTanodDashboard({
                     <div className="mt-2 flex flex-wrap gap-2">
                       <button
                         onClick={() => {}}
-                        className="inline-flex items-center gap-1 rounded-md bg-[#0038A8] px-2.5 py-1 text-[10px] font-medium text-white transition hover:bg-[#002A8C]"
+                        className="inline-flex items-center gap-1 rounded-md bg-[#15803D] px-2.5 py-1 text-[10px] font-medium text-white transition hover:bg-[#166534]"
                       >
                         Details <ArrowUpRight size={10} />
                       </button>
@@ -953,9 +953,9 @@ export default function ChiefTanodDashboard({
               <div className="grid grid-cols-1 gap-2">
                 <button
                   onClick={() => go("patrol_scheduler_routes")}
-                  className="group flex items-center gap-3 rounded-lg border border-black/5 bg-[#E9EDFB]/40 px-3.5 py-2.5 transition hover:border-[#0038A8]/30 hover:bg-[#E9EDFB]/80"
+                  className="group flex items-center gap-3 rounded-lg border border-black/5 bg-[#DCFCE7]/40 px-3.5 py-2.5 transition hover:border-[#15803D]/30 hover:bg-[#DCFCE7]/80"
                 >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                     <CalendarDays size={14} />
                   </div>
                   <div className="min-w-0 flex-1 text-left">
@@ -966,7 +966,7 @@ export default function ChiefTanodDashboard({
                 </button>
                 <button
                   onClick={() => setShowZoneNotice(true)}
-                  className="group flex items-center gap-3 rounded-lg border border-black/5 bg-[#E9EDFB]/40 px-3.5 py-2.5 transition hover:border-[#0f766e]/30 hover:bg-[#f0fdfa]/60"
+                  className="group flex items-center gap-3 rounded-lg border border-black/5 bg-[#DCFCE7]/40 px-3.5 py-2.5 transition hover:border-[#0f766e]/30 hover:bg-[#f0fdfa]/60"
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0f766e]/10 text-[#0f766e]">
                     <Megaphone size={14} />
@@ -979,7 +979,7 @@ export default function ChiefTanodDashboard({
                 </button>
                 <button
                   onClick={() => setShowRetask(true)}
-                  className="group flex items-center gap-3 rounded-lg border border-black/5 bg-[#E9EDFB]/40 px-3.5 py-2.5 transition hover:border-amber-300 hover:bg-amber-50/40"
+                  className="group flex items-center gap-3 rounded-lg border border-black/5 bg-[#DCFCE7]/40 px-3.5 py-2.5 transition hover:border-amber-300 hover:bg-amber-50/40"
                 >
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
                     <Navigation size={14} />
@@ -995,7 +995,7 @@ export default function ChiefTanodDashboard({
 
             {/* Live Activity Stream */}
             <div className="flex items-center gap-2 border-b border-stone-100 px-5 py-3">
-              <Activity size={14} className="text-[#0038A8]" />
+              <Activity size={14} className="text-[#15803D]" />
               <h3 className="text-[13px] font-semibold text-[#334155]">Live Activity Feed</h3>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -1023,7 +1023,7 @@ export default function ChiefTanodDashboard({
                               {activityActionLabel(ev.action)}
                             </span>
                             {ev.incidentId && (
-                              <span className="rounded bg-[#0038A8]/10 px-1 py-px text-[8px] font-semibold text-[#0038A8]">
+                              <span className="rounded bg-[#15803D]/10 px-1 py-px text-[8px] font-semibold text-[#15803D]">
                                 {ev.incidentId}
                               </span>
                             )}
@@ -1051,7 +1051,7 @@ export default function ChiefTanodDashboard({
             className="flex w-full items-center justify-between border-b border-stone-100 px-5 py-4 text-left transition hover:bg-stone-50/50"
           >
             <div className="flex items-center gap-2">
-              <Shield size={16} className="text-[#0038A8]" />
+              <Shield size={16} className="text-[#15803D]" />
               <div>
                 <h3 className="text-[14px] font-semibold text-[#334155]">Shift Overview &amp; Performance</h3>
                 <p className="text-[11px] text-[#94A3B8]">
@@ -1060,7 +1060,7 @@ export default function ChiefTanodDashboard({
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-[12px] font-bold text-[#0038A8]">{complianceRate}% compliance</span>
+              <span className="text-[12px] font-bold text-[#15803D]">{complianceRate}% compliance</span>
               {shiftExpanded ? (
                 <ChevronUp size={16} className="text-stone-400" />
               ) : (

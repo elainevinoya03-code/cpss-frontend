@@ -44,7 +44,7 @@ export default function ConfirmModal({
               onClick={onConfirm}
               disabled={loading}
               className={`flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-[12px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-60 sm:flex-1 ${
-                tone === "primary" ? "bg-[#0038A8] hover:bg-[#002A8C]" : "bg-rose-600 hover:bg-rose-700"
+                tone === "primary" ? "bg-[#15803D] hover:bg-[#166534]" : "bg-rose-600 hover:bg-rose-700"
               }`}
             >
               {loading && <Loader2 size={14} className="animate-spin" />}
@@ -66,7 +66,7 @@ export default function ConfirmModal({
         <p className="mt-1.5 text-[12px] text-stone-500">{message}</p>
         <button
           onClick={onClose}
-          className="mt-5 w-full rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-medium text-white hover:bg-[#002A8C]"
+          className="mt-5 w-full rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-medium text-white hover:bg-[#166534]"
         >
           Done
         </button>

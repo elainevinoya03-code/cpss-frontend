@@ -369,7 +369,7 @@ const INFRA_STATUS = {
 } as const;
 
 const ACTION_BADGE: Record<string, string> = {
-  "Configuration Change": "bg-blue-50 text-blue-700",
+  "Configuration Change": "bg-green-50 text-green-700",
   "User Deactivation": "bg-red-50 text-red-600",
   "User Disabled": "bg-red-50 text-red-600",
   "User Enabled": "bg-emerald-50 text-emerald-700",
@@ -499,7 +499,7 @@ const DEVICE_TRENDS = [
 ];
 
 const ALERT_DISTRIBUTION = [
-  { category: "IoT", count: 4, color: "bg-blue-500" },
+  { category: "IoT", count: 4, color: "bg-green-500" },
   { category: "CCTV", count: 1, color: "bg-purple-500" },
   { category: "Security", count: 1, color: "bg-rose-500" },
   { category: "System", count: 2, color: "bg-amber-500" },
@@ -534,7 +534,7 @@ function SectionTitle({
       {onAction && (
         <button
           onClick={onAction}
-          className="text-[11px] font-medium text-[#0038A8] hover:underline"
+          className="text-[11px] font-medium text-[#15803D] hover:underline"
         >
           {actionLabel}
         </button>
@@ -656,7 +656,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <h1 className="text-2xl font-bold text-stone-900">Dashboard Overview</h1>
@@ -679,7 +679,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                 title={title}
                 className={`group rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm ${
                   onNavigate && page
-                    ? "cursor-pointer transition hover:border-[#0038A8]/30 hover:bg-[#E9EDFB]/50"
+                    ? "cursor-pointer transition hover:border-[#15803D]/30 hover:bg-[#DCFCE7]/50"
                     : ""
                 }`}
               >
@@ -691,12 +691,12 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                     {onNavigate && page && (
                       <ArrowUpRight size={12} className="text-[#94A3B8] opacity-0 transition group-hover:opacity-100" />
                     )}
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                       <Icon size={15} />
                     </div>
                   </div>
                 </div>
-                <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+                <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
                 <div className="mt-1 text-[11px] text-[#94A3B8]">{sub}</div>
               </div>
             ))}
@@ -711,7 +711,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
             <div className="xl:col-span-2 rounded-xl border border-black/5 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <Radio size={16} className="text-[#0038A8]" />
+                  <Radio size={16} className="text-[#15803D]" />
                   <div>
                     <h3 className="text-[14px] font-semibold text-[#334155]">IoT Device Health</h3>
                     <p className="text-[11px] text-[#94A3B8]">
@@ -722,7 +722,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                 {onNavigate && (
                   <button
                     onClick={() => onNavigate("iot")}
-                    className="text-[11px] font-medium text-[#0038A8] hover:underline"
+                    className="text-[11px] font-medium text-[#15803D] hover:underline"
                   >
                     Open IoT Provisioning
                   </button>
@@ -819,7 +819,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                               className="flex h-7 items-center gap-1 rounded-md border border-stone-200 px-2 text-[11px] font-medium text-stone-600 transition hover:bg-stone-50 disabled:opacity-50"
                             >
                               {pinging === d.name ? (
-                                <span className="h-3 w-3 animate-spin rounded-full border-2 border-stone-300 border-t-[#0038A8]" />
+                                <span className="h-3 w-3 animate-spin rounded-full border-2 border-stone-300 border-t-[#15803D]" />
                               ) : (
                                 <Zap size={11} />
                               )}
@@ -838,7 +838,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
             <div className="rounded-xl border border-black/5 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <Camera size={16} className="text-[#0038A8]" />
+                  <Camera size={16} className="text-[#15803D]" />
                   <div>
                     <h3 className="text-[14px] font-semibold text-[#334155]">CCTV Availability</h3>
                     <p className="text-[11px] text-[#94A3B8]">
@@ -849,7 +849,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                 {onNavigate && (
                   <button
                     onClick={() => onNavigate("cctv")}
-                    className="text-[11px] font-medium text-[#0038A8] hover:underline"
+                    className="text-[11px] font-medium text-[#15803D] hover:underline"
                   >
                     Manage
                   </button>
@@ -918,7 +918,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                   className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                       <Icon size={15} />
                     </div>
                     <span
@@ -947,7 +947,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
             <div className="rounded-xl border border-black/5 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <BarChart3 size={16} className="text-[#0038A8]" />
+                  <BarChart3 size={16} className="text-[#15803D]" />
                   <div>
                     <h3 className="text-[14px] font-semibold text-[#334155]">Key Performance Metrics</h3>
                     <p className="text-[11px] text-[#94A3B8]">30-day performance overview</p>
@@ -970,7 +970,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                           {metric.change}
                         </div>
                       </div>
-                      <p className="mt-2 text-[20px] font-bold text-[#0038A8]">{metric.value}</p>
+                      <p className="mt-2 text-[20px] font-bold text-[#15803D]">{metric.value}</p>
                       <p className="mt-1 text-[10px] text-[#94A3B8]">{metric.description}</p>
                     </div>
                   );
@@ -982,7 +982,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
             <div className="rounded-xl border border-black/5 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <Activity size={16} className="text-[#0038A8]" />
+                  <Activity size={16} className="text-[#15803D]" />
                   <div>
                     <h3 className="text-[14px] font-semibold text-[#334155]">Device Status Trends</h3>
                     <p className="text-[11px] text-[#94A3B8]">Weekly device status distribution</p>
@@ -1049,7 +1049,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
             <div className="rounded-xl border border-black/5 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <PieChart size={16} className="text-[#0038A8]" />
+                  <PieChart size={16} className="text-[#15803D]" />
                   <div>
                     <h3 className="text-[14px] font-semibold text-[#334155]">Alert Distribution</h3>
                     <p className="text-[11px] text-[#94A3B8]">Alerts by category (last 30 days)</p>
@@ -1075,7 +1075,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                             cy="18"
                             r="15.9"
                             fill="none"
-                            stroke={item.color.replace("bg-", "").replace("500", "#3B82F6")}
+                            stroke={item.color.replace("bg-", "").replace("500", "#22C55E")}
                             strokeWidth="3"
                             strokeDasharray={dashArray}
                             strokeDashoffset={offset}
@@ -1092,7 +1092,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                           <span className={`h-2 w-2 rounded-full ${item.color}`} />
                           <span className="text-[11px] text-[#334155]">{item.category}</span>
                         </div>
-                        <span className="text-[11px] font-semibold text-[#0038A8]">{item.count}</span>
+                        <span className="text-[11px] font-semibold text-[#15803D]">{item.count}</span>
                       </div>
                     ))}
                   </div>
@@ -1104,7 +1104,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
             <div className="rounded-xl border border-black/5 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <Shield size={16} className="text-[#0038A8]" />
+                  <Shield size={16} className="text-[#15803D]" />
                   <div>
                     <h3 className="text-[14px] font-semibold text-[#334155]">Patrol Performance</h3>
                     <p className="text-[11px] text-[#94A3B8]">Route completion and incident metrics</p>
@@ -1266,7 +1266,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                     i < recentLogs.length - 1 ? "border-b border-black/5" : ""
                   }`}
                 >
-                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#0038A8]" />
+                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#15803D]" />
                   <div className="min-w-0 flex-1">
                     <p className="text-[12px] leading-snug text-[#334155]">{log.description}</p>
                     <p className="mt-0.5 flex items-center gap-1 text-[11px] text-[#94A3B8]">
@@ -1288,7 +1288,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
               <div className="border-t border-stone-100 px-5 py-3">
                 <button
                   onClick={() => onNavigate("logs")}
-                  className="flex items-center gap-1.5 text-[11px] font-medium text-[#0038A8] hover:underline"
+                  className="flex items-center gap-1.5 text-[11px] font-medium text-[#15803D] hover:underline"
                 >
                   <Shield size={11} />
                   Open Audit Logs
@@ -1340,8 +1340,8 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
               )}
             </div>
 
-            <div className="rounded-lg border border-[#0038A8]/15 bg-[#0038A8]/5 p-3">
-              <p className="flex items-center gap-1.5 text-[10px] font-medium tracking-wider text-[#0038A8]">
+            <div className="rounded-lg border border-[#15803D]/15 bg-[#15803D]/5 p-3">
+              <p className="flex items-center gap-1.5 text-[10px] font-medium tracking-wider text-[#15803D]">
                 <ArrowUpRight size={11} />
                 ESCALATION ROUTING (§14.12)
               </p>

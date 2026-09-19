@@ -53,7 +53,7 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
   // Access control - only Captain can access
   if (role !== "captain") {
     return (
-      <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+      <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
         <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
           <div className="mx-auto max-w-4xl rounded-xl border border-rose-200 bg-rose-50 px-6 py-8 text-center">
             <AlertTriangle size={48} className="mx-auto mb-4 text-rose-600" />
@@ -148,7 +148,7 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
   };
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <ToastPortal />
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
@@ -206,7 +206,7 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E9EDFB] text-[#0038A8]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#DCFCE7] text-[#15803D]">
                       {plan.type === "fixed" ? <MapPin size={18} /> : <Route size={18} />}
                     </div>
                     <div className="flex-1">
@@ -265,7 +265,7 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
                   {plan.status === "pending_approval" && (
                     <button
                       onClick={() => handleOpenApproval(plan)}
-                      className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-2 text-[11px] font-medium text-white hover:bg-[#002A8C]"
+                      className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-2 text-[11px] font-medium text-white hover:bg-[#166534]"
                     >
                       <Shield size={12} /> Review & Decide
                     </button>
@@ -287,7 +287,7 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
           title={`${selectedPlan.code} — ${selectedPlan.name}`}
           subtitle="Checkpoint Plan Details"
           icon={<FileText size={18} />}
-          iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+          iconClass="bg-[#15803D]/10 text-[#15803D]"
           size="lg"
           footer={
             <div className="flex justify-end gap-2">
@@ -306,7 +306,7 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
                     setShowDetailModal(false);
                     handleOpenApproval(selectedPlan);
                   }}
-                  className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#002A8C]"
+                  className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-4 py-2 text-[12px] font-medium text-white hover:bg-[#166534]"
                 >
                   <Shield size={12} /> Review & Decide
                 </button>
@@ -329,7 +329,7 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
               </div>
               <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
                 <p className="text-[9px] font-semibold tracking-wider text-stone-400">COVERAGE</p>
-                <p className="mt-0.5 text-[11px] font-bold text-[#0038A8]">
+                <p className="mt-0.5 text-[11px] font-bold text-[#15803D]">
                   {selectedPlan.coverage.pct}% ({selectedPlan.coverage.covered}/{selectedPlan.coverage.total})
                 </p>
               </div>
@@ -349,14 +349,14 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
               <p className="text-[10px] font-semibold uppercase tracking-wider text-stone-400">Schedule</p>
               <div className="mt-1.5 flex flex-wrap gap-3 text-[11px] font-medium text-stone-600">
                 <span className="inline-flex items-center gap-1">
-                  <Calendar size={11} className="text-[#0038A8]" />
+                  <Calendar size={11} className="text-[#15803D]" />
                   {selectedPlan.schedule.operationDate ? formatDay(selectedPlan.schedule.operationDate) : "—"}
                   {selectedPlan.schedule.endDate && selectedPlan.schedule.endDate !== selectedPlan.schedule.operationDate
                     ? ` → ${formatDay(selectedPlan.schedule.endDate)}`
                     : ""}
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <Clock size={11} className="text-[#0038A8]" />
+                  <Clock size={11} className="text-[#15803D]" />
                   {selectedPlan.schedule.startTime}–{selectedPlan.schedule.endTime}
                 </span>
               </div>
@@ -369,7 +369,7 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
               <div className="space-y-1.5">
                 {selectedPlan.points.map((point, index) => (
                   <div key={point.id} className="flex items-start gap-2 rounded-lg border border-stone-100 bg-stone-50 px-3 py-2">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0038A8] text-[8px] font-bold text-white">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#15803D] text-[8px] font-bold text-white">
                       {point.label}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -493,7 +493,7 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
               </div>
               <div className="rounded-lg border border-stone-100 bg-stone-50/60 px-3 py-2">
                 <p className="text-[9px] font-semibold tracking-wider text-stone-400">COVERAGE</p>
-                <p className="mt-0.5 text-[11px] font-bold text-[#0038A8]">
+                <p className="mt-0.5 text-[11px] font-bold text-[#15803D]">
                   {selectedPlan.coverage.pct}% ({selectedPlan.coverage.covered}/{selectedPlan.coverage.total})
                 </p>
               </div>
@@ -546,7 +546,7 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
                     ? "Add any approval notes for the record..."
                     : "Explain why the plan is being rejected..."
                 }
-                className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+                className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
               />
             </div>
           </div>

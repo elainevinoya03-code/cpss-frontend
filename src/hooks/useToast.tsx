@@ -13,7 +13,7 @@ const AUTO_DISMISS_MS = 6000;
 
 const TYPE_META: Record<ToastType, { icon: typeof Bell; chip: string; bar: string; label: string }> = {
   success: { icon: CheckCircle2, chip: "bg-emerald-50 text-emerald-600", bar: "#059669", label: "Success" },
-  info: { icon: Bell, chip: "bg-[#0038A8]/10 text-[#0038A8]", bar: "#0038A8", label: "Info" },
+  info: { icon: Bell, chip: "bg-[#15803D]/10 text-[#15803D]", bar: "#15803D", label: "Info" },
   warning: { icon: AlertTriangle, chip: "bg-amber-50 text-amber-600", bar: "#d97706", label: "Warning" },
   error: { icon: XCircle, chip: "bg-rose-50 text-rose-600", bar: "#e11d48", label: "Error" },
 };
@@ -140,7 +140,7 @@ export function useToast() {
               <div className="mt-5 flex justify-end">
                 <button
                   onClick={dismiss}
-                  className="rounded-lg bg-[#0038A8] px-4 py-2 text-[12px] font-medium text-white transition hover:bg-[#002A8C]"
+                  className="rounded-lg bg-[#15803D] px-4 py-2 text-[12px] font-medium text-white transition hover:bg-[#166534]"
                 >
                   Dismiss
                 </button>

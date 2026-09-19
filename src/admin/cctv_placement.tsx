@@ -416,7 +416,7 @@ function FormSection({
 }) {
   return (
     <div>
-      <p className="mb-3 border-b border-stone-100 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#0038A8]">
+      <p className="mb-3 border-b border-stone-100 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">
         {title}
       </p>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{children}</div>
@@ -477,7 +477,7 @@ function DetailRow({
 function DetailGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-stone-200 bg-stone-50/60 p-4">
-      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#0038A8]">
+      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">
         {title}
       </p>
       {children}
@@ -1205,7 +1205,7 @@ export default function CctvPlacement() {
           c.status === "online" ? "#10b981" : c.status === "offline" ? "#f43f5e" : "#a8a29e";
         const html = `
           <div style="transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; cursor: pointer; ${c.status === "disabled" ? "opacity: 0.5; filter: grayscale(1);" : ""}">
-            <span style="background: #0038A8; color: #fff; font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 3px; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.25);">${c.id}</span>
+            <span style="background: #15803D; color: #fff; font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 3px; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.25);">${c.id}</span>
             <div style="position: relative; margin-top: 2px;">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="${cfg.pin}" stroke="${cfg.pin}" stroke-width="1.5"><rect x="3" y="6" width="12" height="9" rx="1.5"/><path d="M15 9l6-3v9l-6-3z"/></svg>
               <span style="position: absolute; top: 0; right: -2px; width: 9px; height: 9px; border-radius: 999px; border: 2px solid #fff; background: ${dotColor};"></span>
@@ -1243,8 +1243,8 @@ export default function CctvPlacement() {
     className: "",
     iconSize: [0, 0],
     html: `<div style="transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; pointer-events: none;">
-      <div style="width: 22px; height: 22px; border-radius: 999px; background: #0038A8; border: 3px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.4);"></div>
-      <div style="width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 13px solid #0038A8;"></div>
+      <div style="width: 22px; height: 22px; border-radius: 999px; background: #15803D; border: 3px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.4);"></div>
+      <div style="width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 13px solid #15803D;"></div>
     </div>`,
   });
 
@@ -1930,7 +1930,7 @@ export default function CctvPlacement() {
   if (offlineCount > 0) summaryParts.push(`${offlineCount} offline`);
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <style>{`
         .db-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
         .db-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -1953,12 +1953,12 @@ export default function CctvPlacement() {
               : "border-stone-200 bg-white text-stone-600"
           }`}
         >
-          <HardDrive size={13} className={storageAlerting ? "text-rose-500" : "text-[#0038A8]"} />
+          <HardDrive size={13} className={storageAlerting ? "text-rose-500" : "text-[#15803D]"} />
           <span className="font-semibold text-stone-800">CCTV Storage:</span>
           <span>
             {storage.usedGb.toLocaleString()} GB of {storage.totalGb.toLocaleString()} GB
           </span>
-          <span className={`font-bold ${storageAlerting ? "text-rose-600" : "text-[#0038A8]"}`}>
+          <span className={`font-bold ${storageAlerting ? "text-rose-600" : "text-[#15803D]"}`}>
             {usedPctStr}% Used
           </span>
           <span className="text-stone-400">— Warning threshold: {storage.warnThresholdPct}%</span>
@@ -1984,7 +1984,7 @@ export default function CctvPlacement() {
                   onChange={(e) => setCameraName(e.target.value)}
                 />
                 <div className="md:col-span-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
-                  <p className="text-[11px] font-semibold tracking-wide text-[#0038A8]">
+                  <p className="text-[11px] font-semibold tracking-wide text-[#15803D]">
                     CAMERA ID (AUTO-GENERATED)
                   </p>
                   <p className="mt-1 break-all font-mono text-[11px] text-stone-500">
@@ -2061,9 +2061,9 @@ export default function CctvPlacement() {
 
                 <div className="md:col-span-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
                   <div className="flex items-start gap-2">
-                    <Radio size={14} className="mt-0.5 shrink-0 text-[#0038A8]" />
+                    <Radio size={14} className="mt-0.5 shrink-0 text-[#15803D]" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] font-semibold tracking-wide text-[#0038A8]">
+                      <p className="text-[11px] font-semibold tracking-wide text-[#15803D]">
                         STREAM ENDPOINT (MASKED)
                       </p>
                       <p className="mt-1 break-all font-mono text-[11px] text-stone-500">
@@ -2139,7 +2139,7 @@ export default function CctvPlacement() {
                         </span>
                         <button
                           onClick={clearRegLocation}
-                          className="ml-auto font-medium text-[#0038A8] hover:underline"
+                          className="ml-auto font-medium text-[#15803D] hover:underline"
                         >
                           Clear pin
                         </button>
@@ -2154,14 +2154,14 @@ export default function CctvPlacement() {
                 </div>
               </FormSection>
 
-              <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-3">
+              <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-3">
                 <div className="flex items-start gap-2">
-                  <KeyRound size={14} className="mt-0.5 shrink-0 text-[#0038A8]" />
+                  <KeyRound size={14} className="mt-0.5 shrink-0 text-[#15803D]" />
                   <div>
-                    <p className="text-[11px] font-semibold tracking-wide text-[#0038A8]">
+                    <p className="text-[11px] font-semibold tracking-wide text-[#15803D]">
                       CAMERA ACCESS CREDENTIALS
                     </p>
-                    <p className="mt-0.5 text-[10px] text-blue-800/80">
+                    <p className="mt-0.5 text-[10px] text-green-800/80">
                       Used to authenticate to the RTSP stream endpoint. If left blank, a service
                       credential is generated automatically. Stored server-side only and shown
                       masked everywhere in the UI.
@@ -2245,7 +2245,7 @@ export default function CctvPlacement() {
                   onClick={() => setMapFilter(f.key)}
                   className={`rounded-md border px-2.5 py-1 text-[11px] font-medium transition ${
                     mapFilter === f.key
-                      ? "border-[#0038A8] bg-[#0038A8] text-white"
+                      ? "border-[#15803D] bg-[#15803D] text-white"
                       : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                   }`}
                 >
@@ -2298,7 +2298,7 @@ export default function CctvPlacement() {
         </div>
 
         {testingId && (
-          <div className="mt-5 flex flex-wrap items-center gap-3 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-4 py-3 text-sm text-[#0038A8]">
+          <div className="mt-5 flex flex-wrap items-center gap-3 rounded-lg border border-[#15803D]/20 bg-[#15803D]/5 px-4 py-3 text-sm text-[#15803D]">
             <Loader2 size={16} className="shrink-0 animate-spin" />
             <span className="font-semibold">Testing connection — {testingId}</span>
             <span className="text-xs opacity-80">
@@ -2355,7 +2355,7 @@ export default function CctvPlacement() {
                           <button
                             onClick={() => testConnection(r)}
                             disabled={testingId === r.id}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[#002A8C] disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[#166534] disabled:opacity-50"
                           >
                             {testingId === r.id ? (
                               <Loader2 size={13} className="animate-spin" />
@@ -2456,10 +2456,10 @@ export default function CctvPlacement() {
                           onClick={() => testConnection(c)}
                           disabled={testingId !== null}
                           title={c.status === "online" ? "Re-test camera connection" : "Test camera connection — required before Online"}
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-stone-200 text-stone-400 transition hover:border-[#0038A8] hover:bg-[#0038A8]/5 hover:text-[#0038A8] disabled:opacity-50"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-stone-200 text-stone-400 transition hover:border-[#15803D] hover:bg-[#15803D]/5 hover:text-[#15803D] disabled:opacity-50"
                         >
                           {testingId === c.id ? (
-                            <span className="h-3 w-3 animate-spin rounded-full border-2 border-stone-300 border-t-[#0038A8]" />
+                            <span className="h-3 w-3 animate-spin rounded-full border-2 border-stone-300 border-t-[#15803D]" />
                           ) : (
                             <Radio size={13} />
                           )}
@@ -2467,14 +2467,14 @@ export default function CctvPlacement() {
                         <button
                           onClick={() => setViewId(c.id)}
                           title="View camera details, health & maintenance records"
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-stone-200 text-stone-400 transition hover:border-[#0038A8] hover:bg-[#0038A8]/5 hover:text-[#0038A8]"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-stone-200 text-stone-400 transition hover:border-[#15803D] hover:bg-[#15803D]/5 hover:text-[#15803D]"
                         >
                           <Info size={13} />
                         </button>
                         <button
                           onClick={() => openCredentialEdit(c)}
                           title="Manage camera access credentials (masked, server-side only)"
-                          className="flex h-7 w-7 items-center justify-center rounded-md border border-stone-200 text-stone-400 transition hover:border-[#0038A8] hover:bg-[#0038A8]/5 hover:text-[#0038A8]"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-stone-200 text-stone-400 transition hover:border-[#15803D] hover:bg-[#15803D]/5 hover:text-[#15803D]"
                         >
                           <KeyRound size={13} />
                         </button>
@@ -2528,7 +2528,7 @@ export default function CctvPlacement() {
               </button>
               <button
                 onClick={saveEdit}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#002A8C]"
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#166534]"
               >
                 <Save className="h-4 w-4" /> Save Changes
               </button>
@@ -2679,9 +2679,9 @@ export default function CctvPlacement() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5">
-                <KeyRound size={14} className="mt-0.5 shrink-0 text-[#0038A8]" />
-                <p className="text-[11px] text-blue-800">
+              <div className="flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5">
+                <KeyRound size={14} className="mt-0.5 shrink-0 text-[#15803D]" />
+                <p className="text-[11px] text-green-800">
                   Camera access credentials are managed separately — use the key icon in the
                   inventory (or the camera detail view) to update them. Credentials are masked and
                   stored server-side only.
@@ -2727,7 +2727,7 @@ export default function CctvPlacement() {
               passed ? (
                 <button
                   onClick={() => setTestResult(null)}
-                  className="w-full rounded-lg bg-[#0038A8] py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#002A8C]"
+                  className="w-full rounded-lg bg-[#15803D] py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#166534]"
                 >
                   Close
                 </button>
@@ -2739,7 +2739,7 @@ export default function CctvPlacement() {
                       setTestResult(null);
                       testConnection(c);
                     }}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#002A8C]"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#166534]"
                   >
                     <RotateCw size={14} /> Retry Test
                   </button>
@@ -2768,7 +2768,7 @@ export default function CctvPlacement() {
                         }}
                         className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-semibold transition ${
                           testResult.reason === "Invalid Credentials"
-                            ? "bg-[#0038A8] text-white shadow-sm hover:bg-[#002A8C]"
+                            ? "bg-[#15803D] text-white shadow-sm hover:bg-[#166534]"
                             : "border border-stone-200 bg-white text-stone-600 hover:bg-stone-50"
                         }`}
                       >
@@ -2815,7 +2815,7 @@ export default function CctvPlacement() {
               <div className="overflow-hidden rounded-xl border border-stone-200">
                 <div className="flex items-center justify-between border-b border-stone-100 px-4 py-2.5">
                   <span className="flex items-center gap-1.5 text-[12px] font-semibold text-stone-600">
-                    <Video size={13} className="text-[#0038A8]" /> Live Camera View
+                    <Video size={13} className="text-[#15803D]" /> Live Camera View
                   </span>
                   {passed ? (
                     <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-emerald-600">
@@ -2932,7 +2932,7 @@ export default function CctvPlacement() {
                 </button>
                 <button
                   onClick={() => setCredConfirmId(cam.id)}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#002A8C]"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#166534]"
                 >
                   <KeyRound className="h-4 w-4" /> Save Credentials
                 </button>

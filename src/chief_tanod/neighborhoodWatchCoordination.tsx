@@ -57,7 +57,7 @@ export default function NeighborhoodWatchCoordination({ onNavigate }: { onNaviga
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -93,9 +93,9 @@ export default function NeighborhoodWatchCoordination({ onNavigate }: { onNaviga
           <div className="rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm">
             <div className="flex items-start justify-between">
               <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">PUBLISHED NOTICES</span>
-              <Megaphone size={14} className="text-[#0038A8]" />
+              <Megaphone size={14} className="text-[#15803D]" />
             </div>
-            <div className="mt-1 text-[22px] font-bold text-[#0038A8]">{publishedNotices.length}</div>
+            <div className="mt-1 text-[22px] font-bold text-[#15803D]">{publishedNotices.length}</div>
           </div>
           <div className="rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm">
             <div className="flex items-start justify-between">
@@ -123,7 +123,7 @@ export default function NeighborhoodWatchCoordination({ onNavigate }: { onNaviga
                   <div key={notice.id} className="px-5 py-3.5 transition hover:bg-stone-50/50">
                     <div className="flex items-start gap-3">
                       <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                        notice.category === "Safety Alert" ? "bg-rose-100 text-rose-600" : "bg-[#0038A8]/10 text-[#0038A8]"
+                        notice.category === "Safety Alert" ? "bg-rose-100 text-rose-600" : "bg-[#15803D]/10 text-[#15803D]"
                       }`}>
                         {notice.category === "Safety Alert" ? <AlertTriangle size={14} /> : <Megaphone size={14} />}
                       </div>
@@ -184,32 +184,32 @@ export default function NeighborhoodWatchCoordination({ onNavigate }: { onNaviga
                 <div>
                   <label className="mb-1 block text-[10px] font-medium tracking-wider text-[#94A3B8]">TARGET</label>
                   <div className="grid grid-cols-2 gap-2">
-                    <button onClick={() => setNewTarget("barangay")} className={`rounded-lg border px-3 py-2 text-[12px] font-medium transition ${newTarget === "barangay" ? "border-[#0038A8]/40 bg-[#E9EDFB] text-[#0038A8]" : "border-stone-200 text-stone-500 hover:bg-stone-50"}`}>
+                    <button onClick={() => setNewTarget("barangay")} className={`rounded-lg border px-3 py-2 text-[12px] font-medium transition ${newTarget === "barangay" ? "border-[#15803D]/40 bg-[#DCFCE7] text-[#15803D]" : "border-stone-200 text-stone-500 hover:bg-stone-50"}`}>
                       Entire Barangay
                     </button>
-                    <button onClick={() => setNewTarget("purok")} className={`rounded-lg border px-3 py-2 text-[12px] font-medium transition ${newTarget === "purok" ? "border-[#0038A8]/40 bg-[#E9EDFB] text-[#0038A8]" : "border-stone-200 text-stone-500 hover:bg-stone-50"}`}>
+                    <button onClick={() => setNewTarget("purok")} className={`rounded-lg border px-3 py-2 text-[12px] font-medium transition ${newTarget === "purok" ? "border-[#15803D]/40 bg-[#DCFCE7] text-[#15803D]" : "border-stone-200 text-stone-500 hover:bg-stone-50"}`}>
                       Specific Purok
                     </button>
                   </div>
                   {newTarget === "purok" && (
-                    <select value={newPurok} onChange={(e) => setNewPurok(e.target.value)} className="mt-2 w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none focus:border-[#0038A8]/50">
+                    <select value={newPurok} onChange={(e) => setNewPurok(e.target.value)} className="mt-2 w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none focus:border-[#15803D]/50">
                       {PUROK_ZONES.map((z) => <option key={z.id} value={z.name}>{z.name}</option>)}
                     </select>
                   )}
                 </div>
                 <div>
                   <label className="mb-1 block text-[10px] font-medium tracking-wider text-[#94A3B8]">CATEGORY</label>
-                  <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none focus:border-[#0038A8]/50">
+                  <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none focus:border-[#15803D]/50">
                     {NOTICE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="mb-1 block text-[10px] font-medium tracking-wider text-[#94A3B8]">TITLE</label>
-                  <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Zone awareness notice" className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none focus:border-[#0038A8]/50" />
+                  <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Zone awareness notice" className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none focus:border-[#15803D]/50" />
                 </div>
                 <div>
                   <label className="mb-1 block text-[10px] font-medium tracking-wider text-[#94A3B8]">MESSAGE</label>
-                  <textarea value={newMessage} onChange={(e) => setNewMessage(e.target.value)} rows={3} placeholder="Instruct volunteers to observe and report..." className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none focus:border-[#0038A8]/50" />
+                  <textarea value={newMessage} onChange={(e) => setNewMessage(e.target.value)} rows={3} placeholder="Instruct volunteers to observe and report..." className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none focus:border-[#15803D]/50" />
                 </div>
               </div>
               <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">

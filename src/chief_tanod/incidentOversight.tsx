@@ -97,7 +97,7 @@ function IncidentsTab({ onNavigate }: { onNavigate?: (page: string) => void }) {
       <section className="mb-6 grid grid-cols-3 gap-3">
         <div className="rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm">
           <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">OPEN INCIDENTS</span>
-          <div className="mt-1 text-[22px] font-bold text-[#0038A8]">{openCount}</div>
+          <div className="mt-1 text-[22px] font-bold text-[#15803D]">{openCount}</div>
         </div>
         <div className="rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm">
           <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">CRITICAL / SOS</span>
@@ -116,7 +116,7 @@ function IncidentsTab({ onNavigate }: { onNavigate?: (page: string) => void }) {
             key={f}
             onClick={() => setFilter(f)}
             className={`rounded-lg px-3 py-1.5 text-[11px] font-medium transition ${
-              filter === f ? "bg-[#0038A8] text-white" : "border border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
+              filter === f ? "bg-[#15803D] text-white" : "border border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
             }`}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -129,7 +129,7 @@ function IncidentsTab({ onNavigate }: { onNavigate?: (page: string) => void }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search incidents..."
-              className="w-48 rounded-lg border border-stone-200 bg-white py-1.5 pl-8 pr-3 text-[11px] text-stone-700 outline-none focus:border-[#0038A8]/50"
+              className="w-48 rounded-lg border border-stone-200 bg-white py-1.5 pl-8 pr-3 text-[11px] text-stone-700 outline-none focus:border-[#15803D]/50"
             />
           </div>
         </div>
@@ -153,7 +153,7 @@ function IncidentsTab({ onNavigate }: { onNavigate?: (page: string) => void }) {
                   onClick={() => setSelectedIncident(inc)}
                   className="flex w-full items-center gap-4 px-5 py-3.5 text-left transition hover:bg-stone-50/50"
                 >
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${isEmergency ? "bg-rose-100 text-rose-600" : "bg-[#E9EDFB] text-[#0038A8]"}`}>
+                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${isEmergency ? "bg-rose-100 text-rose-600" : "bg-[#DCFCE7] text-[#15803D]"}`}>
                     {isEmergency ? <Siren size={16} /> : <AlertTriangle size={16} />}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -328,7 +328,7 @@ function PatrolNotesTab() {
       <section className="mb-6 grid grid-cols-3 gap-3">
         <div className="rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm">
           <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">TOTAL NOTES</span>
-          <div className="mt-1 text-[22px] font-bold text-[#0038A8]">{checkedInCount + checkedOutCount}</div>
+          <div className="mt-1 text-[22px] font-bold text-[#15803D]">{checkedInCount + checkedOutCount}</div>
         </div>
         <div className="rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm">
           <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">ON DUTY</span>
@@ -352,7 +352,7 @@ function PatrolNotesTab() {
             key={f.key}
             onClick={() => setFilterStatus(f.key)}
             className={`rounded-lg px-3 py-1.5 text-[11px] font-medium transition ${
-              filterStatus === f.key ? "bg-[#0038A8] text-white" : "border border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
+              filterStatus === f.key ? "bg-[#15803D] text-white" : "border border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
             }`}
           >
             {f.label}
@@ -363,7 +363,7 @@ function PatrolNotesTab() {
         <select
           value={filterTeam}
           onChange={(e) => setFilterTeam(e.target.value)}
-          className="rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-[11px] text-stone-600 outline-none focus:border-[#0038A8]/50"
+          className="rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-[11px] text-stone-600 outline-none focus:border-[#15803D]/50"
         >
           <option value="all">All Teams</option>
           {allTeams.map((t) => (
@@ -378,7 +378,7 @@ function PatrolNotesTab() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search notes..."
-            className="w-44 rounded-lg border border-stone-200 bg-white py-1.5 pl-8 pr-3 text-[11px] text-stone-700 outline-none focus:border-[#0038A8]/50"
+            className="w-44 rounded-lg border border-stone-200 bg-white py-1.5 pl-8 pr-3 text-[11px] text-stone-700 outline-none focus:border-[#15803D]/50"
           />
         </div>
       </section>
@@ -498,7 +498,7 @@ function PatrolNotesTab() {
             {selected.photoEvidence && (
               <div className="mt-3 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
                 <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-stone-400">Photo Evidence</p>
-                <a href={selected.photoEvidence} target="_blank" rel="noreferrer" className="text-[11px] text-[#0038A8] underline">
+                <a href={selected.photoEvidence} target="_blank" rel="noreferrer" className="text-[11px] text-[#15803D] underline">
                   View Photo
                 </a>
               </div>
@@ -523,7 +523,7 @@ export default function IncidentOversight({ onNavigate }: { onNavigate?: (page: 
   ];
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <div>
@@ -543,7 +543,7 @@ export default function IncidentOversight({ onNavigate }: { onNavigate?: (page: 
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium transition ${
                   isActive
-                    ? "bg-[#0038A8] text-white shadow-sm"
+                    ? "bg-[#15803D] text-white shadow-sm"
                     : "text-stone-500 hover:bg-stone-50 hover:text-stone-700"
                 }`}
               >

@@ -337,7 +337,7 @@ function AttachModal({ clip, onClose, onAttach }: { clip: CctvEvidenceClip; onCl
       title={step === "select" ? "Attach Clip to Incident" : "Attach Evidence"}
       subtitle={step === "select" ? `${clip.id} · ${clip.cameraName}` : undefined}
       icon={<Link2 size={18} />}
-      iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+      iconClass="bg-[#15803D]/10 text-[#15803D]"
       size="md"
       footer={
         step === "select" ? (
@@ -348,7 +348,7 @@ function AttachModal({ clip, onClose, onAttach }: { clip: CctvEvidenceClip; onCl
             <button
               onClick={() => selectedId && setStep("confirm")}
               disabled={!selectedId}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-40"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534] disabled:opacity-40"
             >
               <Link2 size={13} />
               Continue
@@ -361,7 +361,7 @@ function AttachModal({ clip, onClose, onAttach }: { clip: CctvEvidenceClip; onCl
             </button>
             <button
               onClick={handleConfirm}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
             >
               <Link2 size={13} />
               Attach Evidence
@@ -381,7 +381,7 @@ function AttachModal({ clip, onClose, onAttach }: { clip: CctvEvidenceClip; onCl
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search by incident ID, title, category, or purok…"
-                className="w-full rounded-lg border border-stone-200 bg-stone-50 py-2 pl-8 pr-3 text-[11px] text-stone-700 placeholder:text-stone-400 focus:border-[#0038A8] focus:bg-white focus:outline-none"
+                className="w-full rounded-lg border border-stone-200 bg-stone-50 py-2 pl-8 pr-3 text-[11px] text-stone-700 placeholder:text-stone-400 focus:border-[#15803D] focus:bg-white focus:outline-none"
               />
               {query && (
                 <button onClick={() => setQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
@@ -406,7 +406,7 @@ function AttachModal({ clip, onClose, onAttach }: { clip: CctvEvidenceClip; onCl
                 key={inc.id}
                 onClick={() => setSelectedId(inc.id)}
                 className={`flex w-full items-start gap-3 rounded-lg border px-3.5 py-3 text-left transition ${
-                  selectedId === inc.id ? "border-[#0038A8] bg-[#0038A8]/5" : "border-stone-200 bg-white hover:bg-stone-50"
+                  selectedId === inc.id ? "border-[#15803D] bg-[#15803D]/5" : "border-stone-200 bg-white hover:bg-stone-50"
                 }`}
               >
                 <span className={`mt-0.5 flex h-2 w-2 shrink-0 rounded-full ${inc.severity === "critical" ? "bg-rose-500" : inc.severity === "warning" ? "bg-amber-400" : "bg-sky-400"}`} />
@@ -450,23 +450,23 @@ function AttachModal({ clip, onClose, onAttach }: { clip: CctvEvidenceClip; onCl
 
           {/* Incident */}
           {selectedIncident && (
-            <div className="rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-4 py-3">
-              <p className="text-[9px] font-semibold tracking-wider text-[#0038A8]">ATTACH TO</p>
+            <div className="rounded-lg border border-[#15803D]/20 bg-[#15803D]/5 px-4 py-3">
+              <p className="text-[9px] font-semibold tracking-wider text-[#15803D]">ATTACH TO</p>
               <p className="mt-1 text-[12px] font-bold text-stone-900">{selectedIncident.id} — {selectedIncident.title}</p>
               <p className="mt-0.5 text-[10px] text-stone-500">{selectedIncident.category} · {selectedIncident.purok} · {selectedIncident.severity}</p>
             </div>
           )}
 
           {/* Notice */}
-          <div className="flex items-start gap-2 rounded-lg border border-[#0038A8]/15 bg-[#0038A8]/5 px-3 py-2.5">
-            <Link2 size={12} className="mt-0.5 shrink-0 text-[#0038A8]" />
+          <div className="flex items-start gap-2 rounded-lg border border-[#15803D]/15 bg-[#15803D]/5 px-3 py-2.5">
+            <Link2 size={12} className="mt-0.5 shrink-0 text-[#15803D]" />
             <p className="text-[10px] font-semibold leading-relaxed text-stone-700">
               This clip will be added as supplementary CCTV evidence.
             </p>
           </div>
 
           <div className="flex items-start gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
-            <CalendarClock size={12} className="mt-0.5 shrink-0 text-[#0038A8]" />
+            <CalendarClock size={12} className="mt-0.5 shrink-0 text-[#15803D]" />
             <p className="text-[10px] leading-relaxed text-stone-500">
               Linking starts the official <span className="font-semibold">{RETENTION_YEARS}-year retention</span> clock.
               The clip becomes reviewable by the Barangay Desk Officer and Barangay Captain.
@@ -571,15 +571,15 @@ function CreateIncidentModal({
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             placeholder="Describe what was observed on camera — be specific about behavior, individuals, and timeline…"
-            className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-[11px] text-stone-700 placeholder:text-stone-400 focus:border-[#0038A8] focus:outline-none"
+            className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-[11px] text-stone-700 placeholder:text-stone-400 focus:border-[#15803D] focus:outline-none"
           />
         </div>
 
         {/* Attached evidence clip */}
-        <div className="rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-4 py-3">
-          <p className="text-[9px] font-semibold tracking-wider text-[#0038A8]">ATTACHED EVIDENCE CLIP</p>
+        <div className="rounded-lg border border-[#15803D]/20 bg-[#15803D]/5 px-4 py-3">
+          <p className="text-[9px] font-semibold tracking-wider text-[#15803D]">ATTACHED EVIDENCE CLIP</p>
           <div className="mt-1 flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded bg-[#0038A8]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#0038A8]">
+            <span className="inline-flex items-center gap-1 rounded bg-[#15803D]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#15803D]">
               <Video size={8} /> {clip.id}
             </span>
             <span className="font-mono text-[10px] text-stone-600">
@@ -609,7 +609,7 @@ const ACTION_STYLE: Record<EvidenceAction, { badge: string }> = {
   Viewed: { badge: "bg-sky-100 text-sky-700" },
   Generated: { badge: "bg-violet-100 text-violet-700" },
   Redacted: { badge: "bg-amber-100 text-amber-700" },
-  Attached: { badge: "bg-[#0038A8]/10 text-[#0038A8]" },
+  Attached: { badge: "bg-[#15803D]/10 text-[#15803D]" },
   Exported: { badge: "bg-emerald-100 text-emerald-700" },
 };
 
@@ -620,7 +620,7 @@ function EvidenceActivityPanel() {
     <div className="mb-6 rounded-xl border border-black/5 bg-white shadow-sm">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
-          <History size={16} className="text-[#0038A8]" />
+          <History size={16} className="text-[#15803D]" />
           <div>
             <h3 className="text-[14px] font-semibold text-[#334155]">Evidence Activity Log</h3>
             <p className="text-[11px] text-[#94A3B8]">Audit trail — evidence actions are logged as they happen</p>
@@ -642,7 +642,7 @@ function EvidenceActivityPanel() {
               </span>
               <span className="font-mono text-[11px] font-semibold text-stone-900">{a.clipId}</span>
               {a.incidentId && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#0038A8]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#15803D]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#15803D]">
                   <Link2 size={8} />
                   {a.incidentId}
                 </span>
@@ -900,7 +900,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
   const selectedCamera = selected ? CAMERAS.find((c) => c.id === selected.cameraId) : null;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -911,12 +911,12 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#0038A8]/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#0038A8]">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#15803D]/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#15803D]">
                 <User size={12} />
                 Operator: {operatorName}
               </span>
               <SoundToggle muted={muted} onToggle={() => setMuted((m) => !m)} />
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0038A8]/5 px-3 py-1.5 text-[11px] font-medium text-[#0038A8]">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#15803D]/5 px-3 py-1.5 text-[11px] font-medium text-[#15803D]">
                 <Lock size={12} />
                 Evidence-grade retention: {RETENTION_YEARS} year
               </span>
@@ -928,7 +928,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
         <div className={`mb-6 rounded-xl border px-5 py-4 shadow-sm ${archiveCritical ? "border-rose-200 bg-rose-50/50" : "border-black/5 bg-white"}`}>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <HardDrive size={16} className={archiveCritical ? "text-rose-600" : "text-[#0038A8]"} />
+              <HardDrive size={16} className={archiveCritical ? "text-rose-600" : "text-[#15803D]"} />
               <div>
                 <h3 className="text-[14px] font-semibold text-[#334155]">Archive Storage Capacity</h3>
                 <p className="text-[11px] text-[#94A3B8]">
@@ -941,7 +941,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
             </span>
           </div>
           <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-stone-200">
-            <div className={`h-full rounded-full transition-all ${archiveCritical ? "bg-rose-500" : "bg-[#0038A8]"}`} style={{ width: `${archivePct}%` }} />
+            <div className={`h-full rounded-full transition-all ${archiveCritical ? "bg-rose-500" : "bg-[#15803D]"}`} style={{ width: `${archivePct}%` }} />
           </div>
           <p className="mt-2 text-[9px] text-stone-400">
             {archiveCritical
@@ -956,11 +956,11 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
             <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">{label}</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                   <Icon size={15} />
                 </div>
               </div>
-              <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+              <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
               <div className="mt-1 text-[11px] text-[#94A3B8]">{sub}</div>
             </div>
           ))}
@@ -971,7 +971,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
         <div className="mb-6 rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Filter size={15} className="text-[#0038A8]" />
+              <Filter size={15} className="text-[#15803D]" />
               <h3 className="text-[14px] font-semibold text-[#334155]">Search the Video Archive</h3>
             </div>
             <span className="text-[10px] font-medium text-[#94A3B8]">
@@ -988,7 +988,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
               <select
                 value={cameraFilter}
                 onChange={(e) => setCameraFilter(e.target.value)}
-                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
               >
                 <option value="all">All cameras</option>
                 {CAMERAS.filter((c) => c.hasArchive).map((c) => (
@@ -1017,7 +1017,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                 type="date"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
               />
             </div>
 
@@ -1030,7 +1030,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                 type="time"
                 value={startTimeFilter}
                 onChange={(e) => setStartTimeFilter(e.target.value)}
-                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
               />
             </div>
 
@@ -1043,7 +1043,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                 type="time"
                 value={endTimeFilter}
                 onChange={(e) => setEndTimeFilter(e.target.value)}
-                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
               />
             </div>
 
@@ -1055,7 +1055,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
               <select
                 value={incidentFilter}
                 onChange={(e) => setIncidentFilter(e.target.value)}
-                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
               >
                 <option value="all">All incidents</option>
                 {[...new Set(RECORDINGS.filter((r) => r.incidentId).map((r) => r.incidentId))].map((incId) => {
@@ -1077,7 +1077,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
               <select
                 value={eventTagFilter}
                 onChange={(e) => setEventTagFilter(e.target.value)}
-                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
               >
                 <option value="all">All tags</option>
                 {EVENT_TAGS.map((tag) => (
@@ -1091,39 +1091,39 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
           <div className="mt-3 flex items-center justify-between border-t border-stone-100 pt-3">
             <div className="flex flex-wrap items-center gap-1.5">
               {cameraFilter !== "all" && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#15803D]/20 bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-semibold text-[#15803D]">
                   Camera: {CAMERAS.find((c) => c.id === cameraFilter)?.name ?? cameraFilter}
-                  <button onClick={() => setCameraFilter("all")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                  <button onClick={() => setCameraFilter("all")} className="ml-0.5 rounded-full hover:bg-[#15803D]/10">&times;</button>
                 </span>
               )}
               {dateFilter && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#15803D]/20 bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-semibold text-[#15803D]">
                   Date: {dateFilter}
-                  <button onClick={() => setDateFilter("")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                  <button onClick={() => setDateFilter("")} className="ml-0.5 rounded-full hover:bg-[#15803D]/10">&times;</button>
                 </span>
               )}
               {startTimeFilter && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#15803D]/20 bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-semibold text-[#15803D]">
                   From: {startTimeFilter}
-                  <button onClick={() => setStartTimeFilter("")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                  <button onClick={() => setStartTimeFilter("")} className="ml-0.5 rounded-full hover:bg-[#15803D]/10">&times;</button>
                 </span>
               )}
               {endTimeFilter && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#15803D]/20 bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-semibold text-[#15803D]">
                   To: {endTimeFilter}
-                  <button onClick={() => setEndTimeFilter("")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                  <button onClick={() => setEndTimeFilter("")} className="ml-0.5 rounded-full hover:bg-[#15803D]/10">&times;</button>
                 </span>
               )}
               {incidentFilter !== "all" && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#15803D]/20 bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-semibold text-[#15803D]">
                   Incident: {incidentFilter}
-                  <button onClick={() => setIncidentFilter("all")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                  <button onClick={() => setIncidentFilter("all")} className="ml-0.5 rounded-full hover:bg-[#15803D]/10">&times;</button>
                 </span>
               )}
               {eventTagFilter !== "all" && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#15803D]/20 bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-semibold text-[#15803D]">
                   Tag: {eventTagFilter}
-                  <button onClick={() => setEventTagFilter("all")} className="ml-0.5 rounded-full hover:bg-[#0038A8]/10">&times;</button>
+                  <button onClick={() => setEventTagFilter("all")} className="ml-0.5 rounded-full hover:bg-[#15803D]/10">&times;</button>
                 </span>
               )}
             </div>
@@ -1133,7 +1133,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
               </button>
               <button
                 onClick={() => flash(`Archive filtered — ${filteredRecordings.length} recordings found`)}
-                className="flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[#0038A8] px-4 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                className="flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[#15803D] px-4 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
               >
                 <Search size={12} /> Search Archive
               </button>
@@ -1149,14 +1149,14 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                   key={cam.id}
                   className={`flex items-center gap-2.5 rounded-lg border px-3 py-2 transition ${
                     cameraFilter === cam.id
-                      ? "border-[#0038A8] bg-[#0038A8]/5"
+                      ? "border-[#15803D] bg-[#15803D]/5"
                       : cam.hasArchive
                         ? "border-stone-200 bg-white"
                         : "border-amber-200 bg-amber-50/50"
                   }`}
                 >
                   <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
-                    cam.hasArchive ? "bg-[#E9EDFB] text-[#0038A8]" : "bg-amber-100 text-amber-600"
+                    cam.hasArchive ? "bg-[#DCFCE7] text-[#15803D]" : "bg-amber-100 text-amber-600"
                   }`}>
                     <Camera size={12} />
                   </span>
@@ -1189,7 +1189,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
-                <Camera size={16} className="text-[#0038A8]" />
+                <Camera size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Search Results</h3>
                   <p className="text-[11px] text-[#94A3B8]">Recorded footage matching your filters</p>
@@ -1216,7 +1216,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                       key={rec.id}
                       className={`rounded-xl border p-4 transition ${
                         selected?.id === rec.id
-                          ? "border-[#0038A8] bg-[#0038A8]/5 shadow-sm"
+                          ? "border-[#15803D] bg-[#15803D]/5 shadow-sm"
                           : isDisabled
                             ? "border-stone-200 bg-stone-50 opacity-60"
                             : "border-stone-200 bg-white hover:border-stone-300 hover:shadow-sm"
@@ -1225,7 +1225,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                       {/* Result header row */}
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0038A8]/10 text-[#0038A8]">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#15803D]/10 text-[#15803D]">
                             <Video size={14} />
                           </span>
                           <div>
@@ -1260,7 +1260,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                         </div>
                         <div className="rounded-lg border border-stone-200 bg-white px-3 py-2">
                           <p className="text-[9px] font-semibold tracking-wider text-stone-400">DURATION</p>
-                          <p className="mt-0.5 text-[11px] font-bold text-[#0038A8]">{fmtClock(rec.duration)}</p>
+                          <p className="mt-0.5 text-[11px] font-bold text-[#15803D]">{fmtClock(rec.duration)}</p>
                         </div>
                       </div>
                       <div className="mt-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2">
@@ -1271,7 +1271,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                       {/* Incident + Event Tag */}
                       <div className="mt-2 flex flex-wrap items-center gap-1.5">
                         {isLinked ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-bold text-[#0038A8]">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-bold text-[#15803D]">
                             <Link2 size={8} /> {rec.incidentId}
                           </span>
                         ) : (
@@ -1315,14 +1315,14 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                           <>
                             <button
                               onClick={() => loadRecording(rec)}
-                              className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#0038A8] text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                              className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#15803D] text-[11px] font-semibold text-white transition hover:bg-[#166534]"
                             >
                               <Play size={12} />
                               {selected?.id === rec.id ? "Playing" : "Play"}
                             </button>
                             <button
                               onClick={() => loadRecording(rec)}
-                              className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 text-[11px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white"
+                              className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#15803D]/20 bg-[#15803D]/5 text-[11px] font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white"
                             >
                               <Scissors size={12} /> Select Clip
                             </button>
@@ -1342,7 +1342,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
             <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
               <div className="flex items-center justify-between px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <MonitorPlay size={16} className="text-[#0038A8]" />
+                  <MonitorPlay size={16} className="text-[#15803D]" />
                   <div>
                     <h3 className="text-[14px] font-semibold text-[#334155]">Playback Station</h3>
                     <p className="text-[11px] text-[#94A3B8]">
@@ -1402,7 +1402,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                             <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                               <button
                                 onClick={() => setPlaying(true)}
-                                className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-[#0038A8] shadow-xl transition hover:scale-105"
+                                className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-[#15803D] shadow-xl transition hover:scale-105"
                               >
                                 <Play size={26} className="ml-1" />
                               </button>
@@ -1426,8 +1426,8 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                   <>
                     {/* Source limitation note */}
                     {selectedCamera?.hasArchive && (
-                      <div className="mb-3 flex items-start gap-2 rounded-lg border border-[#0038A8]/15 bg-[#0038A8]/5 px-3 py-2">
-                        <Info size={12} className="mt-0.5 shrink-0 text-[#0038A8]" />
+                      <div className="mb-3 flex items-start gap-2 rounded-lg border border-[#15803D]/15 bg-[#15803D]/5 px-3 py-2">
+                        <Info size={12} className="mt-0.5 shrink-0 text-[#15803D]" />
                         <p className="text-[10px] leading-relaxed text-stone-600">
                           Archive playback provided by external recorder. Footage is read from the DVR archive and is not a live feed.
                         </p>
@@ -1440,9 +1440,9 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                         <p className="text-[9px] font-semibold tracking-wider text-stone-400">START</p>
                         <p className="mt-0.5 font-mono text-[11px] font-bold text-stone-700">{fmtTimestamp(selected.startISO)}</p>
                       </div>
-                      <div className="rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-3 py-2 text-center">
-                        <p className="text-[9px] font-semibold tracking-wider text-[#0038A8]">CURRENT</p>
-                        <p className="mt-0.5 font-mono text-[11px] font-bold text-[#0038A8]">
+                      <div className="rounded-lg border border-[#15803D]/20 bg-[#15803D]/5 px-3 py-2 text-center">
+                        <p className="text-[9px] font-semibold tracking-wider text-[#15803D]">CURRENT</p>
+                        <p className="mt-0.5 font-mono text-[11px] font-bold text-[#15803D]">
                           {new Date(new Date(selected.startISO).getTime() + currentSec * 1000).toLocaleTimeString("en-US", { hour12: false })}
                         </p>
                       </div>
@@ -1467,14 +1467,14 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                       max={selected.duration}
                       value={currentSec}
                       onChange={(e) => setCurrentSec(Number(e.target.value))}
-                      className="w-full accent-[#0038A8]"
+                      className="w-full accent-[#15803D]"
                     />
 
                     {/* Playback controls row */}
                     <div className="mt-3 mb-2 flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => setPlaying((p) => !p)}
-                        className="flex h-8 items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                        className="flex h-8 items-center gap-1.5 rounded-lg bg-[#15803D] px-3 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
                       >
                         {playing ? <Pause size={12} /> : <Play size={12} />}
                         {playing ? "Pause" : "Play"}
@@ -1489,7 +1489,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                           max={100}
                           value={volume}
                           onChange={(e) => setVolume(Number(e.target.value))}
-                          className="w-16 accent-[#0038A8]"
+                          className="w-16 accent-[#15803D]"
                         />
                         <span className="w-7 text-right font-mono text-[9px] text-stone-400">{volume}%</span>
                       </div>
@@ -1500,7 +1500,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                       {/* Header row */}
                       <div className="mb-3 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Scissors size={14} className="text-[#0038A8]" />
+                          <Scissors size={14} className="text-[#15803D]" />
                           <span className="text-[11px] font-bold tracking-wider text-[#334155]">CLIP SELECTION</span>
                           {previewingSegment && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-1.5 py-0.5 text-[9px] font-semibold text-rose-600">
@@ -1510,7 +1510,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                           )}
                         </div>
                         {canCreateClip && (
-                          <span className="font-mono text-[11px] font-bold text-[#0038A8]">
+                          <span className="font-mono text-[11px] font-bold text-[#15803D]">
                             {fmtClock(clipDuration)}
                           </span>
                         )}
@@ -1523,7 +1523,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                           {/* Clip selection highlight */}
                           {clipStart != null && clipEnd != null && clipEnd > clipStart && (
                             <div
-                              className="absolute top-0 h-7 rounded-md bg-[#0038A8]/20 border-y border-[#0038A8]/40"
+                              className="absolute top-0 h-7 rounded-md bg-[#15803D]/20 border-y border-[#15803D]/40"
                               style={{
                                 left: `${(clipStart / selected.duration) * 100}%`,
                                 width: `${((clipEnd - clipStart) / selected.duration) * 100}%`,
@@ -1564,10 +1564,10 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                           )}
                           {/* Current playback position */}
                           <div
-                            className="absolute top-0 z-20 h-7 w-px bg-[#0038A8]"
+                            className="absolute top-0 z-20 h-7 w-px bg-[#15803D]"
                             style={{ left: `${(currentSec / selected.duration) * 100}%` }}
                           >
-                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded bg-[#0038A8] px-1 py-px text-[7px] font-bold text-white whitespace-nowrap">
+                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded bg-[#15803D] px-1 py-px text-[7px] font-bold text-white whitespace-nowrap">
                               NOW
                             </div>
                           </div>
@@ -1648,7 +1648,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                             setPreviewingSegment(true);
                           }}
                           disabled={!canCreateClip}
-                          className="flex h-8 items-center gap-1.5 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-3 text-[10px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                          className="flex h-8 items-center gap-1.5 rounded-lg border border-[#15803D]/20 bg-[#15803D]/5 px-3 text-[10px] font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           <Eye size={11} /> Preview Segment
                         </button>
@@ -1677,7 +1677,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                         <button
                           onClick={generateClip}
                           disabled={!canCreateClip}
-                          className="flex h-9 items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 text-[11px] font-bold text-white shadow-sm transition hover:bg-[#002A8C] disabled:cursor-not-allowed disabled:opacity-40"
+                          className="flex h-9 items-center gap-1.5 rounded-lg bg-[#15803D] px-4 text-[11px] font-bold text-white shadow-sm transition hover:bg-[#166534] disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           <CloudUpload size={12} /> Create Clip
                         </button>
@@ -1723,7 +1723,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
             {/* Clip Workflow Steps */}
             <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
               <div className="flex items-center gap-2 px-5 py-4">
-                <Scissors size={16} className="text-[#0038A8]" />
+                <Scissors size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Clip Workflow</h3>
                   <p className="text-[11px] text-[#94A3B8]">
@@ -1739,9 +1739,9 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                 ].map((s) => (
                   <div key={s.step} className="rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-3">
                     <div className="flex items-center gap-2">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#0038A8] text-[9px] font-bold text-white">{s.step}</span>
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#15803D] text-[9px] font-bold text-white">{s.step}</span>
                       <span className="flex items-center gap-1 text-[11px] font-semibold text-stone-900">
-                        <s.icon size={11} className="text-[#0038A8]" /> {s.title}
+                        <s.icon size={11} className="text-[#15803D]" /> {s.title}
                       </span>
                     </div>
                     <p className="mt-1.5 text-[10px] leading-relaxed text-stone-500">{s.desc}</p>
@@ -1757,7 +1757,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
           <div className="xl:col-span-2 flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
-                <Database size={16} className="text-[#0038A8]" />
+                <Database size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">CCTV Clip Records</h3>
                   <p className="text-[11px] text-[#94A3B8]">clip_id · camera_id · start_time · end_time · storage_reference · privacy_status · incident_id</p>
@@ -1794,7 +1794,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                             </span>
                           )}
                           {clip.incidentId ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#0038A8]">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#15803D]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#15803D]">
                               <Link2 size={9} /> Linked {clip.incidentId}
                             </span>
                           ) : (
@@ -1843,7 +1843,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                         <button
                           onClick={() => setAttachTarget(clip)}
                           disabled={!!clip.incidentId}
-                          className="flex h-7 items-center gap-1 rounded-md border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 text-[11px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                          className="flex h-7 items-center gap-1 rounded-md border border-[#15803D]/20 bg-[#15803D]/5 px-2 text-[11px] font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           <Link2 size={11} /> {clip.incidentId ? "Attached" : "Attach to Incident"}
                         </button>
@@ -1933,7 +1933,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
-                <Shield size={16} className="text-[#0038A8]" />
+                <Shield size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Data Retention &amp; Review</h3>
                   <p className="text-[11px] text-[#94A3B8]">Barangay record-keeping policy</p>
@@ -1941,10 +1941,10 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
               </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
-              <div className="mb-3 rounded-xl border border-[#0038A8]/15 bg-[#0038A8]/5 px-4 py-3">
+              <div className="mb-3 rounded-xl border border-[#15803D]/15 bg-[#15803D]/5 px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <CalendarClock size={14} className="text-[#0038A8]" />
-                  <p className="text-[11px] font-bold text-[#0038A8]">1-Year Retention Policy</p>
+                  <CalendarClock size={14} className="text-[#15803D]" />
+                  <p className="text-[11px] font-bold text-[#15803D]">1-Year Retention Policy</p>
                 </div>
                 <p className="mt-1.5 text-[10px] leading-relaxed text-stone-600">
                   Once a clip is attached to an official incident, it is securely stored and retained for exactly{" "}
@@ -1979,7 +1979,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                     <div key={c.id} className="rounded-lg border border-stone-200 bg-white px-3.5 py-2.5">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-bold text-stone-900">{c.id}</span>
-                        <span className="rounded-full bg-[#0038A8]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#0038A8]">{c.incidentId}</span>
+                        <span className="rounded-full bg-[#15803D]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#15803D]">{c.incidentId}</span>
                       </div>
                       <div className="mt-1.5 flex items-center justify-between text-[10px] text-stone-500">
                         <span className="flex items-center gap-1">
@@ -2011,7 +2011,7 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
         <div className="mb-6 rounded-xl border border-black/5 bg-white shadow-sm">
           <div className="flex items-center justify-between px-5 py-4">
             <div className="flex items-center gap-2">
-              <Siren size={16} className="text-[#0038A8]" />
+              <Siren size={16} className="text-[#15803D]" />
               <div>
                 <h3 className="text-[14px] font-semibold text-[#334155]">Escalated CCTV Events</h3>
                 <p className="text-[11px] text-[#94A3B8]">Events tagged in the Surveillance Matrix — clips linked to incidents</p>
@@ -2046,9 +2046,9 @@ export default function RecordedFootageEvidence({ operatorName = "CO-01" }: { op
                 <div key={esc.id} className="rounded-xl border border-stone-200 bg-white p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="flex items-center gap-1.5 text-[12px] font-bold text-stone-900">
-                      <Video size={12} className="text-[#0038A8]" /> {esc.id}
+                      <Video size={12} className="text-[#15803D]" /> {esc.id}
                     </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#0038A8]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#15803D]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#15803D]">
                       <Flag size={8} /> {esc.tagType}
                     </span>
                     <span className="text-[10px] text-stone-400">

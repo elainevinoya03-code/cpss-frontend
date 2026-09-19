@@ -453,7 +453,7 @@ export default function AlertManagement() {
 
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       {ToastPortal && <ToastPortal />}
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         {/* Page Header */}
@@ -488,11 +488,11 @@ export default function AlertManagement() {
             <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">{label}</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                   <Icon size={15} />
                 </div>
               </div>
-              <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+              <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
               <div className="mt-1 text-[11px] text-[#94A3B8]">{sub}</div>
             </div>
           ))}
@@ -507,9 +507,9 @@ export default function AlertManagement() {
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
             <button
               onClick={() => setBroadcastOpen(true)}
-              className="flex items-center gap-2 rounded-lg border border-black/5 bg-white px-3 py-2 text-left shadow-sm transition hover:border-[#0038A8]/30 hover:bg-[#E9EDFB]/50"
+              className="flex items-center gap-2 rounded-lg border border-black/5 bg-white px-3 py-2 text-left shadow-sm transition hover:border-[#15803D]/30 hover:bg-[#DCFCE7]/50"
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                 <PlusCircle size={13} />
               </div>
               <span className="text-[12px] font-semibold text-[#334155]">Create Security Alert</span>
@@ -523,7 +523,7 @@ export default function AlertManagement() {
                   flash("No unacknowledged alerts remain — all audio alarms already silenced.", { title: "Queue Clear" });
                 }
               }}
-              className="flex items-center gap-2 rounded-lg border border-black/5 bg-white px-3 py-2 text-left shadow-sm transition hover:border-[#0038A8]/30 hover:bg-[#E9EDFB]/50"
+              className="flex items-center gap-2 rounded-lg border border-black/5 bg-white px-3 py-2 text-left shadow-sm transition hover:border-[#15803D]/30 hover:bg-[#DCFCE7]/50"
             >
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
                 <BellRing size={13} />
@@ -542,7 +542,7 @@ export default function AlertManagement() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-5 py-4">
             <div>
               <h2 className="flex items-center gap-1.5 text-[14px] font-semibold text-[#334155]">
-                <Radio size={14} className="text-[#0038A8]" /> Incoming System Alerts Queue
+                <Radio size={14} className="text-[#15803D]" /> Incoming System Alerts Queue
               </h2>
               <p className="text-[11px] text-[#94A3B8]">
                 IoT threshold breaches and high-urgency flags — {filteredAlerts.length} alert{filteredAlerts.length === 1 ? "" : "s"}
@@ -580,7 +580,7 @@ export default function AlertManagement() {
                     const sev = ALERT_SEVERITY_META[a.severity];
                     const SourceIcon = SOURCE_TYPE_ICON[a.sourceType];
                     return (
-                      <tr key={a.id} className="hover:bg-[#E9EDFB]/30">
+                      <tr key={a.id} className="hover:bg-[#DCFCE7]/30">
                         <td className="px-5 py-3">
                           <p className="font-semibold text-stone-900">{a.id}</p>
                           <p className="text-[9px] text-stone-400">{timeAgo(a.timestamp)}</p>
@@ -613,7 +613,7 @@ export default function AlertManagement() {
                             {a.status === "unacknowledged" && (
                               <button
                                 onClick={() => ackAlert(a)}
-                                className="flex items-center gap-1 rounded-lg bg-[#0038A8] px-2 py-1 text-[10px] font-semibold text-white hover:bg-[#002A8C]"
+                                className="flex items-center gap-1 rounded-lg bg-[#15803D] px-2 py-1 text-[10px] font-semibold text-white hover:bg-[#166534]"
                               >
                                 <BellRing size={10} /> Ack
                               </button>
@@ -688,7 +688,7 @@ export default function AlertManagement() {
                     const isPending = b.approvalStatus === "pending" || b.approvalStatus === "rejected";
                     const isActive = !isAllClear && !isPending && b.state === "published";
                     return (
-                      <tr key={b.id} className="hover:bg-[#E9EDFB]/30">
+                      <tr key={b.id} className="hover:bg-[#DCFCE7]/30">
                         <td className="px-5 py-3">
                           <p className="font-semibold text-stone-900">{b.id}</p>
                           <p className="text-[9px] text-stone-400">{b.title}</p>
@@ -823,7 +823,7 @@ function FilterSelect({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-[11px] text-stone-600 focus:border-[#0038A8] focus:outline-none"
+      className="rounded-lg border border-stone-200 bg-white px-2 py-1.5 text-[11px] text-stone-600 focus:border-[#15803D] focus:outline-none"
     >
       {options.map((o) => (
         <option key={o} value={o}>
@@ -873,7 +873,7 @@ function AlertDetailDrawer({
       title={alert.id}
       subtitle={`${alert.sourceType} · ${alert.purok}`}
       icon={<AlertTriangle size={18} />}
-      iconClass={alert.severity === "Emergency" ? "bg-rose-100 text-rose-700" : "bg-[#0038A8]/10 text-[#0038A8]"}
+      iconClass={alert.severity === "Emergency" ? "bg-rose-100 text-rose-700" : "bg-[#15803D]/10 text-[#15803D]"}
       footer={
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-2">
           <button
@@ -885,7 +885,7 @@ function AlertDetailDrawer({
           {!hasIncident && (
             <button
               onClick={onLink}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#0038A8]/30 bg-[#E9EDFB] px-3 py-2 text-[11px] font-semibold text-[#0038A8] hover:bg-[#dbe3fb]"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#15803D]/30 bg-[#DCFCE7] px-3 py-2 text-[11px] font-semibold text-[#15803D] hover:bg-[#dbe3fb]"
             >
               <Link2 size={12} /> Link to Incident
             </button>
@@ -893,7 +893,7 @@ function AlertDetailDrawer({
           {canAct && alert.status === "unacknowledged" && (
             <button
               onClick={onAcknowledge}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-2 text-[11px] font-semibold text-white hover:bg-[#002A8C]"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-2 text-[11px] font-semibold text-white hover:bg-[#166534]"
             >
               <BellRing size={12} /> Confirm &amp; Acknowledge
             </button>
@@ -1089,7 +1089,7 @@ function BroadcastModal({
           <select
             value={incidentId}
             onChange={(e) => setIncidentId(e.target.value)}
-            className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none"
           >
             <option value="">— None —</option>
             {openIncidents.map((i) => (
@@ -1113,7 +1113,7 @@ function BroadcastModal({
                   severity === s
                     ? s === "High"
                       ? "border-rose-300 bg-rose-50 text-rose-700"
-                      : "border-[#0038A8]/40 bg-[#E9EDFB] text-[#0038A8]"
+                      : "border-[#15803D]/40 bg-[#DCFCE7] text-[#15803D]"
                     : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                 }`}
               >
@@ -1142,7 +1142,7 @@ function BroadcastModal({
                 onClick={() => toggleAudience(opt.value)}
                 className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium transition ${
                   audience.includes(opt.value)
-                    ? "border-[#0038A8]/40 bg-[#E9EDFB] text-[#0038A8]"
+                    ? "border-[#15803D]/40 bg-[#DCFCE7] text-[#15803D]"
                     : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                 }`}
               >
@@ -1158,7 +1158,7 @@ function BroadcastModal({
           <select
             value={purok}
             onChange={(e) => setPurok(e.target.value)}
-            className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none"
           >
             <option value="Entire Barangay">Entire Barangay (System-Wide)</option>
             {PUROK_ZONES.map((z) => (
@@ -1197,7 +1197,7 @@ function BroadcastModal({
             onChange={(e) => setMessage(e.target.value)}
             rows={3}
             placeholder="Describe the situation, affected zone and instructions for the audience..."
-            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
           />
         </div>
 
@@ -1208,7 +1208,7 @@ function BroadcastModal({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Short alert title shown to recipients"
-            className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
           />
         </div>
       </div>
@@ -1272,7 +1272,7 @@ function LinkIncidentModal({
           <button
             onClick={() => onLink(incidentId)}
             disabled={!incidentId}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white hover:bg-[#002A8C] disabled:opacity-40"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white hover:bg-[#166534] disabled:opacity-40"
           >
             <Link2 size={13} /> Link to Incident
           </button>
@@ -1289,7 +1289,7 @@ function LinkIncidentModal({
           <select
             value={incidentId}
             onChange={(e) => setIncidentId(e.target.value)}
-            className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none"
           >
             {openIncidents.map((i) => (
               <option key={i.id} value={i.id}>
@@ -1363,7 +1363,7 @@ function ConvertIncidentModal({
       title={`Create Incident from ${alert.id}`}
       subtitle={`${alert.purok} · ${alert.sourceType}`}
       icon={<PlusCircle size={18} />}
-      iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+      iconClass="bg-[#15803D]/10 text-[#15803D]"
       size="lg"
       footer={
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
@@ -1376,7 +1376,7 @@ function ConvertIncidentModal({
           <button
             onClick={submit}
             disabled={!description.trim()}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white hover:bg-[#002A8C] disabled:opacity-40"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white hover:bg-[#166534] disabled:opacity-40"
           >
             <PlusCircle size={13} /> Confirm &amp; Create Incident
           </button>
@@ -1394,7 +1394,7 @@ function ConvertIncidentModal({
                 onClick={() => setCategory(c)}
                 className={`rounded-full border px-3 py-1 text-[10px] font-medium transition ${
                   category === c
-                    ? "border-[#0038A8]/40 bg-[#E9EDFB] text-[#0038A8]"
+                    ? "border-[#15803D]/40 bg-[#DCFCE7] text-[#15803D]"
                     : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                 }`}
               >
@@ -1409,7 +1409,7 @@ function ConvertIncidentModal({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
           />
         </div>
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-[11px] text-emerald-800">
@@ -1472,7 +1472,7 @@ function DismissAlertModal({
             onChange={(e) => setReason(e.target.value)}
             rows={3}
             placeholder="e.g. Sensor false positive from cooking smoke — no active fire detected."
-            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
           />
         </div>
         <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5 text-[11px] text-stone-600">
@@ -1535,7 +1535,7 @@ function AllClearModal({
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             placeholder="e.g. Area is now safe. Thank you for your cooperation."
-            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
           />
         </div>
         <div className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2.5 text-[11px] text-teal-800">

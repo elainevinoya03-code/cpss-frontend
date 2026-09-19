@@ -155,7 +155,7 @@ function fmtClock(sec: number) {
 function ClipTimeline() {
   return (
     <div className="relative mt-2 h-2 w-full overflow-hidden rounded-full bg-stone-200">
-      <div className="absolute inset-y-0 left-[15%] right-[15%] bg-[#0038A8]/70" />
+      <div className="absolute inset-y-0 left-[15%] right-[15%] bg-[#15803D]/70" />
       <div className="absolute -top-[3px] left-[15%] h-[14px] w-0.5 bg-stone-800" />
       <div className="absolute -top-[3px] right-[15%] h-[14px] w-0.5 bg-stone-800" />
     </div>
@@ -185,7 +185,7 @@ const ACTION_STYLE: Record<EvidenceAction, { badge: string }> = {
   Viewed: { badge: "bg-sky-100 text-sky-700" },
   Generated: { badge: "bg-violet-100 text-violet-700" },
   Redacted: { badge: "bg-amber-100 text-amber-700" },
-  Attached: { badge: "bg-[#0038A8]/10 text-[#0038A8]" },
+  Attached: { badge: "bg-[#15803D]/10 text-[#15803D]" },
   Exported: { badge: "bg-emerald-100 text-emerald-700" },
 };
 
@@ -235,7 +235,7 @@ function ClipReviewModal({ clip, onClose }: { clip: EscalatedClip; onClose: () =
       </button>
       <button
         onClick={onClose}
-        className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+        className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
       >
         <CheckCircle2 size={13} />
         Done
@@ -250,7 +250,7 @@ function ClipReviewModal({ clip, onClose }: { clip: EscalatedClip; onClose: () =
       title={`Clip Review — ${clip.id}`}
       subtitle={`${clip.cameraName} · ${clip.location} · ${clip.purok}`}
       icon={<Video size={18} />}
-      iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+      iconClass="bg-[#15803D]/10 text-[#15803D]"
       size="xl"
       footer={footer}
     >
@@ -270,7 +270,7 @@ function ClipReviewModal({ clip, onClose }: { clip: EscalatedClip; onClose: () =
             <div className="absolute inset-0 flex items-center justify-center bg-black/40">
               <button
                 onClick={() => setPlaying(true)}
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-[#0038A8] shadow-xl transition hover:scale-105"
+                className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-[#15803D] shadow-xl transition hover:scale-105"
               >
                 <Play size={22} className="ml-1" />
               </button>
@@ -281,7 +281,7 @@ function ClipReviewModal({ clip, onClose }: { clip: EscalatedClip; onClose: () =
         <div className="mb-3 flex items-center gap-2">
           <button
             onClick={() => setPlaying((p) => !p)}
-            className="flex h-8 items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+            className="flex h-8 items-center gap-1.5 rounded-lg bg-[#15803D] px-3 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
           >
             {playing ? <Pause size={12} /> : <Play size={12} />}
             {playing ? "Pause" : "Play"}
@@ -292,7 +292,7 @@ function ClipReviewModal({ clip, onClose }: { clip: EscalatedClip; onClose: () =
             max={clip.durationSec}
             value={currentSec}
             onChange={(e) => setCurrentSec(Number(e.target.value))}
-            className="flex-1 accent-[#0038A8]"
+            className="flex-1 accent-[#15803D]"
           />
         </div>
 
@@ -321,7 +321,7 @@ function ClipReviewModal({ clip, onClose }: { clip: EscalatedClip; onClose: () =
         <div className="rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5">
           <p className="text-[9px] font-semibold tracking-wider text-stone-400">OPERATOR OBSERVATION</p>
           <p className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-stone-800">
-            <Flag size={10} className="text-[#0038A8]" />
+            <Flag size={10} className="text-[#15803D]" />
             {clip.tagType}
           </p>
           {clip.notes && <p className="text-[9px] italic text-stone-500">"{clip.notes}"</p>}
@@ -335,7 +335,7 @@ function ClipReviewModal({ clip, onClose }: { clip: EscalatedClip; onClose: () =
           {clip.storageUrl}
         </p>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#0038A8]">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#15803D]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#15803D]">
             <Link2 size={8} />
             {clip.incident.id}
           </span>
@@ -380,7 +380,7 @@ function EvidenceActivityPanel() {
     <div className="mb-6 rounded-xl border border-black/5 bg-white shadow-sm">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
-          <History size={16} className="text-[#0038A8]" />
+          <History size={16} className="text-[#15803D]" />
           <div>
             <h3 className="text-[14px] font-semibold text-[#334155]">Evidence Activity</h3>
             <p className="text-[11px] text-[#94A3B8]">Mock audit trail — evidence actions are logged as they happen</p>
@@ -396,7 +396,7 @@ function EvidenceActivityPanel() {
             </span>
             <span className="font-mono text-[11px] font-semibold text-stone-900">{a.clipId}</span>
             {a.incidentId && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#0038A8]">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#15803D]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#15803D]">
                 <Link2 size={8} />
                 {a.incidentId}
               </span>
@@ -467,7 +467,7 @@ export default function CctvEventsEvidence({ operatorName = "CO-01" }: { operato
   ];
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -478,7 +478,7 @@ export default function CctvEventsEvidence({ operatorName = "CO-01" }: { operato
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 rounded-full border border-[#0038A8]/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#0038A8]">
+              <span className="flex items-center gap-1.5 rounded-full border border-[#15803D]/15 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#15803D]">
                 <User size={12} />
                 Operator: {operatorName}
               </span>
@@ -492,11 +492,11 @@ export default function CctvEventsEvidence({ operatorName = "CO-01" }: { operato
             <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">{label}</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                   <Icon size={15} />
                 </div>
               </div>
-              <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+              <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
               <div className="mt-1 text-[11px] text-[#94A3B8]">{sub}</div>
             </div>
           ))}
@@ -506,7 +506,7 @@ export default function CctvEventsEvidence({ operatorName = "CO-01" }: { operato
           <div className="xl:col-span-2 flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-4">
               <div className="flex items-center gap-2">
-                <Video size={16} className="text-[#0038A8]" />
+                <Video size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">CCTV Event Log</h3>
                   <p className="text-[11px] text-[#94A3B8]">Events tagged in the Surveillance Matrix — clip, incident linkage &amp; status</p>
@@ -541,14 +541,14 @@ export default function CctvEventsEvidence({ operatorName = "CO-01" }: { operato
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="flex items-center gap-1.5 text-[12px] font-bold text-stone-900">
-                              <Video size={12} className="text-[#0038A8]" /> {esc.id}
+                              <Video size={12} className="text-[#15803D]" /> {esc.id}
                             </span>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#0038A8]">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#15803D]/5 px-1.5 py-0.5 text-[9px] font-medium text-[#15803D]">
                               <Flag size={8} /> {esc.tagType}
                             </span>
                           </div>
                           <p className="mt-1 flex items-center gap-1 text-[11px] text-stone-600">
-                            <Camera size={10} className="text-[#0038A8]" /> {esc.cameraName} · {esc.cameraId} · {esc.location} · {esc.purok}
+                            <Camera size={10} className="text-[#15803D]" /> {esc.cameraName} · {esc.cameraId} · {esc.location} · {esc.purok}
                           </p>
                           <p className="mt-0.5 flex items-center gap-1 text-[10px] text-stone-400">
                             <Clock size={9} /> Tagged {formatTime(esc.escalatedAt)} · <User size={9} /> by {esc.operator}
@@ -569,7 +569,7 @@ export default function CctvEventsEvidence({ operatorName = "CO-01" }: { operato
                               addEvidenceActivity({ action: "Viewed", clipId: esc.id, incidentId: esc.incident.id, operator: esc.operator });
                               setReviewClip(esc);
                             }}
-                            className="mt-2 flex h-7 items-center gap-1 rounded-md border border-[#0038A8]/20 bg-[#0038A8]/5 px-2.5 text-[11px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white"
+                            className="mt-2 flex h-7 items-center gap-1 rounded-md border border-[#15803D]/20 bg-[#15803D]/5 px-2.5 text-[11px] font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white"
                           >
                             <Play size={11} /> Review Clip
                           </button>
@@ -586,7 +586,7 @@ export default function CctvEventsEvidence({ operatorName = "CO-01" }: { operato
                             </span>
                           </div>
                           <p className="mt-1.5 flex items-center gap-1 text-[10px] text-stone-500">
-                            <MapPin size={9} className="text-[#0038A8]" /> {esc.incident.category} · {esc.incident.purok}
+                            <MapPin size={9} className="text-[#15803D]" /> {esc.incident.category} · {esc.incident.purok}
                           </p>
                           <p className="flex items-center gap-1 text-[10px] text-stone-400">
                             <Clock size={9} /> Created {formatTime(esc.incident.createdAt)}
@@ -635,7 +635,7 @@ export default function CctvEventsEvidence({ operatorName = "CO-01" }: { operato
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
-                <Scissors size={16} className="text-[#0038A8]" />
+                <Scissors size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Video DVR &amp; Evidence Clipper</h3>
                   <p className="text-[11px] text-[#94A3B8]">Extract clips &amp; bind as permanent attachments</p>
@@ -648,7 +648,7 @@ export default function CctvEventsEvidence({ operatorName = "CO-01" }: { operato
               <select
                 value={bindTargetId}
                 onChange={(e) => setBindTargetId(e.target.value)}
-                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[11px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[11px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
               >
                 {events.map((e) => (
                   <option key={e.id} value={e.id}>{e.id} · {e.incident.id} · {e.cameraName}</option>
@@ -667,7 +667,7 @@ export default function CctvEventsEvidence({ operatorName = "CO-01" }: { operato
                       <p className="truncate text-[11px] font-semibold text-stone-900">{clip.camLabel}</p>
                       <p className="flex items-center gap-1 text-[9px] text-stone-400"><Clock size={8} /> {formatTime(clip.time)} · {clip.duration}</p>
                     </div>
-                    <button onClick={() => extractClip(clip)} className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 text-[10px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white">
+                    <button onClick={() => extractClip(clip)} className="flex h-7 shrink-0 items-center gap-1 rounded-md border border-[#15803D]/20 bg-[#15803D]/5 px-2 text-[10px] font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white">
                       <Scissors size={10} /> Extract
                     </button>
                   </div>
@@ -701,7 +701,7 @@ export default function CctvEventsEvidence({ operatorName = "CO-01" }: { operato
 
         <div className="rounded-xl border border-black/5 bg-white px-5 py-5 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
-            <Shield size={16} className="text-[#0038A8]" />
+            <Shield size={16} className="text-[#15803D]" />
             <div>
               <h3 className="text-[14px] font-semibold text-[#334155]">The Dispatch Boundary</h3>
               <p className="text-[11px] text-[#94A3B8]">Who owns each stage of the incident pipeline</p>
@@ -716,10 +716,10 @@ export default function CctvEventsEvidence({ operatorName = "CO-01" }: { operato
                 { icon: ArrowRight, label: "Handoff", owner: "To Desk Officer", note: "Pending Desk Officer triage" },
               ].map((s, i) => (
                 <React.Fragment key={s.label}>
-                  <div className="flex flex-1 flex-col items-center rounded-xl border border-[#0038A8]/20 bg-[#0038A8]/5 px-2 py-3 text-center">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0038A8] text-white"><s.icon size={14} /></span>
+                  <div className="flex flex-1 flex-col items-center rounded-xl border border-[#15803D]/20 bg-[#15803D]/5 px-2 py-3 text-center">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#15803D] text-white"><s.icon size={14} /></span>
                     <span className="mt-1.5 text-[11px] font-bold text-stone-900">{s.label}</span>
-                    <span className="text-[9px] font-medium text-[#0038A8]">{s.owner}</span>
+                    <span className="text-[9px] font-medium text-[#15803D]">{s.owner}</span>
                     <span className="mt-0.5 hidden text-[8px] leading-tight text-stone-400 sm:block">{s.note}</span>
                   </div>
                   {i < 3 && <span className="hidden shrink-0 text-stone-300 lg:block">→</span>}
@@ -728,7 +728,7 @@ export default function CctvEventsEvidence({ operatorName = "CO-01" }: { operato
             </div>
             <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-stone-300 bg-stone-50 px-4 py-3 lg:flex-col">
               <span className="text-[9px] font-bold tracking-widest text-stone-400">HANDOFF</span>
-              <span className="text-[#0038A8]">→</span>
+              <span className="text-[#15803D]">→</span>
             </div>
             <div className="flex flex-1 items-center gap-2">
               {[

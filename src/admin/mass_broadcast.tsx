@@ -87,7 +87,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   // New mass broadcast categories
   "Fire": { bg: "bg-rose-50", text: "text-rose-600" },
   "Medical": { bg: "bg-emerald-50", text: "text-emerald-600" },
-  "Flood": { bg: "bg-blue-50", text: "text-blue-600" },
+  "Flood": { bg: "bg-green-50", text: "text-green-600" },
   "Crime": { bg: "bg-slate-100", text: "text-slate-700" },
   
   // Incident triage categories from constants.ts
@@ -95,8 +95,8 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   "Medical or Welfare Concern": { bg: "bg-emerald-50", text: "text-emerald-600" },
   "Public Safety & Peace and Order": { bg: "bg-rose-50", text: "text-rose-600" },
   "Crime & Property": { bg: "bg-slate-100", text: "text-slate-700" },
-  "Domestic & Family": { bg: "bg-blue-50", text: "text-blue-600" },
-  "Community Disputes": { bg: "bg-blue-50", text: "text-blue-600" },
+  "Domestic & Family": { bg: "bg-green-50", text: "text-green-600" },
+  "Community Disputes": { bg: "bg-green-50", text: "text-green-600" },
   "Violence & Gender-Related": { bg: "bg-rose-50", text: "text-rose-700" },
   "Traffic & Road": { bg: "bg-amber-50", text: "text-amber-600" },
   "Environmental & Sanitation": { bg: "bg-emerald-50", text: "text-emerald-600" },
@@ -115,7 +115,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   "Noise Disturbance": { bg: "bg-amber-50", text: "text-amber-600" },
   "Road Obstruction": { bg: "bg-yellow-50", text: "text-yellow-600" },
   "Health/Safety": { bg: "bg-emerald-50", text: "text-emerald-600" },
-  "Community Event": { bg: "bg-blue-50", text: "text-blue-600" },
+  "Community Event": { bg: "bg-green-50", text: "text-green-600" },
   "General": { bg: "bg-stone-100", text: "text-stone-600" },
 };
 
@@ -434,7 +434,7 @@ export default function MassBroadcast() {
   const composeOpen = showCompose || editTarget !== null;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <ToastPortal />
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
@@ -451,7 +451,7 @@ export default function MassBroadcast() {
                 setForm({ title: "", message: "", category: "", severity: "low", targetPurok: "All Puroks", publishNow: true, incidentId: "", location: "" });
                 setShowCompose(true);
               }}
-              className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+              className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
             >
               <Megaphone size={13} />
               Compose Announcement
@@ -465,11 +465,11 @@ export default function MassBroadcast() {
             <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-medium tracking-wider text-stone-400">{label}</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                   <Icon size={15} />
                 </div>
               </div>
-              <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+              <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
               <div className="mt-1 text-[11px] text-stone-400">{sub}</div>
             </div>
           ))}
@@ -484,7 +484,7 @@ export default function MassBroadcast() {
             {draftList.length > 0 && (
               <div className="mb-6">
                 <div className="mb-3 flex items-center gap-2">
-                  <FileText size={15} className="text-[#0038A8]" />
+                  <FileText size={15} className="text-[#15803D]" />
                   <div>
                     <h3 className="text-[14px] font-semibold text-stone-900">Draft Announcements</h3>
                     <p className="text-[11px] text-stone-400">{draftList.length} saved — publish to notify users</p>
@@ -539,7 +539,7 @@ export default function MassBroadcast() {
                             </button>
                             <button
                               onClick={() => setPublishTarget(record)}
-                              className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                              className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
                             >
                               <Send size={12} />
                               Publish
@@ -556,7 +556,7 @@ export default function MassBroadcast() {
             <div className="rounded-xl border border-black/5 bg-white shadow-sm">
               <div className="flex items-center justify-between px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <Bell size={15} className="text-[#0038A8]" />
+                  <Bell size={15} className="text-[#15803D]" />
                   <div>
                     <h3 className="text-[14px] font-semibold text-stone-900">Published Announcements</h3>
                     <p className="text-[11px] text-stone-400">{publishedList.length} broadcast{publishedList.length !== 1 ? "s" : ""} delivered to user notifications</p>
@@ -636,8 +636,8 @@ export default function MassBroadcast() {
             setShowCompose(false);
             setEditTarget(null);
           }}
-          icon={<Megaphone size={18} className="text-[#0038A8]" />}
-          iconClass="bg-[#E9EDFB]"
+          icon={<Megaphone size={18} className="text-[#15803D]" />}
+          iconClass="bg-[#DCFCE7]"
           title={editTarget ? `Edit Announcement — ${editTarget.announcementId}` : "Compose Announcement"}
           subtitle="Create a community announcement linked to an incident to notify users on their devices"
           footer={
@@ -654,7 +654,7 @@ export default function MassBroadcast() {
               <button
                 onClick={editTarget ? handleSaveEdit : handleSaveAnnouncement}
                 disabled={saving}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534] disabled:opacity-50"
               >
                 <Send size={13} />
                 {saving ? "Saving…" : editTarget ? "Save Changes" : form.publishNow ? "Publish Announcement" : "Save as Draft"}
@@ -722,7 +722,7 @@ export default function MassBroadcast() {
                       {/* Prominent Location Display */}
                       <div className="mt-2 rounded-md border border-stone-200 bg-white px-3 py-2">
                         <div className="flex items-center gap-2">
-                          <MapPin size={12} className="text-[#0038A8]" />
+                          <MapPin size={12} className="text-[#15803D]" />
                           <div>
                             <p className="text-[10px] font-semibold text-stone-400">LOCATION</p>
                             <p className="text-[11px] font-medium text-stone-900">{selectedIncident.purok}</p>
@@ -848,7 +848,7 @@ export default function MassBroadcast() {
                   id="publish-now"
                   checked={form.publishNow}
                   onChange={(e) => setForm((f) => ({ ...f, publishNow: e.target.checked }))}
-                  className="h-3.5 w-3.5 accent-[#0038A8]"
+                  className="h-3.5 w-3.5 accent-[#15803D]"
                 />
                 <label htmlFor="publish-now" className="text-[11px] text-stone-600">
                   Publish immediately — users will receive a notification. Uncheck to save as a draft.
@@ -901,8 +901,8 @@ export default function MassBroadcast() {
           onClose={() => setDetailTarget(null)}
           title={detailTarget.announcementId}
           subtitle={formatTime(detailTarget.publishedAt || detailTarget.createdAt)}
-          icon={<Eye size={16} className="text-[#0038A8]" />}
-          iconClass="bg-[#E9EDFB]"
+          icon={<Eye size={16} className="text-[#15803D]" />}
+          iconClass="bg-[#DCFCE7]"
         >
           {(() => {
             const sev = SEVERITY_META[detailTarget.severity] || SEVERITY_META.low;

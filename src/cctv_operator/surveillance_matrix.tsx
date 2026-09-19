@@ -489,7 +489,7 @@ function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feed
                     LIVE
                   </span>
                   <span className="rounded-md bg-black/60 px-2 py-1 text-[10px] font-semibold text-white">{cam.name}</span>
-                  <span className="rounded-md bg-[#0038A8]/80 px-2 py-1 font-mono text-[10px] font-medium text-white">{cam.id}</span>
+                  <span className="rounded-md bg-[#15803D]/80 px-2 py-1 font-mono text-[10px] font-medium text-white">{cam.id}</span>
                 </div>
                 <div className="absolute right-4 top-4 flex items-center gap-2">
                   {q && (
@@ -683,7 +683,7 @@ function TagModal({
       title="Tag CCTV Event"
       subtitle={`${camera.name} · ${camera.location} · ${camera.purok} · ${camera.id}`}
       icon={<Flag size={18} />}
-      iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+      iconClass="bg-[#15803D]/10 text-[#15803D]"
       size="lg"
       footer={
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
@@ -707,7 +707,7 @@ function TagModal({
             <button
               onClick={handleConfirm}
               disabled={saving}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C] disabled:cursor-not-allowed disabled:opacity-70"
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {saving ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
               {saving ? "Saving…" : "Confirm & Submit"}
@@ -730,11 +730,11 @@ function TagModal({
           <React.Fragment key={s}>
             <div className="flex items-center gap-1.5">
               <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-bold ${
-                step === s ? "bg-[#0038A8] text-white" : i < ["details", "incident", "confirm"].indexOf(step) ? "bg-emerald-500 text-white" : "bg-stone-200 text-stone-500"
+                step === s ? "bg-[#15803D] text-white" : i < ["details", "incident", "confirm"].indexOf(step) ? "bg-emerald-500 text-white" : "bg-stone-200 text-stone-500"
               }`}>
                 {i < ["details", "incident", "confirm"].indexOf(step) ? <CheckCircle2 size={10} /> : i + 1}
               </span>
-              <span className={`text-[10px] font-semibold capitalize ${step === s ? "text-[#0038A8]" : "text-stone-400"}`}>
+              <span className={`text-[10px] font-semibold capitalize ${step === s ? "text-[#15803D]" : "text-stone-400"}`}>
                 {s === "details" ? "Event Details" : s === "incident" ? "Incident Link" : "Confirm"}
               </span>
             </div>
@@ -762,14 +762,14 @@ function TagModal({
                   key={key}
                   onClick={() => setCategory(key)}
                   className={`flex items-start gap-2.5 rounded-lg border px-3 py-2.5 text-left transition ${
-                    category === key ? "border-[#0038A8] bg-[#0038A8]/5" : "border-stone-200 bg-white hover:bg-stone-50"
+                    category === key ? "border-[#15803D] bg-[#15803D]/5" : "border-stone-200 bg-white hover:bg-stone-50"
                   }`}
                 >
-                  <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${category === key ? "bg-[#0038A8] text-white" : "bg-stone-100 text-stone-500"}`}>
+                  <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${category === key ? "bg-[#15803D] text-white" : "bg-stone-100 text-stone-500"}`}>
                     <Icon size={13} />
                   </span>
                   <span>
-                    <span className={`block text-[12px] font-semibold ${category === key ? "text-[#0038A8]" : "text-stone-900"}`}>
+                    <span className={`block text-[12px] font-semibold ${category === key ? "text-[#15803D]" : "text-stone-900"}`}>
                       {key}
                     </span>
                     <span className="mt-0.5 block text-[9px] leading-snug text-stone-400">{hint}</span>
@@ -786,7 +786,7 @@ function TagModal({
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Record your observation — number of individuals, direction of travel, vehicle description..."
-              className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+              className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
             />
           </div>
         </>
@@ -801,14 +801,14 @@ function TagModal({
               <button
                 onClick={() => { setIncidentAction("create_new"); setLinkedIncidentId(null); }}
                 className={`flex items-start gap-2.5 rounded-lg border px-3 py-3 text-left transition ${
-                  incidentAction === "create_new" ? "border-[#0038A8] bg-[#0038A8]/5" : "border-stone-200 bg-white hover:bg-stone-50"
+                  incidentAction === "create_new" ? "border-[#15803D] bg-[#15803D]/5" : "border-stone-200 bg-white hover:bg-stone-50"
                 }`}
               >
-                <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${incidentAction === "create_new" ? "bg-[#0038A8] text-white" : "bg-stone-100 text-stone-500"}`}>
+                <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${incidentAction === "create_new" ? "bg-[#15803D] text-white" : "bg-stone-100 text-stone-500"}`}>
                   <Plus size={13} />
                 </span>
                 <span>
-                  <span className={`block text-[12px] font-semibold ${incidentAction === "create_new" ? "text-[#0038A8]" : "text-stone-900"}`}>
+                  <span className={`block text-[12px] font-semibold ${incidentAction === "create_new" ? "text-[#15803D]" : "text-stone-900"}`}>
                     Create New Incident
                   </span>
                   <span className="mt-0.5 block text-[9px] leading-snug text-stone-400">
@@ -819,14 +819,14 @@ function TagModal({
               <button
                 onClick={() => setIncidentAction("link_existing")}
                 className={`flex items-start gap-2.5 rounded-lg border px-3 py-3 text-left transition ${
-                  incidentAction === "link_existing" ? "border-[#0038A8] bg-[#0038A8]/5" : "border-stone-200 bg-white hover:bg-stone-50"
+                  incidentAction === "link_existing" ? "border-[#15803D] bg-[#15803D]/5" : "border-stone-200 bg-white hover:bg-stone-50"
                 }`}
               >
-                <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${incidentAction === "link_existing" ? "bg-[#0038A8] text-white" : "bg-stone-100 text-stone-500"}`}>
+                <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${incidentAction === "link_existing" ? "bg-[#15803D] text-white" : "bg-stone-100 text-stone-500"}`}>
                   <Link2 size={13} />
                 </span>
                 <span>
-                  <span className={`block text-[12px] font-semibold ${incidentAction === "link_existing" ? "text-[#0038A8]" : "text-stone-900"}`}>
+                  <span className={`block text-[12px] font-semibold ${incidentAction === "link_existing" ? "text-[#15803D]" : "text-stone-900"}`}>
                     Link to Existing Incident
                   </span>
                   <span className="mt-0.5 block text-[9px] leading-snug text-stone-400">
@@ -847,7 +847,7 @@ function TagModal({
                   value={incidentSearch}
                   onChange={(e) => setIncidentSearch(e.target.value)}
                   placeholder="Search by ID or title..."
-                  className="w-full rounded-lg border border-stone-200 bg-white py-2.5 pl-9 pr-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                  className="w-full rounded-lg border border-stone-200 bg-white py-2.5 pl-9 pr-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                 />
               </div>
               <div className="max-h-48 space-y-1.5 overflow-y-auto">
@@ -860,7 +860,7 @@ function TagModal({
                       onClick={() => setLinkedIncidentId(inc.id)}
                       className={`w-full rounded-lg border px-3 py-2.5 text-left transition ${
                         linkedIncidentId === inc.id
-                          ? "border-[#0038A8] bg-[#0038A8]/5"
+                          ? "border-[#15803D] bg-[#15803D]/5"
                           : "border-stone-200 bg-white hover:bg-stone-50"
                       }`}
                     >
@@ -888,7 +888,7 @@ function TagModal({
           {incidentAction === "create_new" && (
             <div className="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
               <div className="flex items-start gap-2">
-                <Info size={12} className="mt-0.5 shrink-0 text-[#0038A8]" />
+                <Info size={12} className="mt-0.5 shrink-0 text-[#15803D]" />
                 <div>
                   <p className="text-[10px] font-semibold text-stone-700">Status: In Progress · Priority: Emergency</p>
                   <p className="mt-0.5 text-[9px] leading-relaxed text-stone-500">
@@ -917,7 +917,7 @@ function TagModal({
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-stone-500">Event Category</span>
-                <span className="text-[11px] font-semibold text-[#0038A8]">{category}</span>
+                <span className="text-[11px] font-semibold text-[#15803D]">{category}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-stone-500">Timestamp</span>
@@ -965,8 +965,8 @@ function TagModal({
             </p>
           </div>
 
-          <div className="mt-2 flex items-start gap-2 rounded-lg border border-[#0038A8]/25 bg-[#0038A8]/5 px-3 py-2.5">
-            <ShieldCheck size={12} className="mt-0.5 shrink-0 text-[#0038A8]" />
+          <div className="mt-2 flex items-start gap-2 rounded-lg border border-[#15803D]/25 bg-[#15803D]/5 px-3 py-2.5">
+            <ShieldCheck size={12} className="mt-0.5 shrink-0 text-[#15803D]" />
             <p className="text-[10px] font-semibold leading-relaxed text-stone-800">
               CCTV Operator records the observation. The Desk Officer determines the final priority during triage.
             </p>
@@ -1044,7 +1044,7 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
       title={`Stream Focus — ${camera.name}`}
       subtitle={`${camera.id} · ${camera.location} · ${camera.purok}`}
             icon={<Eye size={18} />}
-      iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+      iconClass="bg-[#15803D]/10 text-[#15803D]"
       size="2xl"
       footer={
         <div className="flex gap-3">
@@ -1123,7 +1123,7 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
         <div className="rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5">
           <p className="text-[9px] font-semibold tracking-wider text-stone-400">LOCATION</p>
           <p className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-stone-800">
-            <MapPin size={10} className="text-[#0038A8]" />
+            <MapPin size={10} className="text-[#15803D]" />
             {camera.location} · {camera.purok}
           </p>
           <p className="text-[9px] text-stone-400">IP {camera.ip}</p>
@@ -1132,7 +1132,7 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
           <p className="text-[9px] font-semibold tracking-wider text-stone-400">SIGNAL QUALITY</p>
           {q ? (
             <p className="mt-0.5 flex items-center gap-1.5 text-[11px] font-medium text-stone-800">
-              <Gauge size={11} className="text-[#0038A8]" />
+              <Gauge size={11} className="text-[#15803D]" />
               {q.label}
               <span className="text-[9px] text-stone-400">· {camera.signalPct}% signal</span>
             </p>
@@ -1192,7 +1192,7 @@ function ConfigureModal({ cameras, cellIds, gridSize, onClose, onApply }: { came
       title="Configure Grid Feeds"
       subtitle={`Assign a camera to each ${gridSize}×${gridSize} grid cell`}
       icon={<Settings2 size={18} />}
-      iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+      iconClass="bg-[#15803D]/10 text-[#15803D]"
       size="lg"
       footer={
         <div className="flex gap-3">
@@ -1201,7 +1201,7 @@ function ConfigureModal({ cameras, cellIds, gridSize, onClose, onApply }: { came
           </button>
           <button
             onClick={() => onApply(draft)}
-            className="flex-1 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+            className="flex-1 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
           >
             Apply Grid
           </button>
@@ -1230,7 +1230,7 @@ function ConfigureModal({ cameras, cellIds, gridSize, onClose, onApply }: { came
                     return next;
                   });
                 }}
-                className="w-full rounded-md border border-stone-200 bg-white px-2 py-1.5 text-[11px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                className="w-full rounded-md border border-stone-200 bg-white px-2 py-1.5 text-[11px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
               >
                 <option value="">(Empty)</option>
                 {cameras.map((c) => (
@@ -1311,7 +1311,7 @@ function FaultModal({
       <select
         value={camId}
         onChange={(e) => setCamId(e.target.value)}
-        className="mb-4 w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-[12px] text-stone-700 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+        className="mb-4 w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-[12px] text-stone-700 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
       >
         {cameras.map((c) => (
           <option key={c.id} value={c.id}>
@@ -1346,7 +1346,7 @@ function FaultModal({
         onChange={(e) => setDescription(e.target.value)}
         rows={3}
         placeholder="Describe the observed problem — no feed, flicker, blur, packet loss..."
-        className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+        className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
       />
     </Modal>
   );
@@ -1619,7 +1619,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
 
   /* ---- Render ---- */
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-2 py-4 sm:px-4 sm:py-6">
         {/* Grid Controls */}
         <div className="mb-5 rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
@@ -1633,7 +1633,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
                       key={n}
                       onClick={() => changeGridSize(n)}
                       className={`flex h-8 items-center gap-1.5 rounded-lg border px-3 text-[11px] font-semibold transition ${
-                        gridSize === n ? "border-[#0038A8] bg-[#0038A8]/5 text-[#0038A8]" : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
+                        gridSize === n ? "border-[#15803D] bg-[#15803D]/5 text-[#15803D]" : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                       }`}
                     >
                       <LayoutGrid size={12} />
@@ -1651,7 +1651,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
                       key={m}
                       onClick={() => setQualityMode(m)}
                       className={`h-8 rounded-lg border px-3 text-[11px] font-semibold capitalize transition ${
-                        qualityMode === m ? "border-[#0038A8] bg-[#0038A8]/5 text-[#0038A8]" : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
+                        qualityMode === m ? "border-[#15803D] bg-[#15803D]/5 text-[#15803D]" : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                       }`}
                     >
                       {m}
@@ -1712,7 +1712,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
             <p className="mb-4 text-[11px] text-stone-400">Configure the grid to add live feeds</p>
             <button
               onClick={() => setConfigureOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-2 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#15803D] px-4 py-2 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
             >
               <Settings2 size={12} />
               Configure Feeds
@@ -1745,7 +1745,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
                       <p className="text-[10px] font-medium text-stone-400">No camera assigned</p>
                       <button
                         onClick={() => setConfigureOpen(true)}
-                        className="mt-2 rounded-md border border-[#0038A8]/20 bg-[#0038A8]/5 px-2.5 py-1 text-[10px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white"
+                        className="mt-2 rounded-md border border-[#15803D]/20 bg-[#15803D]/5 px-2.5 py-1 text-[10px] font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white"
                       >
                         Assign camera
                       </button>
@@ -1766,7 +1766,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
           <div className="xl:col-span-2 flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between px-5 py-4">
               <div className="flex items-center gap-2">
-                <FileText size={16} className="text-[#0038A8]" />
+                <FileText size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Recent CCTV Events</h3>
                   <p className="text-[11px] text-[#94A3B8]">Manual CCTV Events tagged by the operator — saved to the CPSS database</p>
@@ -1825,7 +1825,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
           {/* Storage — read-only */}
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center gap-2 px-5 py-4">
-              <HardDrive size={16} className={storageCritical ? "text-rose-600" : "text-[#0038A8]"} />
+              <HardDrive size={16} className={storageCritical ? "text-rose-600" : "text-[#15803D]"} />
               <div>
                 <h3 className="text-[14px] font-semibold text-[#334155]">Storage Capacity</h3>
                 <p className="text-[11px] text-[#94A3B8]">DVR storage — read only</p>
@@ -1840,7 +1840,7 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
                   </span>
                 </div>
                 <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-stone-200">
-                  <div className={`h-full rounded-full transition-all ${storageCritical ? "bg-rose-500" : "bg-[#0038A8]"}`} style={{ width: `${storagePct}%` }} />
+                  <div className={`h-full rounded-full transition-all ${storageCritical ? "bg-rose-500" : "bg-[#15803D]"}`} style={{ width: `${storagePct}%` }} />
                 </div>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="font-mono text-[12px] font-bold text-stone-900">{storageUsedGB.toFixed(0)} GB</span>

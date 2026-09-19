@@ -1316,7 +1316,7 @@ export default function DigitalBoundaries() {
   const filteredVisibleCount = filteredRegions.filter((r) => r.visible).length;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex flex-1 flex-col overflow-hidden px-6 py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <h1 className="text-2xl font-bold text-stone-900">
@@ -1355,7 +1355,7 @@ export default function DigitalBoundaries() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search by name or classification..."
-                  className="w-full rounded-lg border border-stone-200 bg-stone-50 py-2 pl-8 pr-3 text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-[#0038A8] focus:ring-2 focus:ring-[#0038A8]/20"
+                  className="w-full rounded-lg border border-stone-200 bg-stone-50 py-2 pl-8 pr-3 text-[13px] text-stone-900 placeholder-stone-400 outline-none focus:border-[#15803D] focus:ring-2 focus:ring-[#15803D]/20"
                 />
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
@@ -1365,7 +1365,7 @@ export default function DigitalBoundaries() {
                     onClick={() => setFilter(f)}
                     className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
                       filter === f
-                        ? "border-[#0038A8] bg-[#0038A8] text-white"
+                        ? "border-[#15803D] bg-[#15803D] text-white"
                         : "border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50"
                     }`}
                   >
@@ -1493,13 +1493,13 @@ export default function DigitalBoundaries() {
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="mb-2 flex w-full items-center justify-center gap-2 rounded-lg border border-[#0038A8] py-2.5 text-sm font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white"
+                className="mb-2 flex w-full items-center justify-center gap-2 rounded-lg border border-[#15803D] py-2.5 text-sm font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white"
               >
                 <FileJson className="h-4 w-4" /> Import GeoJSON
               </button>
               <button
                 onClick={() => runOrGuard(addBoundary)}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0038A8] py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#002A8C]"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#15803D] py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#166534]"
               >
                 <Plus className="h-4 w-4" /> Add New Boundary
               </button>
@@ -1559,7 +1559,7 @@ export default function DigitalBoundaries() {
                     disabled={!canSave || !hasUnsaved}
                     className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium shadow-sm transition ${
                       canSave && hasUnsaved
-                        ? "bg-[#0038A8] text-white hover:bg-[#002A8C]"
+                        ? "bg-[#15803D] text-white hover:bg-[#166534]"
                         : "cursor-not-allowed bg-stone-100 text-stone-400"
                     }`}
                   >
@@ -1668,7 +1668,7 @@ export default function DigitalBoundaries() {
                       type="text"
                       value={selected.name}
                       onChange={(e) => setDetails({ name: e.target.value })}
-                      className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 outline-none focus:border-[#0038A8] focus:ring-2 focus:ring-[#0038A8]/20"
+                      className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 outline-none focus:border-[#15803D] focus:ring-2 focus:ring-[#15803D]/20"
                     />
                   </div>
 
@@ -1699,7 +1699,7 @@ export default function DigitalBoundaries() {
                       <select
                         value={selected.parentId ?? ""}
                         onChange={(e) => setDetails({ parentId: e.target.value || undefined })}
-                        className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 outline-none focus:border-[#0038A8] focus:ring-2 focus:ring-[#0038A8]/20"
+                        className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 outline-none focus:border-[#15803D] focus:ring-2 focus:ring-[#15803D]/20"
                       >
                         <option value="">Select a Primary boundary…</option>
                         {primaryRegions.map((p) => (
@@ -1721,7 +1721,7 @@ export default function DigitalBoundaries() {
                     <select
                       value={selected.classification}
                       onChange={(e) => setDetails({ classification: e.target.value })}
-                      className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 outline-none focus:border-[#0038A8] focus:ring-2 focus:ring-[#0038A8]/20"
+                      className="w-full rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 outline-none focus:border-[#15803D] focus:ring-2 focus:ring-[#15803D]/20"
                     >
                       {CLASSIFICATIONS.map((c) => (
                         <option key={c} value={c}>
@@ -1740,7 +1740,7 @@ export default function DigitalBoundaries() {
                           onClick={() => setDetails({ status: s })}
                           className={`flex-1 rounded-lg border py-2.5 text-[13px] font-medium transition ${
                             selected.status === s
-                              ? "border-[#0038A8] bg-[#0038A8]/5 text-[#0038A8]"
+                              ? "border-[#15803D] bg-[#15803D]/5 text-[#15803D]"
                               : "border-stone-200 text-stone-500 hover:border-stone-300 hover:bg-stone-50"
                           }`}
                         >
@@ -1796,7 +1796,7 @@ export default function DigitalBoundaries() {
                     disabled={!canSave || !hasUnsaved}
                     className={`flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold shadow-sm transition ${
                       canSave && hasUnsaved
-                        ? "bg-[#0038A8] text-white hover:bg-[#002A8C]"
+                        ? "bg-[#15803D] text-white hover:bg-[#166534]"
                         : "cursor-not-allowed bg-stone-100 text-stone-400"
                     }`}
                   >
@@ -1821,7 +1821,7 @@ export default function DigitalBoundaries() {
                 <div className="flex gap-2">
                   <button
                     onClick={startDetailsEdit}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#0038A8] py-2.5 text-sm font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#15803D] py-2.5 text-sm font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white"
                   >
                     <Pencil className="h-4 w-4" /> Edit Boundary
                   </button>
@@ -1846,7 +1846,7 @@ export default function DigitalBoundaries() {
             value={newBoundaryName}
             onChange={(e) => setNewBoundaryName(e.target.value)}
             placeholder='e.g. "Purok 5 — Coastal Zone"'
-            className="mb-4 w-full rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 placeholder-stone-300 outline-none focus:border-[#0038A8] focus:ring-2 focus:ring-[#0038A8]/20"
+            className="mb-4 w-full rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 placeholder-stone-300 outline-none focus:border-[#15803D] focus:ring-2 focus:ring-[#15803D]/20"
           />
 
           <label className="mb-1 block text-[12px] font-medium text-stone-500">Boundary Type</label>
@@ -1886,7 +1886,7 @@ export default function DigitalBoundaries() {
               <select
                 value={newParentId}
                 onChange={(e) => setNewParentId(e.target.value)}
-                className="mb-4 w-full rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 outline-none focus:border-[#0038A8] focus:ring-2 focus:ring-[#0038A8]/20"
+                className="mb-4 w-full rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 outline-none focus:border-[#15803D] focus:ring-2 focus:ring-[#15803D]/20"
               >
                 <option value="">Select a Primary boundary…</option>
                 {primaryRegions.map((p) => (
@@ -1902,7 +1902,7 @@ export default function DigitalBoundaries() {
           <select
             value={newBoundaryClassification}
             onChange={(e) => setNewBoundaryClassification(e.target.value)}
-            className="mb-6 w-full rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 outline-none focus:border-[#0038A8] focus:ring-2 focus:ring-[#0038A8]/20"
+            className="mb-6 w-full rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-[13px] text-stone-900 outline-none focus:border-[#15803D] focus:ring-2 focus:ring-[#15803D]/20"
           >
             {CLASSIFICATIONS.map((c) => (
               <option key={c} value={c}>{c}</option>
@@ -1911,7 +1911,7 @@ export default function DigitalBoundaries() {
 
           <button
             onClick={confirmAddBoundary}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0038A8] py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#002A8C]"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#15803D] py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#166534]"
           >
             <Plus className="h-4 w-4" /> Start Drawing Boundary
           </button>
@@ -1934,7 +1934,7 @@ export default function DigitalBoundaries() {
               </button>
               <button
                 onClick={confirmImport}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#002A8C]"
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#166534]"
               >
                 <FileJson className="h-4 w-4" /> Import Boundaries
               </button>

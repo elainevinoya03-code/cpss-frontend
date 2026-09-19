@@ -178,7 +178,7 @@ function DutyReportsTab() {
       <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm">
           <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">COMPLETED DUTIES</span>
-          <div className="mt-1 text-[22px] font-bold text-[#0038A8]">{totalCompleted}</div>
+          <div className="mt-1 text-[22px] font-bold text-[#15803D]">{totalCompleted}</div>
           <div className="mt-0.5 text-[10px] text-[#94A3B8]">check-outs recorded</div>
         </div>
         <div className="rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm">
@@ -200,7 +200,7 @@ function DutyReportsTab() {
         <select
           value={filterTeam}
           onChange={(e) => setFilterTeam(e.target.value)}
-          className="rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-[11px] text-stone-600 outline-none focus:border-[#0038A8]/50"
+          className="rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-[11px] text-stone-600 outline-none focus:border-[#15803D]/50"
         >
           <option value="all">All Teams</option>
           {allTeams.map((t) => (
@@ -210,7 +210,7 @@ function DutyReportsTab() {
         <select
           value={filterPlan}
           onChange={(e) => setFilterPlan(e.target.value)}
-          className="rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-[11px] text-stone-600 outline-none focus:border-[#0038A8]/50"
+          className="rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-[11px] text-stone-600 outline-none focus:border-[#15803D]/50"
         >
           <option value="all">All Plans</option>
           {uniquePlans.map((p) => (
@@ -303,7 +303,7 @@ function DutyReportsTab() {
             <div className="mb-4 flex flex-wrap gap-2">
               <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">Completed</span>
               <span className="rounded-full bg-stone-100 px-2.5 py-1 text-[10px] text-stone-500">{selected.scheduleId}</span>
-              <span className="rounded-full bg-[#E9EDFB] px-2.5 py-1 text-[10px] text-[#0038A8]">{selected.checkpointPlanId}</span>
+              <span className="rounded-full bg-[#DCFCE7] px-2.5 py-1 text-[10px] text-[#15803D]">{selected.checkpointPlanId}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-[11px] mb-4">
@@ -379,7 +379,7 @@ export default function ReportsAnalytics({ onNavigate }: { onNavigate?: (page: s
   const maxPurok = purokBreakdown.length > 0 ? purokBreakdown[0][1] : 1;
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -401,7 +401,7 @@ export default function ReportsAnalytics({ onNavigate }: { onNavigate?: (page: s
               onClick={() => setActiveReport(rt.key)}
               className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[11px] font-medium transition ${
                 activeReport === rt.key
-                  ? "bg-[#0038A8] text-white shadow-sm"
+                  ? "bg-[#15803D] text-white shadow-sm"
                   : "border border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
               }`}
             >
@@ -413,7 +413,7 @@ export default function ReportsAnalytics({ onNavigate }: { onNavigate?: (page: s
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
-                className="rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-[11px] text-stone-600 outline-none focus:border-[#0038A8]/50"
+                className="rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-[11px] text-stone-600 outline-none focus:border-[#15803D]/50"
               >
                 <option value="week">This Week</option>
                 <option value="month">This Month</option>
@@ -434,7 +434,7 @@ export default function ReportsAnalytics({ onNavigate }: { onNavigate?: (page: s
             <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm">
                 <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">TOTAL INCIDENTS</span>
-                <div className="mt-1 text-[22px] font-bold text-[#0038A8]">{incidents.length}</div>
+                <div className="mt-1 text-[22px] font-bold text-[#15803D]">{incidents.length}</div>
                 <div className="mt-0.5 text-[10px] text-[#94A3B8]">{openIncidents.length} open, {resolvedIncidents.length} resolved</div>
               </div>
               <div className="rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm">
@@ -447,7 +447,7 @@ export default function ReportsAnalytics({ onNavigate }: { onNavigate?: (page: s
               </div>
               <div className="rounded-xl border border-black/5 bg-white px-4 py-3.5 shadow-sm">
                 <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">RESOLUTION RATE</span>
-                <div className="mt-1 text-[22px] font-bold text-[#0038A8]">{incidents.length > 0 ? Math.round((resolvedIncidents.length / incidents.length) * 100) : 0}%</div>
+                <div className="mt-1 text-[22px] font-bold text-[#15803D]">{incidents.length > 0 ? Math.round((resolvedIncidents.length / incidents.length) * 100) : 0}%</div>
               </div>
             </section>
 
@@ -470,7 +470,7 @@ export default function ReportsAnalytics({ onNavigate }: { onNavigate?: (page: s
                             <span className="font-semibold text-stone-800">{count}</span>
                           </div>
                           <div className="h-2.5 w-full overflow-hidden rounded-full bg-stone-100">
-                            <div className="h-full rounded-full bg-[#0038A8] transition-all duration-500" style={{ width: `${(count / maxCategory) * 100}%` }} />
+                            <div className="h-full rounded-full bg-[#15803D] transition-all duration-500" style={{ width: `${(count / maxCategory) * 100}%` }} />
                           </div>
                         </div>
                       ))}
@@ -519,7 +519,7 @@ export default function ReportsAnalytics({ onNavigate }: { onNavigate?: (page: s
                       <div key={m} className="flex flex-1 flex-col items-center gap-1">
                         <span className="text-[9px] font-semibold text-stone-500">{height}</span>
                         <div
-                          className="w-full rounded-t-md bg-[#0038A8] transition-all duration-500 hover:bg-[#002A8C]"
+                          className="w-full rounded-t-md bg-[#15803D] transition-all duration-500 hover:bg-[#166534]"
                           style={{ height: `${height}%`, minHeight: 4 }}
                         />
                         <span className="text-[9px] text-[#94A3B8]">{m}</span>

@@ -129,14 +129,14 @@ function CheckInModal({
                           : "cursor-not-allowed border-stone-100 bg-stone-50 opacity-70"
                     }`}
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E9EDFB] text-[#0038A8]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#DCFCE7] text-[#15803D]">
                       <Users size={14} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="flex items-center gap-1.5 text-[12px] font-semibold text-stone-800">
                         {tanod.name}
                         {team.leaderId === tanod.id && (
-                          <span className="rounded-full bg-[#0038A8] px-1.5 py-px text-[8px] font-bold uppercase text-white">
+                          <span className="rounded-full bg-[#15803D] px-1.5 py-px text-[8px] font-bold uppercase text-white">
                             Leader
                           </span>
                         )}
@@ -181,7 +181,7 @@ function CheckInModal({
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
             placeholder="Add any observations or special instructions..."
-            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
           />
         </div>
       </div>
@@ -264,7 +264,7 @@ function CheckOutModal({
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
             placeholder="Add final observations, incidents, or handover notes..."
-            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
           />
         </div>
       </div>
@@ -312,7 +312,7 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
   // Access control - only Chief Tanod can access
   if (role !== "chief_tanod") {
     return (
-      <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+      <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
         <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
           <div className="mx-auto max-w-4xl rounded-xl border border-rose-200 bg-rose-50 px-6 py-8 text-center">
             <AlertTriangle size={48} className="mx-auto mb-4 text-rose-600" />
@@ -431,7 +431,7 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
   };
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <ToastPortal />
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         {/* Header */}
@@ -453,7 +453,7 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
               onClick={() => setActiveTab("check_in")}
               className={`flex items-center gap-2 px-4 py-3 text-[13px] font-medium transition ${
                 activeTab === "check_in"
-                  ? "border-b-2 border-[#0038A8] text-[#0038A8]"
+                  ? "border-b-2 border-[#15803D] text-[#15803D]"
                   : "text-stone-500 hover:text-stone-700"
               }`}
             >
@@ -464,7 +464,7 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
               onClick={() => setActiveTab("check_out")}
               className={`flex items-center gap-2 px-4 py-3 text-[13px] font-medium transition ${
                 activeTab === "check_out"
-                  ? "border-b-2 border-[#0038A8] text-[#0038A8]"
+                  ? "border-b-2 border-[#15803D] text-[#15803D]"
                   : "text-stone-500 hover:text-stone-700"
               }`}
             >
@@ -477,12 +477,12 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
         {/* Content */}
         {activeTab === "check_in" ? (
           <div className="space-y-4">
-            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+            <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
               <div className="flex items-start gap-3">
-                <AlertTriangle size={18} className="mt-0.5 text-blue-600" />
+                <AlertTriangle size={18} className="mt-0.5 text-green-600" />
                 <div>
-                  <p className="text-[12px] font-semibold text-blue-800">Physical Presence Required</p>
-                  <p className="text-[11px] text-blue-700">
+                  <p className="text-[12px] font-semibold text-green-800">Physical Presence Required</p>
+                  <p className="text-[11px] text-green-700">
                     Tanods must personally appear before the Chief Tanod for check-in confirmation.
                     Check-in is only enabled after a patrol schedule has been created for their team.
                   </p>
@@ -504,7 +504,7 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
                 {onNavigate && (
                   <button
                     onClick={() => onNavigate("patrol_scheduling")}
-                    className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2 text-[12px] font-medium text-white transition hover:bg-[#002A8C]"
+                    className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#15803D] px-4 py-2 text-[12px] font-medium text-white transition hover:bg-[#166534]"
                   >
                     Go to Patrol Scheduling
                     <ChevronRight size={14} />
@@ -578,7 +578,7 @@ export default function CheckInOut({ onNavigate, role = "chief_tanod" }: CheckIn
                         <div className="flex items-center gap-2">
                           <div className="text-right">
                             <p className="text-[10px] text-stone-400">Checked In</p>
-                            <p className="text-[16px] font-bold text-[#0038A8]">
+                            <p className="text-[16px] font-bold text-[#15803D]">
                               {checkedInIds.length}/{allMembers.length}
                             </p>
                           </div>

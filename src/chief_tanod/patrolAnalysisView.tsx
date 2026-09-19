@@ -110,7 +110,7 @@ export function IncidentDetailsModal({ incident, onClose }: { incident: Incident
               <p className="text-[10px] font-medium tracking-wider text-[#94A3B8]">NOTES</p>
               {incident.notes.map((n, i) => (
                 <p key={i} className="mt-0.5 flex items-start gap-1 font-medium text-[#334155]">
-                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#0038A8]" />
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#15803D]" />
                   {n}
                 </p>
               ))}
@@ -135,7 +135,7 @@ export function CheckpointDetailsModal({ checkpoint, onClose }: { checkpoint: Ex
       title={`Checkpoint ${checkpoint.id}`}
       subtitle={checkpoint.name}
       icon={<ShieldCheck size={18} />}
-      iconClass="bg-blue-100 text-[#0038A8]"
+      iconClass="bg-green-100 text-[#15803D]"
       size="md"
       footer={
         <div className="flex justify-end">
@@ -154,7 +154,7 @@ export function CheckpointDetailsModal({ checkpoint, onClose }: { checkpoint: Ex
             {checkpoint.active ? "Active" : "Inactive"}
           </span>
           {zone && (
-            <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-[#0038A8]">
+            <span className="rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-semibold text-[#15803D]">
               {zone}
             </span>
           )}
@@ -223,7 +223,7 @@ export function PatrolDetailsModal({ patrol, onClose }: { patrol: ActivePatrol; 
             On Patrol
           </span>
           {zones.map((z, i) => (
-            <span key={i} className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-[#0038A8]">
+            <span key={i} className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-semibold text-[#15803D]">
               <MapPin size={10} /> {String(z)}
             </span>
           ))}
@@ -334,7 +334,7 @@ export function MapAnalysisView({
         <div className="mb-4 rounded-xl border border-stone-200/80 bg-white p-4 shadow-sm flex-shrink-0">
           <div className="mb-3.5 flex items-center justify-between border-b border-stone-100 pb-3">
             <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-blue-50 p-1.5 text-[#0038A8]">
+              <div className="rounded-lg bg-green-50 p-1.5 text-[#15803D]">
                 <Filter size={14} />
               </div>
               <div>
@@ -460,7 +460,7 @@ export function MapAnalysisView({
         <div className="rounded-xl border border-stone-200/80 bg-white p-4 shadow-sm flex-shrink-0">
           <div className="mb-3.5 flex items-center justify-between border-b border-stone-100 pb-3">
             <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-blue-50 p-1.5 text-[#0038A8]">
+              <div className="rounded-lg bg-green-50 p-1.5 text-[#15803D]">
                 <TrendingUp size={14} />
               </div>
               <div>
@@ -479,7 +479,7 @@ export function MapAnalysisView({
                     <span className="w-4 text-[10px] font-bold text-stone-400">{i + 1}</span>
                     <span className="flex-1 truncate text-[11px] font-medium text-stone-700">{a.name}</span>
                     <span className="text-[10px] text-[#94A3B8]">{a.dominant}</span>
-                    <span className="rounded-full bg-[#0038A8]/10 px-2 py-0.5 text-[10px] font-bold text-[#0038A8]">{a.count}</span>
+                    <span className="rounded-full bg-[#15803D]/10 px-2 py-0.5 text-[10px] font-bold text-[#15803D]">{a.count}</span>
                   </div>
                 ))}
                 {areaStats.length === 0 && <p className="text-[10px] text-[#94A3B8]">No incidents in the current window.</p>}
@@ -495,7 +495,7 @@ export function MapAnalysisView({
                     <span className="w-28 shrink-0 text-[10px] font-medium text-stone-600">{BUCKET_LABEL[b.key].split(" ")[0]}</span>
                     <div className="h-2 flex-1 overflow-hidden rounded-full bg-stone-100">
                       <div
-                        className={`h-full rounded-full transition-all duration-300 ${b.count === maxBucketCount && b.count > 0 ? "bg-rose-500" : "bg-[#0038A8]"}`}
+                        className={`h-full rounded-full transition-all duration-300 ${b.count === maxBucketCount && b.count > 0 ? "bg-rose-500" : "bg-[#15803D]"}`}
                         style={{ width: `${maxBucketCount > 0 ? (b.count / maxBucketCount) * 100 : 0}%` }}
                       />
                     </div>
@@ -512,7 +512,7 @@ export function MapAnalysisView({
                   <div key={d.day} className="flex flex-1 flex-col items-center gap-1.5">
                     <span className="text-[10px] font-bold text-stone-700">{d.count}</span>
                     <div
-                      className={`w-full rounded-t transition-all duration-300 ${d.count === maxDayCount && d.count > 0 ? "bg-rose-500" : "bg-[#0038A8]"}`}
+                      className={`w-full rounded-t transition-all duration-300 ${d.count === maxDayCount && d.count > 0 ? "bg-rose-500" : "bg-[#15803D]"}`}
                       style={{ height: `${Math.max(4, maxDayCount > 0 ? (d.count / maxDayCount) * 44 : 4)}px` }}
                     />
                     <span className="text-[9px] font-bold uppercase text-stone-500">{d.day}</span>
@@ -527,7 +527,7 @@ export function MapAnalysisView({
         <div className="flex-1 min-h-0 rounded-xl border border-stone-200/80 bg-white shadow-sm flex flex-col">
           <div className="flex items-center justify-between border-b border-stone-100 px-4 py-3 bg-stone-50/50">
             <div className="flex items-center gap-2">
-              <div className="rounded-lg bg-blue-50 p-1.5 text-[#0038A8]">
+              <div className="rounded-lg bg-green-50 p-1.5 text-[#15803D]">
                 <AlertTriangle size={14} />
               </div>
               <h3 className="text-[13px] font-bold text-stone-800">Incidents</h3>

@@ -93,7 +93,7 @@ const ACTION_META: Record<ActionMode, { title: string; button: string; placehold
     button: "Close Locally",
     placeholder: "e.g. Resolved within the purok — no Desk Officer action needed...",
     icon: FolderCheck,
-    chip: "bg-blue-50 text-blue-700",
+    chip: "bg-green-50 text-green-700",
   },
 };
 
@@ -151,7 +151,7 @@ function ActionModal({
           </button>
           <button
             onClick={() => onConfirm(note.trim())}
-            className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+            className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
           >
             <Icon size={12} />
             {meta.button}
@@ -185,7 +185,7 @@ function ActionModal({
             onChange={(e) => setNote(e.target.value)}
             rows={3}
             placeholder={meta.placeholder}
-            className="w-full resize-none rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+            className="w-full resize-none rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
           />
           <p className="mt-1 text-[10px] text-stone-400">Saved alongside the action with a timestamp for the record.</p>
         </div>
@@ -231,7 +231,7 @@ function EscalateModal({
       title="Escalate to Desk Officer"
       subtitle={`${report.id} · handoff to the operations desk`}
       icon={<Send size={15} />}
-      iconClass="bg-[#0038A8]/5 text-[#0038A8]"
+      iconClass="bg-[#15803D]/5 text-[#15803D]"
       size="md"
       footer={
         <div className="flex items-center justify-end gap-2">
@@ -240,7 +240,7 @@ function EscalateModal({
           </button>
           <button
             onClick={submit}
-            className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+            className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
           >
             <Send size={12} />
             Escalate Case
@@ -293,7 +293,7 @@ function EscalateModal({
             className={`w-full resize-none rounded-lg border px-3 py-2.5 text-[12px] text-stone-900 placeholder:text-stone-300 focus:outline-none focus:ring-1 ${
               noteError
                 ? "border-rose-400 focus:border-rose-400 focus:ring-rose-400/30"
-                : "border-stone-200 focus:border-[#0038A8] focus:ring-[#0038A8]/30"
+                : "border-stone-200 focus:border-[#15803D] focus:ring-[#15803D]/30"
             }`}
           />
           {noteError && (
@@ -395,7 +395,7 @@ export default function LocalReports() {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-5 border-b border-stone-200 pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -405,16 +405,16 @@ export default function LocalReports() {
                 Resident reports &amp; medium-severity sensor alerts in your assigned purok
               </p>
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-[#0038A8]/20 bg-white px-3.5 py-2 shadow-sm">
-              <MapPin size={15} className="text-[#0038A8]" />
+            <div className="flex items-center gap-2 rounded-lg border border-[#15803D]/20 bg-white px-3.5 py-2 shadow-sm">
+              <MapPin size={15} className="text-[#15803D]" />
               <div>
                 <p className="text-[9px] font-semibold tracking-wider text-stone-400">ASSIGNED JURISDICTION</p>
-                <p className="text-[12px] font-bold text-[#0038A8]">{JURISDICTION_LABEL}</p>
+                <p className="text-[12px] font-bold text-[#15803D]">{JURISDICTION_LABEL}</p>
               </div>
             </div>
           </div>
-          <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#0038A8]/15 bg-[#0038A8]/5 px-3.5 py-2.5">
-            <Info size={14} className="mt-0.5 shrink-0 text-[#0038A8]" />
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#15803D]/15 bg-[#15803D]/5 px-3.5 py-2.5">
+            <Info size={14} className="mt-0.5 shrink-0 text-[#15803D]" />
             <p className="text-[11px] leading-relaxed text-stone-600">
               This queue is auto-filtered to reports inside <span className="font-semibold text-stone-800">{JURISDICTION_LABEL}</span> — matched by the reporter's registered purok or GPS position inside the purok boundary. Medium-severity IoT alerts appear here labeled <span className="font-semibold text-stone-800">Sensor Alert</span>; high-severity emergencies bypass this page and route directly to the Desk Officer's command center. Your validation is advisory — the <span className="font-semibold text-stone-800">Desk Officer retains final authority</span>.
             </p>
@@ -426,11 +426,11 @@ export default function LocalReports() {
             <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">{label}</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                   <Icon size={15} />
                 </div>
               </div>
-              <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+              <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
               <div className="mt-1 text-[11px] text-[#94A3B8]">{sub}</div>
             </div>
           ))}
@@ -439,13 +439,13 @@ export default function LocalReports() {
         <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-5 py-4">
             <div className="flex items-center gap-2">
-              <ListFilter size={16} className="text-[#0038A8]" />
+              <ListFilter size={16} className="text-[#15803D]" />
               <div>
                 <h3 className="text-[14px] font-semibold text-[#334155]">Unified Report Queue — {JURISDICTION_NAME}</h3>
                 <p className="text-[11px] text-[#94A3B8]">One queue for resident reports and Sensor Alerts · escalated cases are tracked separately</p>
               </div>
             </div>
-            <span className="rounded-full bg-[#0038A8]/5 px-2.5 py-1 text-[10px] font-semibold text-[#0038A8]">
+            <span className="rounded-full bg-[#15803D]/5 px-2.5 py-1 text-[10px] font-semibold text-[#15803D]">
               {localActive.length} active
             </span>
           </div>
@@ -457,7 +457,7 @@ export default function LocalReports() {
                 onClick={() => setQueueFilter(t.key)}
                 className={`rounded-full border px-2.5 py-1 text-[10px] font-medium transition ${
                   queueFilter === t.key
-                    ? "border-[#0038A8] bg-[#0038A8] text-white"
+                    ? "border-[#15803D] bg-[#15803D] text-white"
                     : "border-stone-200 text-stone-500 hover:border-stone-300 hover:bg-stone-50"
                 }`}
               >
@@ -663,7 +663,7 @@ function ReportCard({
               </button>
               <button
                 onClick={onEscalate}
-                className="flex h-8 items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                className="flex h-8 items-center gap-1.5 rounded-lg bg-[#15803D] px-3 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
               >
                 <Send size={11} />
                 Escalate to Desk Officer

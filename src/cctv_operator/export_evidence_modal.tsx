@@ -57,7 +57,7 @@ export function ExportEvidenceModal({
       <div className="flex justify-end">
         <button
           onClick={onClose}
-          className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+          className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
         >
           <CheckCircle2 size={13} />
           Close
@@ -89,7 +89,7 @@ export function ExportEvidenceModal({
         )}
         {stage === "preparing" && (
           <>
-            <Loader2 size={26} className="mb-3 animate-spin text-[#0038A8]" />
+            <Loader2 size={26} className="mb-3 animate-spin text-[#15803D]" />
             <p className="text-[14px] font-bold text-stone-900">Preparing export…</p>
             <p className="mt-1 text-[11px] text-stone-400">Packaging {clipId} — simulated preparation, no file leaves the system.</p>
           </>

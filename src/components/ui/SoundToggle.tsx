@@ -14,7 +14,7 @@ export default function SoundToggle({
       className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium transition ${
         muted
           ? "border-stone-300 bg-white text-stone-400"
-          : "border-[#0038A8] bg-white text-[#0038A8] hover:bg-[#0038A8]/5"
+          : "border-[#15803D] bg-white text-[#15803D] hover:bg-[#15803D]/5"
       }`}
     >
       {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}

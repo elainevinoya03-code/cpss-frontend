@@ -60,8 +60,8 @@ export const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   // Canonical categories from the resident app report specification
   "Public Safety & Peace and Order": { bg: "bg-rose-50", text: "text-rose-600" },
   "Crime & Property": { bg: "bg-slate-100", text: "text-slate-700" },
-  "Domestic & Family": { bg: "bg-blue-50", text: "text-blue-600" },
-  "Community Disputes": { bg: "bg-blue-50", text: "text-blue-600" },
+  "Domestic & Family": { bg: "bg-green-50", text: "text-green-600" },
+  "Community Disputes": { bg: "bg-green-50", text: "text-green-600" },
   "Violence & Gender-Related": { bg: "bg-rose-50", text: "text-rose-700" },
   "Traffic & Road": { bg: "bg-amber-50", text: "text-amber-600" },
   "Environmental & Sanitation": { bg: "bg-emerald-50", text: "text-emerald-600" },

@@ -122,7 +122,7 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${culiatBg})` }}
         >
-          <div className="absolute inset-0 bg-[#06122B]/90" />
+          <div className="absolute inset-0 bg-[#052E16]/90" />
           <div
             className="relative z-10 flex h-full flex-col justify-center px-8 lg:px-20 xl:px-[120px]"
             style={{
@@ -172,7 +172,7 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
             >
               <img src={logo} alt="Logo" className="h-auto w-[120px] object-contain sm:w-[160px]" />
             </button>
-            <h2 className="m-0 text-center text-[clamp(28px,5vw,40px)] font-extrabold text-[#0038A8]">
+            <h2 className="m-0 text-center text-[clamp(28px,5vw,40px)] font-extrabold text-[#15803D]">
               Welcome Back!
             </h2>
             <p className="m-0 mt-2 text-center text-[clamp(14px,2vw,18px)] text-[#6B788C]">
@@ -196,8 +196,8 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
               transition: "all 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.3s",
             }}
           >
-            <label className="mb-3 flex items-center gap-2 text-[clamp(15px,2vw,18px)] font-bold text-[#33437A]" htmlFor="email">
-              <User size={18} className="text-[#0038A8]" />
+            <label className="mb-3 flex items-center gap-2 text-[clamp(15px,2vw,18px)] font-bold text-[#14532D]" htmlFor="email">
+              <User size={18} className="text-[#15803D]" />
               Email
             </label>
             <div
@@ -206,7 +206,7 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
                 borderColor: errors.email
                   ? "#dc2626"
                   : focusedField === "email"
-                    ? "#0038A8"
+                    ? "#15803D"
                     : "#E2E8F0",
                 boxShadow: errors.email
                   ? "inset 0 0 0 1px rgba(220,38,38,0.1)"
@@ -229,7 +229,7 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
                   setFocusedField(null);
                   if (errors.email) setErrors((p) => ({ ...p, email: null, general: null }));
                 }}
-                className="w-full border-none bg-transparent px-5 py-4 text-[clamp(15px,2vw,18px)] text-[#33437A] outline-none sm:px-[22px] sm:py-5"
+                className="w-full border-none bg-transparent px-5 py-4 text-[clamp(15px,2vw,18px)] text-[#14532D] outline-none sm:px-[22px] sm:py-5"
                 disabled={loading}
               />
             </div>
@@ -250,8 +250,8 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
               transition: "all 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.45s",
             }}
           >
-            <label className="mb-3 flex items-center gap-2 text-[clamp(15px,2vw,18px)] font-bold text-[#33437A]" htmlFor="password">
-              <Lock size={18} className="text-[#0038A8]" />
+            <label className="mb-3 flex items-center gap-2 text-[clamp(15px,2vw,18px)] font-bold text-[#14532D]" htmlFor="password">
+              <Lock size={18} className="text-[#15803D]" />
               Password
             </label>
             <div
@@ -260,7 +260,7 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
                 borderColor: errors.password
                   ? "#dc2626"
                   : focusedField === "password"
-                    ? "#0038A8"
+                    ? "#15803D"
                     : "#E2E8F0",
                 boxShadow: errors.password
                   ? "inset 0 0 0 1px rgba(220,38,38,0.1)"
@@ -283,7 +283,7 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
                   setFocusedField(null);
                   if (errors.password) setErrors((p) => ({ ...p, password: null, general: null }));
                 }}
-                className="w-full border-none bg-transparent px-5 py-4 pr-[52px] text-[clamp(15px,2vw,18px)] text-[#33437A] outline-none sm:px-[22px] sm:py-5"
+                className="w-full border-none bg-transparent px-5 py-4 pr-[52px] text-[clamp(15px,2vw,18px)] text-[#14532D] outline-none sm:px-[22px] sm:py-5"
                 disabled={loading}
               />
               <button
@@ -316,7 +316,7 @@ export default function Login({ onLogin, onNavigateToLanding }: LoginProps) {
               type="submit"
               className="mt-6 w-full overflow-hidden rounded-xl border-none px-4 py-4 text-[clamp(16px,2vw,20px)] font-bold text-white transition-all duration-200 hover:opacity-90 sm:mt-8 sm:py-[22px] disabled:opacity-80"
               style={{
-                background: "#0038A8",
+                background: "#15803D",
                 transform: loading ? "scale(0.98)" : "scale(1)",
               }}
               disabled={loading}

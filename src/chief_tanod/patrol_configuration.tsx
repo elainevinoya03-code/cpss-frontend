@@ -856,7 +856,7 @@ export default function PatrolConfiguration({
   /* ---------------- Render ---------------- */
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -869,7 +869,7 @@ export default function PatrolConfiguration({
             {!plannerOpen && (
               <button
                 onClick={startManual}
-                className="flex h-9 items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#002A8C]"
+                className="flex h-9 items-center gap-1.5 rounded-lg bg-[#15803D] px-4 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[#166534]"
               >
                 <Plus size={14} />
                 Create Checkpoint Plan
@@ -968,7 +968,7 @@ export default function PatrolConfiguration({
                 {step === 1 && (
                   <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
                     <h3 className="mb-1 flex items-center gap-2 text-[13px] font-bold text-stone-800">
-                      <ClipboardList size={14} className="text-[#0038A8]" />
+                      <ClipboardList size={14} className="text-[#15803D]" />
                       Basic Information
                     </h3>
                     <p className="mb-3 text-[10px] text-[#94A3B8]">Core details of the proposed checkpoint.</p>
@@ -1149,7 +1149,7 @@ export default function PatrolConfiguration({
                 {step === 2 && (
                   <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
                     <h3 className="mb-1 flex items-center gap-2 text-[13px] font-bold text-stone-800">
-                      <MapPin size={14} className="text-[#0038A8]" />
+                      <MapPin size={14} className="text-[#15803D]" />
                       Checkpoint Type & Location
                     </h3>
                     <p className="mb-3 text-[10px] text-[#94A3B8]">Choose how this checkpoint is deployed, then place it on the map.</p>
@@ -1165,7 +1165,7 @@ export default function PatrolConfiguration({
                             setCustomTargetId(null);
                           }}
                           className={`rounded-xl border p-3 text-left transition ${draft.type === t
-                              ? "border-[#0038A8] bg-[#0038A8]/5 ring-1 ring-[#0038A8]/30"
+                              ? "border-[#15803D] bg-[#15803D]/5 ring-1 ring-[#15803D]/30"
                               : "border-stone-200 bg-white hover:bg-stone-50"
                             }`}
                         >
@@ -1414,7 +1414,7 @@ export default function PatrolConfiguration({
                 {step === 3 && (
                   <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
                     <h3 className="mb-1 flex items-center gap-2 text-[13px] font-bold text-stone-800">
-                      <Radar size={14} className="text-[#0038A8]" />
+                      <Radar size={14} className="text-[#15803D]" />
                       Overlay &amp; Coverage Validation
                     </h3>
                     <p className="mb-3 text-[10px] text-[#94A3B8]">
@@ -1462,7 +1462,7 @@ export default function PatrolConfiguration({
                         <div className="mt-3 flex gap-3">
                           <button
                             onClick={() => setStep(4)}
-                            className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-2 text-[10px] font-semibold text-white hover:bg-[#002A8C]"
+                            className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-2 text-[10px] font-semibold text-white hover:bg-[#166534]"
                           >
                             Looks good — continue <ChevronRight size={11} />
                           </button>
@@ -1480,7 +1480,7 @@ export default function PatrolConfiguration({
                 {step === 4 && (
                   <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
                     <h3 className="mb-1 flex items-center gap-2 text-[13px] font-bold text-stone-800">
-                      <Calendar size={14} className="text-[#0038A8]" />
+                      <Calendar size={14} className="text-[#15803D]" />
                       Operational Schedule
                     </h3>
                     <p className="mb-3 text-[10px] text-[#94A3B8]">Define when the checkpoint will be stood up.</p>
@@ -1546,7 +1546,7 @@ export default function PatrolConfiguration({
                                   })
                                 }
                                 className={`rounded-lg border px-2 py-1.5 text-[9px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${draft.schedule.recurring === o.key
-                                    ? "border-[#0038A8] bg-[#0038A8] text-white"
+                                    ? "border-[#15803D] bg-[#15803D] text-white"
                                     : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                                   }`}
                               >
@@ -1580,7 +1580,7 @@ export default function PatrolConfiguration({
                                       },
                                     })
                                   }
-                                  className={`flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold transition disabled:cursor-not-allowed disabled:opacity-30 ${on ? "bg-[#0038A8] text-white" : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+                                  className={`flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold transition disabled:cursor-not-allowed disabled:opacity-30 ${on ? "bg-[#15803D] text-white" : "bg-stone-100 text-stone-500 hover:bg-stone-200"
                                     }`}
                                 >
                                   {d[0]}
@@ -1651,7 +1651,7 @@ export default function PatrolConfiguration({
                 {step === 5 && (
                   <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
                     <h3 className="mb-1 flex items-center gap-2 text-[13px] font-bold text-stone-800">
-                      <MessageSquare size={14} className="text-[#0038A8]" />
+                      <MessageSquare size={14} className="text-[#15803D]" />
                       Operational Notes
                     </h3>
                     <p className="mb-3 text-[10px] text-[#94A3B8]">Instructions for the personnel assigned to this operation.</p>
@@ -1718,7 +1718,7 @@ export default function PatrolConfiguration({
                 {step === 6 && (
                   <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
                     <h3 className="mb-1 flex items-center gap-2 text-[13px] font-bold text-stone-800">
-                      <FileText size={14} className="text-[#0038A8]" />
+                      <FileText size={14} className="text-[#15803D]" />
                       Review Complete Plan
                     </h3>
                     <p className="mb-3 text-[10px] text-[#94A3B8]">Full summary of the plan before it is submitted for approval. You can still edit any section.</p>
@@ -1851,7 +1851,7 @@ export default function PatrolConfiguration({
                   {step < 6 ? (
                     <button
                       onClick={goNext}
-                      className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-2 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[#002A8C]"
+                      className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-4 py-2 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[#166534]"
                     >
                       {step === 2
                         ? "Validate coverage →"
@@ -1906,7 +1906,7 @@ export default function PatrolConfiguration({
 
             <div className="mt-6">
               <div className="mb-3 flex items-center gap-2">
-                <Lightbulb size={15} className="text-[#0038A8]" />
+                <Lightbulb size={15} className="text-[#15803D]" />
                 <h3 className="text-[14px] font-bold text-stone-800">Checkpoint Plans</h3>
                 <span className="text-[11px] text-[#94A3B8]">Drafted, submitted and decided plans</span>
               </div>

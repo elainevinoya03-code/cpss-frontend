@@ -303,7 +303,7 @@ function ClosedIncidentDetail({ incident, onClose }: { incident: MockIncident; o
           <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${status.badge}`}>
             {status.label}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#0038A8]/5 px-2 py-0.5 text-[10px] font-semibold text-[#0038A8]">
+          <span className="inline-flex items-center gap-1 rounded-full bg-[#15803D]/5 px-2 py-0.5 text-[10px] font-semibold text-[#15803D]">
             <Lock size={10} />
             READ-ONLY
           </span>
@@ -328,7 +328,7 @@ function ClosedIncidentDetail({ incident, onClose }: { incident: MockIncident; o
             onClick={() => setActiveTab(key)}
             className={`flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-[11px] font-medium transition ${
               activeTab === key
-                ? "border-[#0038A8] text-[#0038A8]"
+                ? "border-[#15803D] text-[#15803D]"
                 : "border-transparent text-stone-400 hover:text-stone-600"
             }`}
           >
@@ -450,7 +450,7 @@ function ClosedIncidentDetail({ incident, onClose }: { incident: MockIncident; o
                   <div key={i} className="rounded-lg border border-stone-100 bg-white p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E9EDFB] text-[11px] font-semibold text-[#0038A8]">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#DCFCE7] text-[11px] font-semibold text-[#15803D]">
                           {f.resident.split(" ").map((p) => p[0]).slice(0, 2).join("")}
                         </span>
                         <div>
@@ -510,7 +510,7 @@ export default function IncidentArchive() {
   ];
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <div className="flex items-center justify-between">
@@ -521,7 +521,7 @@ export default function IncidentArchive() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-2 text-[12px] font-bold tracking-widest text-white">
+              <span className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-4 py-2 text-[12px] font-bold tracking-widest text-white">
                 <Lock size={13} />
                 READ-ONLY
               </span>
@@ -534,8 +534,8 @@ export default function IncidentArchive() {
               </button>
             </div>
           </div>
-          <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#0038A8]/15 bg-[#0038A8]/5 px-3.5 py-2.5">
-            <Lock size={14} className="mt-0.5 shrink-0 text-[#0038A8]" />
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#15803D]/15 bg-[#15803D]/5 px-3.5 py-2.5">
+            <Lock size={14} className="mt-0.5 shrink-0 text-[#15803D]" />
             <p className="text-[11px] leading-relaxed text-stone-600">
               Executive outcome review only. Closed incident records — summary, resolution/closure
               timestamp, closure reason, update history, impact and resident feedback — are final and
@@ -550,11 +550,11 @@ export default function IncidentArchive() {
             <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-medium tracking-wider text-stone-400">{label}</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                   <Icon size={15} />
                 </div>
               </div>
-              <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+              <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
               <div className="mt-1 text-[11px] text-stone-400">{sub}</div>
             </div>
           ))}
@@ -567,7 +567,7 @@ export default function IncidentArchive() {
                 key={sf.key}
                 onClick={() => setFilterStatus(sf.key)}
                 className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
-                  filterStatus === sf.key ? "bg-[#0038A8] text-white" : "text-stone-500 hover:bg-stone-100"
+                  filterStatus === sf.key ? "bg-[#15803D] text-white" : "text-stone-500 hover:bg-stone-100"
                 }`}
               >
                 {sf.label}
@@ -581,7 +581,7 @@ export default function IncidentArchive() {
                 key={sev}
                 onClick={() => setFilterSeverity(sev)}
                 className={`rounded-md px-2.5 py-1 text-[11px] font-medium capitalize transition ${
-                  filterSeverity === sev ? "bg-[#0038A8] text-white" : "text-stone-500 hover:bg-stone-100"
+                  filterSeverity === sev ? "bg-[#15803D] text-white" : "text-stone-500 hover:bg-stone-100"
                 }`}
               >
                 {sev === "all" ? "All Severity" : sev}
@@ -595,7 +595,7 @@ export default function IncidentArchive() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search closed incidents..."
-              className="w-56 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-[11px] text-stone-700 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+              className="w-56 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-[11px] text-stone-700 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-300 hover:text-stone-500">
@@ -608,7 +608,7 @@ export default function IncidentArchive() {
         <div className="rounded-xl border border-black/5 bg-white shadow-sm">
           <div className="flex items-center justify-between px-5 py-4">
             <div className="flex items-center gap-2">
-              <ClipboardCheck size={16} className="text-[#0038A8]" />
+              <ClipboardCheck size={16} className="text-[#15803D]" />
               <div>
                 <h3 className="text-[14px] font-semibold text-stone-900">Closed Incident Records</h3>
                 <p className="text-[11px] text-stone-400">{filtered.length} closed incidents · Click to review</p>

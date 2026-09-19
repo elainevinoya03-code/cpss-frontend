@@ -191,7 +191,7 @@ export default function OperationalReports() {
               key={dr.key}
               onClick={() => setRange(dr.key)}
               className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
-                range === dr.key ? "bg-[#0038A8] text-white" : "text-stone-500 hover:bg-stone-100"
+                range === dr.key ? "bg-[#15803D] text-white" : "text-stone-500 hover:bg-stone-100"
               }`}
             >
               {dr.label}
@@ -203,7 +203,7 @@ export default function OperationalReports() {
 
         <button
           onClick={() => setShowExportModal(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+          className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
         >
           <Download size={13} />
           Export Report
@@ -215,11 +215,11 @@ export default function OperationalReports() {
           <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
             <div className="flex items-start justify-between">
               <span className="text-[10px] font-medium tracking-wider text-stone-400">{label}</span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                 <Icon size={15} />
               </div>
             </div>
-            <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+            <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
             <div className="mt-1 text-[11px] text-stone-400">{sub}</div>
           </div>
         ))}
@@ -228,7 +228,7 @@ export default function OperationalReports() {
       <div className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
         <div className="rounded-xl border border-black/5 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <Clock size={16} className="text-[#0038A8]" />
+            <Clock size={16} className="text-[#15803D]" />
             <div>
               <h3 className="text-[14px] font-semibold text-stone-900">Response &amp; SLA Summary</h3>
               <p className="text-[11px] text-stone-400">Average response and resolution vs. target</p>
@@ -255,14 +255,14 @@ export default function OperationalReports() {
 
         <div className="rounded-xl border border-black/5 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <Heart size={16} className="text-[#0038A8]" />
+            <Heart size={16} className="text-[#15803D]" />
             <div>
               <h3 className="text-[14px] font-semibold text-stone-900">Resident Satisfaction</h3>
               <p className="text-[11px] text-stone-400">Executive evaluation, not case management</p>
             </div>
           </div>
           <div className="mb-3 flex items-end justify-between">
-            <span className="text-[30px] font-bold text-[#0038A8]">{m.residentRating.toFixed(1)}</span>
+            <span className="text-[30px] font-bold text-[#15803D]">{m.residentRating.toFixed(1)}</span>
             <span className="text-[11px] text-stone-400">/ 5 average rating</span>
           </div>
           <StarRating rating={m.residentRating} />
@@ -277,7 +277,7 @@ export default function OperationalReports() {
       <div className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="rounded-xl border border-black/5 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <Radio size={16} className="text-[#0038A8]" />
+            <Radio size={16} className="text-[#15803D]" />
             <div>
               <h3 className="text-[14px] font-semibold text-stone-900">IoT Device Health</h3>
               <p className="text-[11px] text-stone-400">Uptime &amp; alerts by severity</p>
@@ -307,7 +307,7 @@ export default function OperationalReports() {
 
         <div className="rounded-xl border border-black/5 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <Camera size={16} className="text-[#0038A8]" />
+            <Camera size={16} className="text-[#15803D]" />
             <div>
               <h3 className="text-[14px] font-semibold text-stone-900">CCTV Availability</h3>
               <p className="text-[11px] text-stone-400">Online feeds across the barangay</p>
@@ -323,7 +323,7 @@ export default function OperationalReports() {
 
         <div className="rounded-xl border border-black/5 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <Send size={16} className="text-[#0038A8]" />
+            <Send size={16} className="text-[#15803D]" />
             <div>
               <h3 className="text-[14px] font-semibold text-stone-900">Broadcast Delivery</h3>
               <p className="text-[11px] text-stone-400">Push &amp; SMS broadcast success</p>
@@ -352,7 +352,7 @@ export default function OperationalReports() {
 
       <div className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
         <div className="flex items-center gap-2 border-b border-black/5 px-5 py-4">
-          <ShieldCheck size={16} className="text-[#0038A8]" />
+          <ShieldCheck size={16} className="text-[#15803D]" />
           <div>
             <h3 className="text-[14px] font-semibold text-stone-900">Operational Report Summary</h3>
             <p className="text-[11px] text-stone-400">Consolidated executive metrics for {m.rangeLabel.toLowerCase()} — exported as PDF / CSV</p>
@@ -371,7 +371,7 @@ export default function OperationalReports() {
               {exportRows.slice(1).map((row, i) => (
                 <tr key={row[0]} className={`${i < exportRows.length - 2 ? "border-b border-black/5" : ""} hover:bg-stone-50/50 transition-colors`}>
                   <td className="px-5 py-3 text-[12px] font-semibold text-stone-900">{row[0]}</td>
-                  <td className="px-5 py-3 text-[12px] font-medium text-[#0038A8]">{row[1]}</td>
+                  <td className="px-5 py-3 text-[12px] font-medium text-[#15803D]">{row[1]}</td>
                   <td className="px-5 py-3 text-[11px] text-stone-400">{row[2]}</td>
                 </tr>
               ))}

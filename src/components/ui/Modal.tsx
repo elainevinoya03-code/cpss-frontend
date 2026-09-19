@@ -102,7 +102,7 @@ export default function Modal({
               <div className={`flex min-w-0 items-center gap-3 ${centered ? "flex-col text-center" : ""}`}>
                 {icon && (
                   <div
-                    className={`${HEADER_ICON_CHIP} ${iconClass || "bg-[#0038A8]/10 text-[#0038A8]"}`}
+                    className={`${HEADER_ICON_CHIP} ${iconClass || "bg-[#15803D]/10 text-[#15803D]"}`}
                   >
                     {icon}
                   </div>

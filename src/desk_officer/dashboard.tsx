@@ -138,7 +138,7 @@ const ACTIVITY_ICON: Record<ActivityEvent["kind"], ComponentType<{ size?: number
 };
 
 const ACTIVITY_KIND_COLOR: Record<ActivityEvent["kind"], string> = {
-  incident: "bg-[#0038A8]/10 text-[#0038A8]",
+  incident: "bg-[#15803D]/10 text-[#15803D]",
   tanod: "bg-emerald-100 text-emerald-700",
   cctv: "bg-sky-100 text-sky-700",
   request: "bg-violet-100 text-violet-700",
@@ -265,7 +265,7 @@ function SectionTitle({
       {onAction && (
         <button
           onClick={onAction}
-          className="flex items-center gap-1 text-[11px] font-medium text-[#0038A8] hover:underline"
+          className="flex items-center gap-1 text-[11px] font-medium text-[#15803D] hover:underline"
         >
           {actionLabel}
           <ArrowRight size={11} />
@@ -327,7 +327,7 @@ function BroadcastCompose({
           <button
             onClick={() => setConfirmOpen(true)}
             className={`flex-1 flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-semibold text-white transition ${
-              severity === "High" ? "bg-rose-600 hover:bg-rose-700" : "bg-[#0038A8] hover:bg-[#002A8C]"
+              severity === "High" ? "bg-rose-600 hover:bg-rose-700" : "bg-[#15803D] hover:bg-[#166534]"
             }`}
           >
             <Send size={13} />
@@ -348,7 +348,7 @@ function BroadcastCompose({
                   severity === s
                     ? s === "High"
                       ? "border-rose-300 bg-rose-50 text-rose-700"
-                      : "border-[#0038A8]/40 bg-[#E9EDFB] text-[#0038A8]"
+                      : "border-[#15803D]/40 bg-[#DCFCE7] text-[#15803D]"
                     : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                 }`}
               >
@@ -369,7 +369,7 @@ function BroadcastCompose({
             onChange={(e) => setMessage(e.target.value)}
             rows={4}
             placeholder={defaultMessage}
-            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
           />
         </div>
       </div>
@@ -514,7 +514,7 @@ function SafetyNoticeCompose({
                     severity === s
                       ? s === "High"
                         ? "border-rose-300 bg-rose-50 text-rose-700"
-                        : "border-[#0038A8]/40 bg-[#E9EDFB] text-[#0038A8]"
+                        : "border-[#15803D]/40 bg-[#DCFCE7] text-[#15803D]"
                       : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                   }`}
                 >
@@ -541,7 +541,7 @@ function SafetyNoticeCompose({
                     key={o.value}
                     onClick={() => toggleAudience(o.value)}
                     className={`rounded-lg border px-3 py-2 text-[12px] font-medium transition ${
-                      active ? "border-[#0038A8]/40 bg-[#E9EDFB] text-[#0038A8]" : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
+                      active ? "border-[#15803D]/40 bg-[#DCFCE7] text-[#15803D]" : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                     }`}
                   >
                     {o.label}
@@ -553,7 +553,7 @@ function SafetyNoticeCompose({
         )}
 
         {preselectIncident && (
-          <div className="flex items-center gap-2 rounded-lg border border-[#0038A8]/20 bg-[#E9EDFB]/60 px-3 py-2 text-[11px] font-medium text-[#0038A8]">
+          <div className="flex items-center gap-2 rounded-lg border border-[#15803D]/20 bg-[#DCFCE7]/60 px-3 py-2 text-[11px] font-medium text-[#15803D]">
             <Link2 size={12} />
             Linked to incident&nbsp;<span className="font-bold">{preselectIncident.id}</span>
             <span className="text-[#64748B]">&middot; {preselectIncident.purok}</span>
@@ -568,7 +568,7 @@ function SafetyNoticeCompose({
               onChange={(e) => setIncidentId(e.target.value)}
               list="alert-incident-list"
               placeholder="Select or type an incident ID…"
-              className="w-full rounded-lg border border-stone-200 px-3 py-2.5 font-mono text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+              className="w-full rounded-lg border border-stone-200 px-3 py-2.5 font-mono text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
             />
             <datalist id="alert-incident-list">
               {openIncidentIds.map((id) => (
@@ -584,7 +584,7 @@ function SafetyNoticeCompose({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Alert headline"
-            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
           />
         </div>
         <div>
@@ -596,7 +596,7 @@ function SafetyNoticeCompose({
                 onClick={() => setCategory(c)}
                 className={`rounded-full px-3 py-1.5 text-[11px] font-medium transition ${
                   category === c
-                    ? "bg-[#0038A8]/10 text-[#0038A8] ring-1 ring-[#0038A8]/30"
+                    ? "bg-[#15803D]/10 text-[#15803D] ring-1 ring-[#15803D]/30"
                     : "bg-stone-100 text-stone-500 hover:bg-stone-200"
                 }`}
               >
@@ -612,7 +612,7 @@ function SafetyNoticeCompose({
               onClick={() => setTarget({ kind: "barangay" })}
               className={`rounded-lg border px-3 py-2 text-[12px] font-medium transition ${
                 target.kind === "barangay"
-                  ? "border-[#0038A8]/40 bg-[#E9EDFB] text-[#0038A8]"
+                  ? "border-[#15803D]/40 bg-[#DCFCE7] text-[#15803D]"
                   : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
               }`}
             >
@@ -622,7 +622,7 @@ function SafetyNoticeCompose({
               onClick={() => setTarget({ kind: "purok", purok })}
               className={`rounded-lg border px-3 py-2 text-[12px] font-medium transition ${
                 target.kind === "purok"
-                  ? "border-[#0038A8]/40 bg-[#E9EDFB] text-[#0038A8]"
+                  ? "border-[#15803D]/40 bg-[#DCFCE7] text-[#15803D]"
                   : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
               }`}
             >
@@ -635,7 +635,7 @@ function SafetyNoticeCompose({
                 value={purok}
                 onChange={(e) => setPurok(e.target.value)}
                 list="purok-list"
-                className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+                className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
               />
               <datalist id="purok-list">
                 {PUROK_ZONES.map((z) => (
@@ -652,7 +652,7 @@ function SafetyNoticeCompose({
             onChange={(e) => setMessage(e.target.value)}
             rows={4}
             placeholder="Alert details"
-            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
           />
         </div>
       </div>
@@ -730,7 +730,7 @@ function CreateManualIncidentModal({
       title="Create Manual Incident"
       subtitle="Log a new incident direct to the dashboard, live map and work queues"
       icon={<PlusCircle size={18} />}
-      iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+      iconClass="bg-[#15803D]/10 text-[#15803D]"
       size="lg"
       footer={
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
@@ -743,7 +743,7 @@ function CreateManualIncidentModal({
           <button
             onClick={() => setConfirmOpen(true)}
             disabled={!valid}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-40"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534] disabled:opacity-40"
           >
             <PlusCircle size={13} />
             Create Incident
@@ -762,7 +762,7 @@ function CreateManualIncidentModal({
                   onClick={() => setCategory(c)}
                   className={`rounded-full px-2.5 py-1.5 text-[11px] font-medium transition ${
                     category === c
-                      ? "bg-[#0038A8]/10 text-[#0038A8] ring-1 ring-[#0038A8]/30"
+                      ? "bg-[#15803D]/10 text-[#15803D] ring-1 ring-[#15803D]/30"
                       : "bg-stone-100 text-stone-500 hover:bg-stone-200"
                   }`}
                 >
@@ -777,7 +777,7 @@ function CreateManualIncidentModal({
               value={purok}
               onChange={(e) => setPurok(e.target.value)}
               list="purok-list"
-              className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+              className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
             />
             <datalist id="purok-list">
               {PUROK_ZONES.map((z) => (
@@ -799,7 +799,7 @@ function CreateManualIncidentModal({
                     severity === s
                       ? s === "critical"
                         ? "border-rose-300 bg-rose-50 text-rose-700"
-                        : "border-[#0038A8]/40 bg-[#E9EDFB] text-[#0038A8]"
+                        : "border-[#15803D]/40 bg-[#DCFCE7] text-[#15803D]"
                       : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                   }`}
                 >
@@ -817,7 +817,7 @@ function CreateManualIncidentModal({
                   onClick={() => setPriority(p)}
                   className={`rounded-lg border px-3 py-2 text-[12px] font-medium transition ${
                     priority === p
-                      ? "border-[#0038A8]/40 bg-[#E9EDFB] text-[#0038A8]"
+                      ? "border-[#15803D]/40 bg-[#DCFCE7] text-[#15803D]"
                       : "border-stone-200 bg-white text-stone-500 hover:bg-stone-50"
                   }`}
                 >
@@ -829,7 +829,7 @@ function CreateManualIncidentModal({
         </div>
 
         <div className="flex items-start gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
-          <Info size={13} className="mt-0.5 shrink-0 text-[#0038A8]" />
+          <Info size={13} className="mt-0.5 shrink-0 text-[#15803D]" />
           <p className="text-[11px] leading-relaxed text-stone-600">
             {priority === "High" || severity === "critical"
               ? "High urgency — on creation the incident is added to the priority queue and a CCTV footage request is auto-initiated."
@@ -844,7 +844,7 @@ function CreateManualIncidentModal({
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
             placeholder="Describe the incident…"
-            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+            className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
           />
         </div>
 
@@ -854,7 +854,7 @@ function CreateManualIncidentModal({
             <input
               value={reporter}
               onChange={(e) => setReporter(e.target.value)}
-              className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+              className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
             />
           </div>
           <div>
@@ -863,7 +863,7 @@ function CreateManualIncidentModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Internal notes"
-              className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+              className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
             />
           </div>
         </div>
@@ -926,7 +926,7 @@ function AnonymousLookupModal({
           </button>
           <button
             onClick={lookup}
-            className="flex-1 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-medium text-white transition hover:bg-[#002A8C]"
+            className="flex-1 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-medium text-white transition hover:bg-[#166534]"
           >
             Lookup
           </button>
@@ -940,7 +940,7 @@ function AnonymousLookupModal({
           onChange={(e) => setToken(e.target.value)}
           onKeyDown={(e) => (e.key === "Enter" ? lookup() : undefined)}
           placeholder="TK-xxxx"
-          className="w-full rounded-lg border border-stone-200 px-3 py-2.5 font-mono text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+          className="w-full rounded-lg border border-stone-200 px-3 py-2.5 font-mono text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
         />
         <p className="mt-2 text-[11px] leading-relaxed text-stone-500">
           Returns only the report status and purok. Reporter identity is masked behind the tracking
@@ -962,7 +962,7 @@ function AnonymousLookupModal({
 function LoadingSkeleton() {
   const block = "animate-pulse rounded-xl border border-black/5 bg-white/80";
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <div className="mb-6 border-b border-stone-200 pb-5">
           <div className={`${block} h-7 w-72`} />
@@ -1342,8 +1342,8 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
       sub: `${openIncidents.length} open · ${activeDispatches.length} active responses`,
       icon: Layers,
       onClick: () => go("incident_triage"),
-      accent: "bg-[#E9EDFB] text-[#0038A8]",
-      ring: "hover:border-[#0038A8]/30",
+      accent: "bg-[#DCFCE7] text-[#15803D]",
+      ring: "hover:border-[#15803D]/30",
     },
     {
       id: "emergency",
@@ -1394,9 +1394,9 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
       <button
         key={label}
         onClick={onClick}
-        className="group flex flex-1 items-center gap-3 rounded-xl border border-black/5 bg-white px-4 py-3 shadow-sm transition hover:border-[#0038A8]/30 hover:bg-[#E9EDFB]/50"
+        className="group flex flex-1 items-center gap-3 rounded-xl border border-black/5 bg-white px-4 py-3 shadow-sm transition hover:border-[#15803D]/30 hover:bg-[#DCFCE7]/50"
       >
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
           <Icon size={16} />
         </div>
         <div className="min-w-0 flex-1 text-left">
@@ -1458,7 +1458,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
   return !booted ? (
     <LoadingSkeleton />
   ) : (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       {!isOnline && <OfflineBanner />}
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
@@ -1489,7 +1489,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
               <button
                 onClick={() => setComposeBroadcast(true)}
                 title="Mass Broadcast"
-                className="flex h-9 items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 text-[12px] font-medium text-white transition hover:bg-[#002A8C]"
+                className="flex h-9 items-center gap-1.5 rounded-lg bg-[#15803D] px-3 text-[12px] font-medium text-white transition hover:bg-[#166534]"
               >
                 <Megaphone size={13} />
                 <span className="hidden sm:inline">Mass Broadcast</span>
@@ -1558,7 +1558,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                     <card.icon size={15} />
                   </div>
                 </div>
-                <div className={`mt-2 text-[26px] font-bold ${card.priority ? "text-rose-600" : "text-[#0038A8]"}`}>
+                <div className={`mt-2 text-[26px] font-bold ${card.priority ? "text-rose-600" : "text-[#15803D]"}`}>
                   {card.value}
                 </div>
                 <div className={`mt-1 text-[11px] ${card.priority ? "text-rose-500" : "text-[#94A3B8]"}`}>
@@ -1575,7 +1575,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
           <div className="xl:col-span-2 rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 px-5 py-4">
               <div className="flex items-center gap-2">
-                <MapPin size={16} className="text-[#0038A8]" />
+                <MapPin size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Live Incident Map</h3>
                   <p className="text-[11px] text-[#94A3B8]">Open incidents plotted by purok zone</p>
@@ -1640,7 +1640,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                         </text>
                         {zoneIncidents.length > 0 && (
                           <g className="pointer-events-none">
-                            <circle cx={zone.labelX + 32} cy={zone.labelY - 8} r={8} fill="#0038A8" opacity={0.9} />
+                            <circle cx={zone.labelX + 32} cy={zone.labelY - 8} r={8} fill="#15803D" opacity={0.9} />
                             <text x={zone.labelX + 32} y={zone.labelY - 4.5} textAnchor="middle" fontSize="8" fontWeight="700" fill="white">
                               {zoneIncidents.length}
                             </text>
@@ -1680,7 +1680,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                           <circle cx={cx} cy={cy} r={10} fill="none" stroke="#dc2626" strokeWidth={1.5} opacity={0.5} className="animate-ping" />
                         )}
                         {isActive && (
-                          <circle cx={cx} cy={cy} r={emergency ? 12 : 10} fill="none" stroke="#0038A8" strokeWidth={1.5} />
+                          <circle cx={cx} cy={cy} r={emergency ? 12 : 10} fill="none" stroke="#15803D" strokeWidth={1.5} />
                         )}
                         <circle cx={cx} cy={cy} r={emergency ? 7 : 5.5} fill={color} stroke="white" strokeWidth={1.5} className="drop-shadow" />
                         <text x={cx} y={cy + 2} textAnchor="middle" fontSize="5" fontWeight="700" fill="white">
@@ -1801,7 +1801,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                             ? "bg-rose-100 text-rose-600"
                             : item.actionType === "clip"
                               ? "bg-teal-50 text-teal-700"
-                              : "bg-[#E9EDFB] text-[#0038A8]"
+                              : "bg-[#DCFCE7] text-[#15803D]"
                         }`}>
                           <CatIcon size={14} />
                         </div>
@@ -1833,7 +1833,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                             {item.kind === "incident" && ic.id && (
                               <button
                                 onClick={openIncident}
-                                className="inline-flex items-center gap-1 rounded-md bg-[#0038A8] px-2.5 py-1 text-[10px] font-medium text-white transition hover:bg-[#002A8C]"
+                                className="inline-flex items-center gap-1 rounded-md bg-[#15803D] px-2.5 py-1 text-[10px] font-medium text-white transition hover:bg-[#166534]"
                               >
                                 Open Incident <ArrowUpRight size={10} />
                               </button>
@@ -1871,7 +1871,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
           <div className="flex flex-col rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
               <div className="flex items-center gap-2">
-                <Radio size={16} className="text-[#0038A8]" />
+                <Radio size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Active Responses</h3>
                   <p className="text-[11px] text-[#94A3B8]">Field units currently responding</p>
@@ -1880,7 +1880,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
               {onNavigate && (
                 <button
                   onClick={() => go("dispatches")}
-                  className="flex items-center gap-1 text-[11px] font-medium text-[#0038A8] hover:underline"
+                  className="flex items-center gap-1 text-[11px] font-medium text-[#15803D] hover:underline"
                 >
                   Open Dispatches <ArrowRight size={11} />
                 </button>
@@ -1916,10 +1916,10 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
 
             {/* Compact Tanod info panel */}
             {selectedTanod && (
-              <div className="border-b border-stone-100 bg-[#E9EDFB]/40 px-5 py-3">
+              <div className="border-b border-stone-100 bg-[#DCFCE7]/40 px-5 py-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0038A8] text-white">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#15803D] text-white">
                       <UserCheck size={14} />
                     </div>
                     <div>
@@ -1943,7 +1943,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                 </div>
                 {selectedTanod.statusHistory.length > 0 ? (
                   <details className="mt-2">
-                    <summary className="cursor-pointer text-[10px] font-medium text-[#0038A8] hover:underline">
+                    <summary className="cursor-pointer text-[10px] font-medium text-[#15803D] hover:underline">
                       Status history ({selectedTanod.statusHistory.length})
                     </summary>
                     <ul className="mt-1 space-y-0.5">
@@ -1973,7 +1973,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                     setDeskCaseTarget({ incidentId: assignId, openDispatch: true });
                     go("incident_triage");
                   }}
-                  className="mt-2 inline-flex items-center gap-1 rounded-md bg-[#0038A8] px-2.5 py-1 text-[10px] font-medium text-white transition hover:bg-[#002A8C]"
+                  className="mt-2 inline-flex items-center gap-1 rounded-md bg-[#15803D] px-2.5 py-1 text-[10px] font-medium text-white transition hover:bg-[#166534]"
                 >
                   Assign Incident <Navigation size={10} />
                 </button>
@@ -2014,10 +2014,10 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                     <div
                       key={d.id}
                       onClick={openCase}
-                      className="cursor-pointer border-b border-black/5 px-5 py-3 transition last:border-0 hover:bg-[#E9EDFB]/30"
+                      className="cursor-pointer border-b border-black/5 px-5 py-3 transition last:border-0 hover:bg-[#DCFCE7]/30"
                     >
                       <div className="flex items-start gap-3">
-                        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                           <Navigation size={14} />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -2039,7 +2039,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                                   e.stopPropagation();
                                   if (tanod) setSelectedTanod(tanod);
                                 }}
-                                className={`font-medium ${tanod ? "cursor-pointer text-[#0038A8] hover:underline" : "cursor-default"}`}
+                                className={`font-medium ${tanod ? "cursor-pointer text-[#15803D] hover:underline" : "cursor-default"}`}
                               >
                                 {d.team}
                               </button>
@@ -2088,7 +2088,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                       key={r.id}
                       onClick={() => viewRequest(r.id)}
                       className={`flex items-start gap-3 border-b border-black/5 px-5 py-3 transition last:border-0 ${
-                        evidenceReady ? "bg-emerald-50/40 hover:bg-emerald-50/70" : "cursor-pointer hover:bg-[#E9EDFB]/40"
+                        evidenceReady ? "bg-emerald-50/40 hover:bg-emerald-50/70" : "cursor-pointer hover:bg-[#DCFCE7]/40"
                       }`}
                     >
                       <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
@@ -2115,7 +2115,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                         </div>
                         <div className="mt-1 space-y-0.5 text-[10px] text-[#64748B]">
                           <p className="truncate">
-                            <span className="text-[#94A3B8]">Incident:</span> <span className="font-semibold text-[#0038A8]">{r.incidentId ?? "—"}</span>
+                            <span className="text-[#94A3B8]">Incident:</span> <span className="font-semibold text-[#15803D]">{r.incidentId ?? "—"}</span>
                           </p>
                           <p className="truncate"><span className="text-[#94A3B8]">Camera:</span> {r.cameraName || r.cameraId || "Any"}</p>
                           <p className="truncate">
@@ -2144,7 +2144,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
           <div className="rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
               <div className="flex items-center gap-2">
-                <Activity size={16} className="text-[#0038A8]" />
+                <Activity size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Recent Activity</h3>
                   <p className="text-[11px] text-[#94A3B8]">Chronological operational feed</p>
@@ -2165,7 +2165,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                     <button
                       key={ev.id}
                       onClick={() => openActivityTarget(ev)}
-                      className="flex w-full items-start gap-3 px-5 py-3 text-left transition hover:bg-[#E9EDFB]/40"
+                      className="flex w-full items-start gap-3 px-5 py-3 text-left transition hover:bg-[#DCFCE7]/40"
                     >
                       <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${color}`}>
                         <Icon size={14} />
@@ -2174,7 +2174,7 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                         <div className="flex flex-wrap items-center gap-x-2 text-[12px] font-medium text-stone-800">
                           {activityActionLabel(ev.action)}
                           {ev.incidentId && (
-                            <span className="rounded bg-[#0038A8]/10 px-1.5 py-0.5 text-[9px] font-semibold text-[#0038A8]">
+                            <span className="rounded bg-[#15803D]/10 px-1.5 py-0.5 text-[9px] font-semibold text-[#15803D]">
                               {ev.incidentId}
                             </span>
                           )}
@@ -2479,10 +2479,10 @@ function IncidentPreviewPanel({
   }, [inc]);
 
   return (
-    <div className="mt-3 rounded-xl border border-[#0038A8]/15 bg-[#E9EDFB]/40 p-4">
+    <div className="mt-3 rounded-xl border border-[#15803D]/15 bg-[#DCFCE7]/40 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#0038A8] text-white">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#15803D] text-white">
             <CatIcon size={17} />
           </div>
           <div>
@@ -2515,14 +2515,14 @@ function IncidentPreviewPanel({
         </button>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg border border-[#0038A8]/10 bg-white/70 p-3 sm:grid-cols-3">
+      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg border border-[#15803D]/10 bg-white/70 p-3 sm:grid-cols-3">
         <PreviewField label="Assigned Tanod" value={assigned ?? "Unassigned"} />
         <PreviewField label="CCTV Review" value={cctvLabel} />
         <PreviewField label="Alert Status" value={alertStatus ?? "None"} />
       </div>
 
       <div className="mt-2 flex items-start gap-1.5 text-[10px] text-[#64748B]">
-        <Activity size={11} className="mt-0.5 shrink-0 text-[#0038A8]" />
+        <Activity size={11} className="mt-0.5 shrink-0 text-[#15803D]" />
         <span>
           <span className="font-semibold text-[#334155]">Latest update:</span> {latestUpdate}
         </span>
@@ -2531,7 +2531,7 @@ function IncidentPreviewPanel({
       <div className="mt-3 grid grid-cols-2 gap-2">
         <button
           onClick={handlers.onOpenCase}
-          className="inline-flex items-center justify-center gap-1 rounded-lg bg-[#0038A8] px-3 py-2 text-[11px] font-medium text-white transition hover:bg-[#002A8C]"
+          className="inline-flex items-center justify-center gap-1 rounded-lg bg-[#15803D] px-3 py-2 text-[11px] font-medium text-white transition hover:bg-[#166534]"
         >
           Open Incident <ArrowUpRight size={11} />
         </button>
@@ -2656,7 +2656,7 @@ function VideoRequestDetail({
           <h4 className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#94A3B8]">
             <Shield size={12} /> CCTV Operator Processing Status
           </h4>
-          <div className="flex items-start gap-2.5 rounded-lg border border-[#0038A8]/15 bg-[#0038A8]/5 px-3 py-2.5">
+          <div className="flex items-start gap-2.5 rounded-lg border border-[#15803D]/15 bg-[#15803D]/5 px-3 py-2.5">
             {evidenceReady ? (
               <BadgeCheck size={16} className="mt-0.5 shrink-0 text-emerald-600" />
             ) : cancelled ? (
@@ -2751,7 +2751,7 @@ function VideoRequestDetail({
                           href={c.storageUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 rounded-md bg-[#0038A8] px-2 py-1 text-[10px] font-medium text-white hover:bg-[#002A8C]"
+                          className="inline-flex items-center gap-1 rounded-md bg-[#15803D] px-2 py-1 text-[10px] font-medium text-white hover:bg-[#166534]"
                         >
                           <Play size={10} /> View
                         </a>
@@ -2826,13 +2826,13 @@ function VideoRequestDetail({
                     custody.map((c, i) => (
                       <div key={i} className="flex gap-2.5">
                         <div className="flex flex-col items-center">
-                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#0038A8]" />
+                          <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#15803D]" />
                           {i < custody.length - 1 && <span className="w-px flex-1 bg-stone-200" />}
                         </div>
                         <div className="min-w-0 flex-1 pb-2.5">
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                             <span className="text-[10px] font-semibold text-stone-700">{c.actor}</span>
-                            <span className="rounded-full bg-[#0038A8]/10 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-[#0038A8]">
+                            <span className="rounded-full bg-[#15803D]/10 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-[#15803D]">
                               {c.action}
                             </span>
                           </div>
@@ -2875,7 +2875,7 @@ function VideoRequestDetail({
         {evidenceReady && (
           <button
             onClick={onAttachToBlotter}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
           >
             <CloudUpload size={13} /> Attach Evidence to Official Blotter
           </button>

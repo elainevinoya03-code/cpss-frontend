@@ -101,8 +101,8 @@ function SkillsInventoryForm({
       id: "experience",
       title: "Experience & Background",
       icon: Award,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
+      color: "text-green-600",
+      bgColor: "bg-green-50",
     },
     {
       id: "training",
@@ -168,7 +168,7 @@ function SkillsInventoryForm({
                           onChange={(e) => updateField("existingTanodExperience", e.target.value)}
                           rows={2}
                           placeholder="Describe previous Tanod experience, other relevant background..."
-                          className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+                          className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
                         />
                       )}
                     </div>
@@ -187,7 +187,7 @@ function SkillsInventoryForm({
                           onChange={(e) => updateField("basicPatrolExperience", e.target.value)}
                           rows={2}
                           placeholder="Describe patrol experience, specialized areas..."
-                          className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+                          className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
                         />
                       )}
                     </div>
@@ -214,7 +214,7 @@ function SkillsInventoryForm({
                               type="checkbox"
                               checked={inventory.firstAidTraining?.hasTraining || false}
                               onChange={(e) => updateFirstAidField("hasTraining", e.target.checked)}
-                              className="h-4 w-4 rounded border-stone-300 text-[#0038A8] focus:ring-[#0038A8]"
+                              className="h-4 w-4 rounded border-stone-300 text-[#15803D] focus:ring-[#15803D]"
                             />
                             <span className="text-[11px] text-stone-600">Has Training</span>
                           </label>
@@ -236,7 +236,7 @@ function SkillsInventoryForm({
                                 type="date"
                                 value={inventory.firstAidTraining.certificateDate || ""}
                                 onChange={(e) => updateFirstAidField("certificateDate", e.target.value)}
-                                className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-[11px] text-stone-700 outline-none transition focus:border-[#0038A8]/50"
+                                className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-[11px] text-stone-700 outline-none transition focus:border-[#15803D]/50"
                               />
                             )}
                           </div>
@@ -255,7 +255,7 @@ function SkillsInventoryForm({
                                 value={inventory.firstAidTraining.trainingProvider || ""}
                                 onChange={(e) => updateFirstAidField("trainingProvider", e.target.value)}
                                 placeholder="Training provider name"
-                                className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-[11px] text-stone-700 outline-none transition focus:border-[#0038A8]/50"
+                                className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-[11px] text-stone-700 outline-none transition focus:border-[#15803D]/50"
                               />
                             )}
                           </div>
@@ -274,7 +274,7 @@ function SkillsInventoryForm({
                                 value={inventory.firstAidTraining.certificateNumber || ""}
                                 onChange={(e) => updateFirstAidField("certificateNumber", e.target.value)}
                                 placeholder="Certificate or reference number"
-                                className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-[11px] text-stone-700 outline-none transition focus:border-[#0038A8]/50"
+                                className="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-[11px] text-stone-700 outline-none transition focus:border-[#15803D]/50"
                               />
                             )}
                           </div>
@@ -296,7 +296,7 @@ function SkillsInventoryForm({
                           onChange={(e) => updateField("certificateNumbers", e.target.value)}
                           rows={2}
                           placeholder="List all certificate numbers, references to proof of training..."
-                          className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+                          className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
                         />
                       )}
                     </div>
@@ -331,7 +331,7 @@ function SkillsInventoryForm({
                                 type="checkbox"
                                 checked={hasSkill}
                                 onChange={(e) => updateField(skill.key as keyof SkillsInventory, e.target.checked)}
-                                className="h-4 w-4 rounded border-stone-300 text-[#0038A8] focus:ring-[#0038A8]"
+                                className="h-4 w-4 rounded border-stone-300 text-[#15803D] focus:ring-[#15803D]"
                               />
                               <span className="text-[11px] text-stone-600">{hasSkill ? "Yes" : "No"}</span>
                             </label>
@@ -354,7 +354,7 @@ function SkillsInventoryForm({
                           onChange={(e) => updateField("otherRelevantSkills", e.target.value)}
                           rows={2}
                           placeholder="Any other relevant skills, certifications, or training..."
-                          className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none transition focus:border-[#0038A8]/50 focus:ring-2 focus:ring-[#0038A8]/10"
+                          className="w-full rounded-lg border border-stone-200 px-3 py-2 text-[12px] text-stone-700 outline-none transition focus:border-[#15803D]/50 focus:ring-2 focus:ring-[#15803D]/10"
                         />
                       )}
                     </div>
@@ -394,7 +394,7 @@ function SkillsInventoryModal({
       title="Skills Inventory"
       subtitle={`${tanod.name} · ${tanod.purok}`}
       icon={<Award size={18} />}
-      iconClass="bg-blue-100 text-blue-600"
+      iconClass="bg-green-100 text-green-600"
       size="lg"
       footer={
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
@@ -406,7 +406,7 @@ function SkillsInventoryModal({
           </button>
           <button
             onClick={handleSave}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
           >
             <Save size={13} /> Save Changes
           </button>
@@ -468,7 +468,7 @@ export default function SkillsInventory({ tanodId, onClose, mode = "view" }: Ski
     }
 
     return (
-      <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+      <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
         <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
           <header className="mb-6 border-b border-stone-200 pb-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -501,7 +501,7 @@ export default function SkillsInventory({ tanodId, onClose, mode = "view" }: Ski
 
   // Otherwise, show the roster view for selecting a tanod
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <div>
@@ -535,12 +535,12 @@ export default function SkillsInventory({ tanodId, onClose, mode = "view" }: Ski
             return (
               <div
                 key={tanod.id}
-                className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm hover:border-[#0038A8]/30 transition cursor-pointer"
+                className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm hover:border-[#15803D]/30 transition cursor-pointer"
                 onClick={() => setSelectedTanod(tanod)}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E9EDFB] text-[#0038A8] font-bold">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#DCFCE7] text-[#15803D] font-bold">
                       {tanod.name.charAt(0)}
                     </div>
                     <div>
@@ -568,7 +568,7 @@ export default function SkillsInventory({ tanodId, onClose, mode = "view" }: Ski
                         setEditingTanod(tanod);
                         setShowEditModal(true);
                       }}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-500 hover:bg-stone-50 hover:text-[#0038A8] transition"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-500 hover:bg-stone-50 hover:text-[#15803D] transition"
                       title="Edit Skills Inventory"
                     >
                       <Edit size={14} />

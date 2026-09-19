@@ -58,7 +58,7 @@ export default function EscalatedCases() {
   );
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-5 border-b border-stone-200 pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -72,16 +72,16 @@ export default function EscalatedCases() {
               </h1>
               <p className="mt-1 text-sm text-stone-500">Read-only progress for cases you escalated to the Desk Officer</p>
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-[#0038A8]/20 bg-white px-3.5 py-2 shadow-sm">
-              <ArrowUpRight size={15} className="text-[#0038A8]" />
+            <div className="flex items-center gap-2 rounded-lg border border-[#15803D]/20 bg-white px-3.5 py-2 shadow-sm">
+              <ArrowUpRight size={15} className="text-[#15803D]" />
               <div>
                 <p className="text-[9px] font-semibold tracking-wider text-stone-400">ASSIGNED JURISDICTION</p>
-                <p className="text-[12px] font-bold text-[#0038A8]">{JURISDICTION_LABEL}</p>
+                <p className="text-[12px] font-bold text-[#15803D]">{JURISDICTION_LABEL}</p>
               </div>
             </div>
           </div>
-          <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#0038A8]/15 bg-[#0038A8]/5 px-3.5 py-2.5">
-            <Eye size={14} className="mt-0.5 shrink-0 text-[#0038A8]" />
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#15803D]/15 bg-[#15803D]/5 px-3.5 py-2.5">
+            <Eye size={14} className="mt-0.5 shrink-0 text-[#15803D]" />
             <p className="text-[11px] leading-relaxed text-stone-600">
               These cases now belong to the <span className="font-semibold text-stone-800">Desk Officer</span> — they decide priority changes, Tanod dispatch, blotter handling, and final disposition. You can follow progress here but cannot edit these cases.
             </p>
@@ -115,11 +115,11 @@ export default function EscalatedCases() {
             <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">{label}</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                   <Icon size={15} />
                 </div>
               </div>
-              <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+              <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
               <div className="mt-1 text-[11px] text-[#94A3B8]">{sub}</div>
             </div>
           ))}
@@ -128,13 +128,13 @@ export default function EscalatedCases() {
         <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-5 py-4">
             <div className="flex items-center gap-2">
-              <ShieldCheck size={16} className="text-[#0038A8]" />
+              <ShieldCheck size={16} className="text-[#15803D]" />
               <div>
                 <h3 className="text-[14px] font-semibold text-[#334155]">Escalation Progress</h3>
                 <p className="text-[11px] text-[#94A3B8]">Sent → Under Review → Action Assigned → Closed</p>
               </div>
             </div>
-            <span className="rounded-full bg-[#0038A8]/5 px-2.5 py-1 text-[10px] font-semibold text-[#0038A8]">
+            <span className="rounded-full bg-[#15803D]/5 px-2.5 py-1 text-[10px] font-semibold text-[#15803D]">
               {sorted.length} case{sorted.length === 1 ? "" : "s"}
             </span>
           </div>
@@ -146,7 +146,7 @@ export default function EscalatedCases() {
                 onClick={() => setStatusFilter(t.key)}
                 className={`rounded-full border px-2.5 py-1 text-[10px] font-medium transition ${
                   statusFilter === t.key
-                    ? "border-[#0038A8] bg-[#0038A8] text-white"
+                    ? "border-[#15803D] bg-[#15803D] text-white"
                     : "border-stone-200 text-stone-500 hover:border-stone-300 hover:bg-stone-50"
                 }`}
               >

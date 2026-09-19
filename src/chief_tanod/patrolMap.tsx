@@ -250,7 +250,7 @@ export function BarangayMap({
       const box = isSel ? 20 : 14;
       const iconHtml = `
         <div style="opacity: ${cp.active ? 1 : 0.45}; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center;">
-          <div style="width: ${box}px; height: ${box}px; background: ${isSel ? "#0ea5e9" : "#0038A8"}; border: ${isSel ? "2.5px solid #0ea5e9" : "1.5px solid white"}; border-radius: 3px; display: flex; justify-content: center; align-items: center; color: white; font-size: 8px; font-weight: bold; box-shadow: ${isSel ? "0 0 0 3px rgba(14,165,233,0.35)" : "none"};">S</div>
+          <div style="width: ${box}px; height: ${box}px; background: ${isSel ? "#0ea5e9" : "#15803D"}; border: ${isSel ? "2.5px solid #0ea5e9" : "1.5px solid white"}; border-radius: 3px; display: flex; justify-content: center; align-items: center; color: white; font-size: 8px; font-weight: bold; box-shadow: ${isSel ? "0 0 0 3px rgba(14,165,233,0.35)" : "none"};">S</div>
           <div style="font-size: 8px; font-weight: 700; color: #334155; white-space: nowrap; margin-top: 2px; text-shadow: 0 1px 0 white;">${cp.name}</div>
           ${isSel ? `<div style="background: #0f172a; color: white; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; white-space: nowrap; margin-top: 2px;">${cp.id}</div>` : ""}
         </div>
@@ -458,7 +458,7 @@ export function BarangayMap({
             key={l.key}
             onClick={() => onToggleLayer?.(l.key)}
             className={"pointer-events-auto flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] sm:text-[11px] font-semibold transition " +
-              (layers[l.key] ? "bg-[#0038A8]/10 text-[#0038A8]" : "text-stone-400 hover:text-stone-600")}
+              (layers[l.key] ? "bg-[#15803D]/10 text-[#15803D]" : "text-stone-400 hover:text-stone-600")}
           >
             {layers[l.key] && <Check size={10} strokeWidth={3} />}
             {l.label}
@@ -485,7 +485,7 @@ export function BarangayMap({
 
       {/* Map mode banner */}
       {mapMode !== "view" && (
-        <div className="absolute left-1/2 top-14 z-20 -translate-x-1/2 rounded-lg bg-[#0038A8] px-4 py-2 text-[11px] sm:text-xs font-bold text-white shadow-lg whitespace-nowrap pointer-events-none">
+        <div className="absolute left-1/2 top-14 z-20 -translate-x-1/2 rounded-lg bg-[#15803D] px-4 py-2 text-[11px] sm:text-xs font-bold text-white shadow-lg whitespace-nowrap pointer-events-none">
           {mapMode === "set_fixed" && "Click on the map to set the checkpoint location"}
           {mapMode === "set_start" && "Click on the map to set Point A (start)"}
           {mapMode === "set_end" && "Click on the map to set Point B (end)"}
@@ -502,7 +502,7 @@ export function BarangayMap({
           <span className="text-[10px] font-medium text-stone-600">Incident</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-sm bg-[#0038A8]" />
+          <span className="h-2.5 w-2.5 rounded-sm bg-[#15803D]" />
           <span className="text-[10px] font-medium text-stone-600">Existing checkpoint</span>
         </div>
         <div className="flex items-center gap-2">

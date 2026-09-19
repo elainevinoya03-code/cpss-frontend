@@ -91,7 +91,7 @@ function WizardStepper({ step, onSelect }: { step: number; onSelect: (s: number)
             onClick={() => onSelect(s.n)}
             className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-1 text-[16px] font-semibold transition ${
               step === s.n
-                ? "bg-[#0038A8] text-white shadow-sm"
+                ? "bg-[#15803D] text-white shadow-sm"
                 : step > s.n
                   ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                   : "text-stone-400 hover:bg-stone-100"
@@ -99,7 +99,7 @@ function WizardStepper({ step, onSelect }: { step: number; onSelect: (s: number)
           >
             <span
               className={`flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold ${
-                step === s.n ? "bg-white text-[#0038A8]" : step > s.n ? "bg-emerald-600 text-white" : "bg-stone-200"
+                step === s.n ? "bg-white text-[#15803D]" : step > s.n ? "bg-emerald-600 text-white" : "bg-stone-200"
               }`}
             >
               {step > s.n ? <Check size={8} strokeWidth={3} /> : s.n}
@@ -256,7 +256,7 @@ function TeamsPanel({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="flex items-center gap-1.5 text-[16px] font-bold text-stone-900">
-              <Users size={15} className="text-[#0038A8]" /> Team Management
+              <Users size={15} className="text-[#15803D]" /> Team Management
             </p>
             <p className="mt-0.5 text-[15px] text-stone-500">
               Only teams created here can be selected later during Patrol Scheduling.
@@ -272,13 +272,13 @@ function TeamsPanel({
             </span>
             <button
               onClick={() => onNavigate?.("skills_inventory")}
-              className="flex h-8 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 text-[15px] font-semibold text-blue-700 hover:bg-blue-100"
+              className="flex h-8 items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 text-[15px] font-semibold text-green-700 hover:bg-green-100"
             >
               <Award size={13} /> Skills Inventory
             </button>
             <button
               onClick={openCreate}
-              className="flex h-8 items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 text-[15px] font-semibold text-white shadow-sm hover:bg-[#002A8C]"
+              className="flex h-8 items-center gap-1.5 rounded-lg bg-[#15803D] px-3 text-[15px] font-semibold text-white shadow-sm hover:bg-[#166534]"
             >
               <Plus size={13} /> Create Team
             </button>
@@ -350,7 +350,7 @@ function TeamsPanel({
                   const on = form.memberIds.includes(r.id);
                   const hasSkillsInventory = r.skillsInventory && Object.keys(r.skillsInventory).length > 0;
                   return (
-                    <div key={r.id} className={`rounded-lg border px-3 py-2 ${on || isLead ? "border-[#0038A8]/30 bg-[#E9EDFB]" : isAssigned ? "border-stone-200 bg-stone-100 opacity-60" : "border-stone-100 bg-white"}`}>
+                    <div key={r.id} className={`rounded-lg border px-3 py-2 ${on || isLead ? "border-[#15803D]/30 bg-[#DCFCE7]" : isAssigned ? "border-stone-200 bg-stone-100 opacity-60" : "border-stone-100 bg-white"}`}>
                       <div className="flex items-center gap-2">
                         <input 
                           type="checkbox" 
@@ -361,7 +361,7 @@ function TeamsPanel({
                         />
                         <div className="min-w-0 flex-1">
                           <p className="text-[16px] font-semibold text-stone-800">
-                            {r.name} {isLead && <span className="ml-1 rounded-full bg-[#0038A8] px-1.5 py-px text-[10px] font-bold uppercase text-white">Leader</span>}
+                            {r.name} {isLead && <span className="ml-1 rounded-full bg-[#15803D] px-1.5 py-px text-[10px] font-bold uppercase text-white">Leader</span>}
                             {editing && editing.memberIds.includes(r.id) && <span className="ml-1 rounded-full bg-stone-200 px-1.5 py-px text-[10px] font-semibold text-stone-600">In team</span>}
                             {hasSkillsInventory && <span className="ml-1 rounded-full bg-emerald-100 px-1.5 py-px text-[10px] font-semibold text-emerald-700">Skills ✓</span>}
                             {isAssigned && <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-px text-[10px] font-semibold text-amber-700">Already assigned</span>}
@@ -390,7 +390,7 @@ function TeamsPanel({
                             setSkillsInventoryTanod(r);
                             setShowSkillsInventory(true);
                           }}
-                          className="rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-600 hover:bg-[#E9EDFB] hover:text-[#0038A8]"
+                          className="rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-600 hover:bg-[#DCFCE7] hover:text-[#15803D]"
                           title="View Skills Inventory"
                         >
                           <Award size={12} />
@@ -444,7 +444,7 @@ function TeamsPanel({
                       </p>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <button onClick={() => openEdit(team)} className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-[#0038A8]" title="Edit team">
+                      <button onClick={() => openEdit(team)} className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100 hover:text-[#15803D]" title="Edit team">
                         <Pencil size={13} />
                       </button>
                       <button onClick={() => { setDeleteError(null); setConfirmTarget({ team, action: "toggle" }); }} className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 hover:bg-amber-50 hover:text-amber-600" title={team.isActive ? "Deactivate team" : "Activate team"}>
@@ -922,7 +922,7 @@ export default function PatrolSchedulerRoutes({
   if (isTanod && !wizardOpen) {
     const live = schedules.filter((s) => s.status === "active" || s.status === "scheduled" || s.status === "pending_approval");
     return (
-      <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+      <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
         {ToastPortal && <ToastPortal />}
         <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
           <header className="mb-6 border-b border-stone-200 pb-5">
@@ -959,7 +959,7 @@ export default function PatrolSchedulerRoutes({
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       {ToastPortal && <ToastPortal />}
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
@@ -985,7 +985,7 @@ export default function PatrolSchedulerRoutes({
                   else if (approvedPlans.length) flash("No available Operational Schedule — existing ones were deleted or are invalid", { type: "warning" });
                   else flash("No approved checkpoint plans yet", { type: "warning" });
                 }}
-                className="flex h-9 items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 text-[16px] font-semibold text-white shadow-sm hover:bg-[#002A8C]"
+                className="flex h-9 items-center gap-1.5 rounded-lg bg-[#15803D] px-4 text-[16px] font-semibold text-white shadow-sm hover:bg-[#166534]"
               >
                 <Plus size={14} /> Create Patrol Schedule
               </button>
@@ -1262,7 +1262,7 @@ export default function PatrolSchedulerRoutes({
                           })
                         }
                         className={`rounded-xl border p-2.5 text-left disabled:cursor-not-allowed disabled:opacity-40 ${
-                          draft.frequency === f.key ? "border-[#0038A8] bg-[#E9EDFB] ring-1 ring-[#0038A8]/30" : "border-stone-200 bg-white hover:bg-stone-50"
+                          draft.frequency === f.key ? "border-[#15803D] bg-[#DCFCE7] ring-1 ring-[#15803D]/30" : "border-stone-200 bg-white hover:bg-stone-50"
                         }`}
                       >
                         <p className="text-[15px] font-bold text-stone-800">{f.label}</p>
@@ -1298,7 +1298,7 @@ export default function PatrolSchedulerRoutes({
                               frequencyDays: on ? draft.frequencyDays.filter((x) => x !== d) : [...draft.frequencyDays, d],
                             })
                           }
-                          className={`rounded-full px-3 py-1 text-[16px] font-semibold disabled:cursor-not-allowed disabled:opacity-40 ${on ? "bg-[#0038A8] text-white" : "bg-stone-100 text-stone-600"}`}
+                          className={`rounded-full px-3 py-1 text-[16px] font-semibold disabled:cursor-not-allowed disabled:opacity-40 ${on ? "bg-[#15803D] text-white" : "bg-stone-100 text-stone-600"}`}
                         >
                           {d}
                         </button>
@@ -1322,7 +1322,7 @@ export default function PatrolSchedulerRoutes({
                       title={opScheduleLocked ? "Read-only — linked Operational Schedule cannot be changed after creation" : undefined}
                       onClick={() => patchDraft({ shiftType: s.key as ShiftType })}
                       className={`rounded-xl border p-3 text-left disabled:cursor-not-allowed disabled:opacity-40 ${
-                        draft.shiftType === s.key ? "border-[#0038A8] bg-[#E9EDFB]" : "border-stone-200 hover:bg-stone-50"
+                        draft.shiftType === s.key ? "border-[#15803D] bg-[#DCFCE7]" : "border-stone-200 hover:bg-stone-50"
                       }`}
                     >
                       <p className="text-[16px] font-bold text-stone-800">{s.label}</p>
@@ -1345,13 +1345,13 @@ export default function PatrolSchedulerRoutes({
                           if (creatingTeam && pendingTeam) setPendingTeam(null);
                           setCreatingTeam(false);
                         }}
-                        className={`flex-1 rounded-lg px-3 py-1.5 text-[15px] font-semibold ${!creatingTeam ? "bg-[#0038A8] text-white" : "border border-stone-200 bg-white text-stone-600"}`}
+                        className={`flex-1 rounded-lg px-3 py-1.5 text-[15px] font-semibold ${!creatingTeam ? "bg-[#15803D] text-white" : "border border-stone-200 bg-white text-stone-600"}`}
                       >
                         Existing team
                       </button>
                       <button
                         onClick={() => setCreatingTeam(true)}
-                        className={`flex-1 rounded-lg px-3 py-1.5 text-[15px] font-semibold ${creatingTeam ? "bg-[#0038A8] text-white" : "border border-stone-200 bg-white text-stone-600"}`}
+                        className={`flex-1 rounded-lg px-3 py-1.5 text-[15px] font-semibold ${creatingTeam ? "bg-[#15803D] text-white" : "border border-stone-200 bg-white text-stone-600"}`}
                       >
                         New team
                       </button>
@@ -1382,7 +1382,7 @@ export default function PatrolSchedulerRoutes({
                           <input className={inputCls} value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} placeholder="e.g. Market Night Watch" />
                         </Field>
                         {!draft.teamId && (
-                          <button onClick={persistTeamCreate} className="rounded-lg bg-[#0038A8] px-3 py-1.5 text-[15px] font-semibold text-white">
+                          <button onClick={persistTeamCreate} className="rounded-lg bg-[#15803D] px-3 py-1.5 text-[15px] font-semibold text-white">
                             {pendingTeam ? "Save team" : "Create team"}
                           </button>
                         )}
@@ -1414,7 +1414,7 @@ export default function PatrolSchedulerRoutes({
                           const isLead = rosterTeam.leaderId === m.id;
                           const isAssigned = rosterDisabledIds.has(m.id) && !on && !isLead;
                           return (
-                            <div key={m.id} className={`flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 ${on ? "border-[#0038A8]/30 bg-[#E9EDFB]" : isAssigned ? "border-stone-200 bg-stone-100 opacity-60" : "border-stone-100"}`}>
+                            <div key={m.id} className={`flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 ${on ? "border-[#15803D]/30 bg-[#DCFCE7]" : isAssigned ? "border-stone-200 bg-stone-100 opacity-60" : "border-stone-100"}`}>
                               <input 
                                 type="checkbox" 
                                 checked={on} 
@@ -1424,7 +1424,7 @@ export default function PatrolSchedulerRoutes({
                               />
                               <div className="min-w-0 flex-1">
                                 <p className="text-[16px] font-semibold text-stone-800">
-                                  {m.name} {isLead && <span className="text-[11px] font-bold uppercase text-[#0038A8]">Leader</span>}
+                                  {m.name} {isLead && <span className="text-[11px] font-bold uppercase text-[#15803D]">Leader</span>}
                                   {isAssigned && <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-px text-[10px] font-semibold text-amber-700">Already assigned</span>}
                                 </p>
                                 <p className="text-[11px] text-[#94A3B8]">
@@ -1458,7 +1458,7 @@ export default function PatrolSchedulerRoutes({
                     <button
                       key={mode}
                       onClick={() => patchDraft({ assignmentMode: mode })}
-                      className={`rounded-xl border p-3 text-left ${draft.assignmentMode === mode ? "border-[#0038A8] bg-[#E9EDFB]" : "border-stone-200"}`}
+                      className={`rounded-xl border p-3 text-left ${draft.assignmentMode === mode ? "border-[#15803D] bg-[#DCFCE7]" : "border-stone-200"}`}
                     >
                       <p className="text-[16px] font-bold text-stone-800">
                         {mode === "whole_team" ? "Whole team → entire plan" : "Team / tanods → specific checkpoints"}
@@ -1496,7 +1496,7 @@ export default function PatrolSchedulerRoutes({
                                 <button
                                   key={id}
                                   onClick={() => toggleAssign(pt.id, id)}
-                                  className={`rounded-full px-2.5 py-1 text-[16px] font-semibold ${on ? "bg-[#0038A8] text-white" : "bg-stone-100 text-stone-600"}`}
+                                  className={`rounded-full px-2.5 py-1 text-[16px] font-semibold ${on ? "bg-[#15803D] text-white" : "bg-stone-100 text-stone-600"}`}
                                 >
                                   {nameOf(id)}
                                 </button>
@@ -1644,7 +1644,7 @@ export default function PatrolSchedulerRoutes({
                     }
                     setStep((s) => Math.min(6, s + 1));
                   }}
-                  className="flex items-center gap-1 rounded-lg bg-[#0038A8] px-4 py-2 text-[16px] font-semibold text-white"
+                  className="flex items-center gap-1 rounded-lg bg-[#15803D] px-4 py-2 text-[16px] font-semibold text-white"
                 >
                   Continue <ChevronRight size={14} />
                 </button>
@@ -1674,7 +1674,7 @@ export default function PatrolSchedulerRoutes({
                 <button
                   key={t.key}
                   onClick={() => setTab(t.key)}
-                  className={`rounded-lg px-3.5 py-2 text-[15px] font-semibold ${tab === t.key ? "bg-[#0038A8] text-white" : "border border-stone-200 bg-white text-stone-600"}`}
+                  className={`rounded-lg px-3.5 py-2 text-[15px] font-semibold ${tab === t.key ? "bg-[#15803D] text-white" : "border border-stone-200 bg-white text-stone-600"}`}
                 >
                   {t.label}
                 </button>
@@ -1703,14 +1703,14 @@ export default function PatrolSchedulerRoutes({
                       <div className="mb-2 flex flex-wrap gap-1.5">
                         <TypeChip type={p.type} />
                         <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-semibold text-stone-600">{p.targetArea}</span>
-                        <span className="rounded-full bg-[#0038A8]/5 px-2 py-0.5 text-[11px] font-semibold text-[#0038A8]">{p.coverage.pct}% coverage</span>
+                        <span className="rounded-full bg-[#15803D]/5 px-2 py-0.5 text-[11px] font-semibold text-[#15803D]">{p.coverage.pct}% coverage</span>
                       </div>
                       <p className="line-clamp-2 text-[15px] text-stone-500">{p.objective}</p>
                     </div>
                     <div className="border-t border-stone-100 px-4 py-3">
                       <button
                         onClick={() => startFromPlan(p)}
-                        className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[15px] font-bold text-white hover:bg-[#002A8C]"
+                        className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-1.5 text-[15px] font-bold text-white hover:bg-[#166534]"
                       >
                         <Calendar size={12} /> Create Patrol Schedule
                       </button>
@@ -1743,7 +1743,7 @@ export default function PatrolSchedulerRoutes({
                             {dateWindowLabel(s)} · {s.startTime}–{s.endTime} · {freqLabel(s)} · {s.shiftType} shift
                           </p>
                           <p className="mt-1 text-[15px] text-stone-600">
-                            <Users size={11} className="mr-1 inline text-[#0038A8]" />
+                            <Users size={11} className="mr-1 inline text-[#15803D]" />
                             {team ? `${team.name} — ${nameOf(team.leaderId)}` : "No team"}
                           </p>
                         </div>
@@ -1752,7 +1752,7 @@ export default function PatrolSchedulerRoutes({
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
                           onClick={() => setDetailsId(open ? null : s.id)}
-                          className="flex items-center gap-1.5 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-3 py-1.5 text-[16px] font-semibold text-[#0038A8] hover:bg-[#0038A8]/10"
+                          className="flex items-center gap-1.5 rounded-lg border border-[#15803D]/20 bg-[#15803D]/5 px-3 py-1.5 text-[16px] font-semibold text-[#15803D] hover:bg-[#15803D]/10"
                         >
                           <Eye size={12} /> {open ? "Hide details" : "Details"}
                         </button>

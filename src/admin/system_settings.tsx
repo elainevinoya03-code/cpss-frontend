@@ -82,7 +82,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       type="button"
       onClick={() => onChange(!checked)}
       className={`relative h-6 w-11 rounded-full transition-colors ${
-        checked ? "bg-[#0038A8]" : "bg-stone-300"
+        checked ? "bg-[#15803D]" : "bg-stone-300"
       }`}
     >
       <span
@@ -240,7 +240,7 @@ export default function SystemSettings() {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <h1 className="text-2xl font-bold text-stone-900">System Settings</h1>
@@ -264,7 +264,7 @@ export default function SystemSettings() {
               }}
               className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-[13px] font-medium transition ${
                 activeTab === key
-                  ? "border-[#0038A8] bg-[#0038A8]/5 text-[#0038A8]"
+                  ? "border-[#15803D] bg-[#15803D]/5 text-[#15803D]"
                   : "border-stone-200 bg-white text-stone-500 hover:border-stone-300 hover:bg-stone-50"
               }`}
             >
@@ -569,7 +569,7 @@ export default function SystemSettings() {
                     value={notifVolume}
                     disabled={!notifSoundEnabled}
                     onChange={(e) => { setNotifVolume(e.target.value); markDirty(); }}
-                    className="flex-1 cursor-pointer accent-[#0038A8]"
+                    className="flex-1 cursor-pointer accent-[#15803D]"
                   />
                   <span className="w-8 text-right text-sm font-semibold text-stone-700">
                     {notifVolume}%
@@ -595,7 +595,7 @@ export default function SystemSettings() {
                   className="flex items-center gap-2 rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-50 disabled:opacity-50"
                 >
                   {testingNotifSound ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-stone-300 border-t-[#0038A8]" />
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-stone-300 border-t-[#15803D]" />
                   ) : (
                     <Volume2 size={14} />
                   )}
@@ -622,7 +622,7 @@ export default function SystemSettings() {
                   onChange={(v) => { setRequireTwoFactor(v); markDirty(); }}
                 />
               </SettingRow>
-              <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+              <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                 <ShieldCheck size={16} className="mt-0.5 shrink-0" />
                 <div>
                   <p className="font-medium">Mandatory per policy</p>
@@ -823,7 +823,7 @@ export default function SystemSettings() {
                 </p>
               )}
 
-              <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+              <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                 <ShieldCheck size={16} className="mt-0.5 shrink-0" />
                 <p className="text-xs">
                   Purok-level notification routing is governed by the{" "}
@@ -890,7 +890,7 @@ export default function SystemSettings() {
             </button>
             <button
               onClick={handleSave}
-              className="flex items-center gap-1.5 rounded-md bg-[#0038A8] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#002A8C]"
+              className="flex items-center gap-1.5 rounded-md bg-[#15803D] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#166534]"
             >
               <Save size={14} />
               Save Settings
@@ -921,7 +921,7 @@ export default function SystemSettings() {
                   setActiveTab(pendingTab);
                   setPendingTab(null);
                 }}
-                className="flex-1 rounded-lg bg-[#0038A8] py-2 text-[12px] font-medium text-white hover:bg-[#002A8C]"
+                className="flex-1 rounded-lg bg-[#15803D] py-2 text-[12px] font-medium text-white hover:bg-[#166534]"
               >
                 Discard & Switch
               </button>

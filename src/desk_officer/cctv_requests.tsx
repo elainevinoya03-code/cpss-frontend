@@ -246,7 +246,7 @@ export default function CctvRequests() {
   };
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       {ToastPortal && <ToastPortal />}
 
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
@@ -271,7 +271,7 @@ export default function CctvRequests() {
               </button>
               <button
                 onClick={() => setIsNewModalOpen(true)}
-                className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
               >
                 <Plus size={13} /> New Requisition
               </button>
@@ -282,7 +282,7 @@ export default function CctvRequests() {
         {/* Metric / Summary Cards */}
         <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { label: "Total Requisitions", value: stats.total, icon: Video, color: "text-[#0038A8]", bg: "bg-[#0038A8]/10" },
+            { label: "Total Requisitions", value: stats.total, icon: Video, color: "text-[#15803D]", bg: "bg-[#15803D]/10" },
             { label: "Pending Processing", value: stats.pending, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
             { label: "Fulfilled / Ready", value: stats.completed, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Urgent Priority", value: stats.urgent, icon: Flame, color: "text-rose-600", bg: "bg-rose-50" },
@@ -319,7 +319,7 @@ export default function CctvRequests() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search ID, camera, case..."
-                  className="w-44 sm:w-56 rounded-lg border border-stone-200 bg-white py-1.5 pl-8 pr-3 text-[11px] text-stone-700 placeholder-stone-400 focus:border-[#0038A8] focus:outline-none"
+                  className="w-44 sm:w-56 rounded-lg border border-stone-200 bg-white py-1.5 pl-8 pr-3 text-[11px] text-stone-700 placeholder-stone-400 focus:border-[#15803D] focus:outline-none"
                 />
                 {searchQuery && (
                   <button
@@ -338,7 +338,7 @@ export default function CctvRequests() {
                     key={st}
                     onClick={() => setStatusFilter(st)}
                     className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition ${
-                      statusFilter === st ? "bg-white text-[#0038A8] shadow-sm" : "text-stone-500 hover:text-stone-700"
+                      statusFilter === st ? "bg-white text-[#15803D] shadow-sm" : "text-stone-500 hover:text-stone-700"
                     }`}
                   >
                     {st === "ALL"
@@ -357,7 +357,7 @@ export default function CctvRequests() {
                     key={pr}
                     onClick={() => setPriorityFilter(pr)}
                     className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition capitalize ${
-                      priorityFilter === pr ? "bg-white text-[#0038A8] shadow-sm" : "text-stone-500 hover:text-stone-700"
+                      priorityFilter === pr ? "bg-white text-[#15803D] shadow-sm" : "text-stone-500 hover:text-stone-700"
                     }`}
                   >
                     {pr === "ALL" ? "All Prios" : pr}
@@ -391,7 +391,7 @@ export default function CctvRequests() {
                 return (
                   <div
                     key={req.id}
-                    className="p-4 sm:p-5 transition hover:bg-[#E9EDFB]/30"
+                    className="p-4 sm:p-5 transition hover:bg-[#DCFCE7]/30"
                   >
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                       {/* Left: Requisition Details */}
@@ -399,7 +399,7 @@ export default function CctvRequests() {
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-mono text-xs font-bold text-stone-900">{req.id}</span>
                           {req.incidentId && (
-                            <span className="rounded-md bg-[#0038A8]/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-[#0038A8]">
+                            <span className="rounded-md bg-[#15803D]/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-[#15803D]">
                               Incident: {req.incidentId}
                             </span>
                           )}
@@ -424,7 +424,7 @@ export default function CctvRequests() {
                         {/* Camera & Time Window Specification */}
                         <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-stone-600">
                           <span className="inline-flex items-center gap-1 font-medium text-stone-800">
-                            <Camera size={13} className="text-[#0038A8]" />
+                            <Camera size={13} className="text-[#15803D]" />
                             {req.cameraName || req.cameraId || "Unspecified Camera"}
                           </span>
                           {req.date && (
@@ -455,7 +455,7 @@ export default function CctvRequests() {
 
                         {/* Operator Feedback Note */}
                         {req.operatorStatus && (
-                          <div className="mt-2.5 flex items-start gap-1.5 rounded-lg border border-blue-100 bg-[#0038A8]/5 px-3 py-1.5 text-[11px] text-[#0038A8]">
+                          <div className="mt-2.5 flex items-start gap-1.5 rounded-lg border border-green-100 bg-[#15803D]/5 px-3 py-1.5 text-[11px] text-[#15803D]">
                             <Info size={13} className="shrink-0 mt-0.5" />
                             <span>
                               <strong>Surveillance Team Note: </strong>
@@ -562,7 +562,7 @@ export default function CctvRequests() {
               <select
                 value={formIncidentId}
                 onChange={(e) => handleSelectIncident(e.target.value)}
-                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]"
+                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]"
               >
                 <option value="">-- Standalone Requisition (No Incident Linked) --</option>
                 {incidents.map((inc) => (
@@ -586,7 +586,7 @@ export default function CctvRequests() {
                   value={formCameraId}
                   onChange={(e) => setFormCameraId(e.target.value)}
                   required
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]"
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]"
                 >
                   <option value="">Select CCTV Camera...</option>
                   {AVAILABLE_CAMERAS.map((cam) => (
@@ -604,7 +604,7 @@ export default function CctvRequests() {
                 <select
                   value={formPriority}
                   onChange={(e) => setFormPriority(e.target.value as "standard" | "urgent")}
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]"
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]"
                 >
                   <option value="standard">Standard Priority (Regular Blotter Case)</option>
                   <option value="urgent">Urgent Priority (Critical / Escalated Case)</option>
@@ -623,7 +623,7 @@ export default function CctvRequests() {
                   value={formDate}
                   onChange={(e) => setFormDate(e.target.value)}
                   required
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]"
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]"
                 />
               </div>
 
@@ -637,7 +637,7 @@ export default function CctvRequests() {
                   onChange={(e) => setFormStartTime(e.target.value)}
                   placeholder="20:00:00"
                   required
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]"
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]"
                 />
               </div>
 
@@ -651,7 +651,7 @@ export default function CctvRequests() {
                   onChange={(e) => setFormEndTime(e.target.value)}
                   placeholder="20:15:00"
                   required
-                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]"
+                  className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]"
                 />
               </div>
             </div>
@@ -666,7 +666,7 @@ export default function CctvRequests() {
                 value={formEventTag}
                 onChange={(e) => setFormEventTag(e.target.value)}
                 placeholder="e.g. Public Disturbance, Vehicular Incident, Theft"
-                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]"
+                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]"
               />
             </div>
 
@@ -681,7 +681,7 @@ export default function CctvRequests() {
                 rows={3}
                 required
                 placeholder="State the official justification for reviewing and exporting this surveillance recording..."
-                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]"
+                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]"
               />
             </div>
 
@@ -695,7 +695,7 @@ export default function CctvRequests() {
                 value={formNote}
                 onChange={(e) => setFormNote(e.target.value)}
                 placeholder="e.g. Target suspect wearing dark shirt moving towards market entrance."
-                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]"
+                className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-800 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]"
               />
             </div>
 
@@ -719,7 +719,7 @@ export default function CctvRequests() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-5 py-2 text-xs font-semibold text-white hover:bg-[#002A8C] transition disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#15803D] px-5 py-2 text-xs font-semibold text-white hover:bg-[#166534] transition disabled:opacity-50"
               >
                 <Plus size={13} />
                 {isSubmitting ? "Submitting..." : "Submit Requisition"}
@@ -746,7 +746,7 @@ export default function CctvRequests() {
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-sm font-bold text-stone-900">{selectedRequest.id}</span>
                   {selectedRequest.incidentId && (
-                    <span className="rounded-md bg-[#0038A8]/10 px-2 py-0.5 font-mono text-xs font-semibold text-[#0038A8]">
+                    <span className="rounded-md bg-[#15803D]/10 px-2 py-0.5 font-mono text-xs font-semibold text-[#15803D]">
                       Incident: {selectedRequest.incidentId}
                     </span>
                   )}
@@ -810,7 +810,7 @@ export default function CctvRequests() {
                       <div className="mt-2.5 flex items-center gap-2">
                         <button
                           onClick={() => setActiveClipModal(clip)}
-                          className="inline-flex items-center gap-1 rounded bg-[#0038A8] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#002A8C] transition"
+                          className="inline-flex items-center gap-1 rounded bg-[#15803D] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#166534] transition"
                         >
                           <Play size={11} className="fill-white" />
                           Play Clip
@@ -834,7 +834,7 @@ export default function CctvRequests() {
             {selectedRequest.stills && selectedRequest.stills.length > 0 && (
               <div className="rounded-xl border border-stone-200 bg-stone-50/50 p-4">
                 <h4 className="text-xs font-bold text-stone-900 uppercase tracking-wide flex items-center gap-1.5">
-                  <Camera size={14} className="text-[#0038A8]" />
+                  <Camera size={14} className="text-[#15803D]" />
                   Extracted Stills ({selectedRequest.stills.length})
                 </h4>
                 <div className="mt-3 flex flex-wrap gap-3">
@@ -842,7 +842,7 @@ export default function CctvRequests() {
                     <button
                       key={still.id}
                       onClick={() => setActiveStillModal(still)}
-                      className="group relative overflow-hidden rounded-lg border border-stone-200 bg-stone-100 p-1 hover:border-[#0038A8] transition text-left"
+                      className="group relative overflow-hidden rounded-lg border border-stone-200 bg-stone-100 p-1 hover:border-[#15803D] transition text-left"
                     >
                       <div className="h-20 w-32 rounded bg-stone-800 flex items-center justify-center text-stone-400 group-hover:bg-stone-700">
                         <Camera size={20} />
@@ -859,14 +859,14 @@ export default function CctvRequests() {
             {/* Chain of Custody Audit Trail */}
             <div>
               <h4 className="text-xs font-bold text-stone-900 uppercase tracking-wide flex items-center gap-1.5 mb-2">
-                <Shield size={14} className="text-[#0038A8]" />
+                <Shield size={14} className="text-[#15803D]" />
                 Chain of Custody & Audit Log
               </h4>
               <div className="rounded-xl border border-stone-200 bg-white p-3 space-y-2.5 max-h-48 overflow-y-auto">
                 {selectedRequest.chainOfCustody && selectedRequest.chainOfCustody.length > 0 ? (
                   selectedRequest.chainOfCustody.map((custody, idx) => (
                     <div key={idx} className="flex items-start gap-2.5 text-xs pb-2 border-b border-stone-100 last:border-0 last:pb-0">
-                      <div className="h-2 w-2 rounded-full bg-[#0038A8] mt-1.5 shrink-0" />
+                      <div className="h-2 w-2 rounded-full bg-[#15803D] mt-1.5 shrink-0" />
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <span className="font-semibold text-stone-900">{custody.action}</span>
@@ -992,7 +992,7 @@ export default function CctvRequests() {
               <a
                 href={activeClipModal.storageUrl}
                 download={`evidence-${activeClipModal.id}.mp4`}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#002A8C] transition"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#166534] transition"
               >
                 <Download size={13} />
                 Download Clip

@@ -208,7 +208,7 @@ function StackedBarChart({ incidents }) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
       <div className="flex items-center gap-2 px-5 py-4">
-        <BarChart3 size={16} className="text-[#0038A8]" />
+        <BarChart3 size={16} className="text-[#15803D]" />
         <div>
           <h3 className="text-[14px] font-semibold text-stone-900">Incident Distribution by Purok</h3>
           <p className="text-[11px] text-stone-400">Stacked by severity level</p>
@@ -220,7 +220,7 @@ function StackedBarChart({ incidents }) {
           <div key={p.name}>
             <div className="mb-1 flex items-center justify-between">
               <span className="text-[11px] font-medium text-stone-900">{p.name}</span>
-              <span className="text-[11px] font-semibold text-[#0038A8]">{p.total}</span>
+              <span className="text-[11px] font-semibold text-[#15803D]">{p.total}</span>
             </div>
             <div className="flex h-5 w-full overflow-hidden rounded bg-stone-100">
               {p.critical > 0 && (
@@ -281,7 +281,7 @@ function CategoryDonut({ incidents }) {
       counts[inc.category] = (counts[inc.category] || 0) + 1;
     });
     const total = incidents.length || 1;
-    const colors = ["#0038A8", "#f59e0b", "#0ea5e9", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4"];
+    const colors = ["#15803D", "#f59e0b", "#0ea5e9", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4"];
     return Object.entries(counts)
       .map(([name, count], i) => ({
         name,
@@ -309,7 +309,7 @@ function CategoryDonut({ incidents }) {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
       <div className="flex items-center gap-2 px-5 py-4">
-        <Activity size={16} className="text-[#0038A8]" />
+        <Activity size={16} className="text-[#15803D]" />
         <div>
           <h3 className="text-[14px] font-semibold text-stone-900">Category Breakdown</h3>
           <p className="text-[11px] text-stone-400">Incident type distribution</p>
@@ -354,7 +354,7 @@ function CategoryDonut({ incidents }) {
                     <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: cat.color }} />
                     <CatIcon size={11} className="text-stone-500" />
                     <span className="flex-1 truncate text-[11px] text-stone-900">{cat.name}</span>
-                    <span className="text-[11px] font-semibold text-[#0038A8]">{cat.pct}%</span>
+                    <span className="text-[11px] font-semibold text-[#15803D]">{cat.pct}%</span>
                   </div>
                 );
               })}
@@ -391,7 +391,7 @@ function ResponseTimeLineChart() {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
       <div className="flex items-center gap-2 px-5 py-4">
-        <TrendingUp size={16} className="text-[#0038A8]" />
+        <TrendingUp size={16} className="text-[#15803D]" />
         <div>
           <h3 className="text-[14px] font-semibold text-stone-900">Response Time Trends</h3>
           <p className="text-[11px] text-stone-400">Average vs high-density purok response (minutes)</p>
@@ -412,12 +412,12 @@ function ResponseTimeLineChart() {
             );
           })}
 
-          <path d={pathD("avg")} fill="none" stroke="#0038A8" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          <path d={pathD("avg")} fill="none" stroke="#15803D" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
           <path d={pathD("high")} fill="none" stroke="#f59e0b" strokeWidth={2} strokeDasharray="4 3" strokeLinecap="round" strokeLinejoin="round" />
 
           {data.map((d, i) => (
             <g key={i}>
-              <circle cx={toX(i)} cy={toY(d.avg)} r={3} fill="#0038A8" stroke="white" strokeWidth={1.5} />
+              <circle cx={toX(i)} cy={toY(d.avg)} r={3} fill="#15803D" stroke="white" strokeWidth={1.5} />
               <circle cx={toX(i)} cy={toY(d.high)} r={3} fill="#f59e0b" stroke="white" strokeWidth={1.5} />
             </g>
           ))}
@@ -431,7 +431,7 @@ function ResponseTimeLineChart() {
 
         <div className="flex items-center justify-center gap-5 pt-1">
           <span className="flex items-center gap-1.5 text-[10px] text-stone-500">
-            <span className="h-0.5 w-4 rounded bg-[#0038A8]" /> Barangay Avg
+            <span className="h-0.5 w-4 rounded bg-[#15803D]" /> Barangay Avg
           </span>
           <span className="flex items-center gap-1.5 text-[10px] text-stone-500">
             <span className="h-0.5 w-4 rounded border-t-2 border-dashed border-amber-400" /> High-Density
@@ -482,7 +482,7 @@ function IncidentDetailView({ incident, onBack }: { incident: any; onBack: () =>
               <p className="text-[10px] text-stone-400">Attached by responding tanod</p>
             </div>
             {evidence.photos > 0 && (
-              <button className="ml-auto text-[10px] font-medium text-[#0038A8] hover:underline">View</button>
+              <button className="ml-auto text-[10px] font-medium text-[#15803D] hover:underline">View</button>
             )}
           </div>
 
@@ -495,7 +495,7 @@ function IncidentDetailView({ incident, onBack }: { incident: any; onBack: () =>
               <p className="text-[10px] text-stone-400">CCTV / body-cam footage</p>
             </div>
             {evidence.videoClips > 0 && (
-              <button className="ml-auto text-[10px] font-medium text-[#0038A8] hover:underline">View</button>
+              <button className="ml-auto text-[10px] font-medium text-[#15803D] hover:underline">View</button>
             )}
           </div>
 
@@ -545,7 +545,7 @@ function PurokDetailDrawer({ purokName, incidents, rating, onClose }: {
         <>
           <div className="mb-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-3 text-center">
-              <p className="text-[18px] font-bold text-[#0038A8]">{purokIncidents.length}</p>
+              <p className="text-[18px] font-bold text-[#15803D]">{purokIncidents.length}</p>
               <p className="text-[10px] text-stone-400">TOTAL</p>
             </div>
             <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-3 text-center">
@@ -578,7 +578,7 @@ function PurokDetailDrawer({ purokName, incidents, rating, onClose }: {
                     <button
                       key={inc.id}
                       onClick={() => setSelectedIncident(inc)}
-                      className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-left transition hover:border-[#0038A8]/30 hover:bg-stone-50"
+                      className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-left transition hover:border-[#15803D]/30 hover:bg-stone-50"
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] font-semibold text-stone-900">{inc.id}</span>
@@ -745,13 +745,13 @@ function EscalationModal({ type, zone, onClose }: { type: string; zone: string; 
       centered
       title={title}
       subtitle={`Target zone: ${zone}`}
-      icon={<Icon size={16} className="text-[#0038A8]" />}
+      icon={<Icon size={16} className="text-[#15803D]" />}
       footer={
         <div className="flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-lg px-3 py-1.5 text-[11px] font-medium text-stone-500 hover:bg-stone-100">
             Cancel
           </button>
-          <button type="submit" form="escalation-form" className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]">
+          <button type="submit" form="escalation-form" className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]">
             <Send size={12} />
             {SUBMIT_LABEL[type] || "Submit"}
           </button>
@@ -788,7 +788,7 @@ function EscalationModal({ type, zone, onClose }: { type: string; zone: string; 
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     placeholder="e.g. Flash Flood Warning â€” Immediate Evacuation"
-                    className="w-full rounded-lg border border-stone-200 py-2 pl-8 pr-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                    className="w-full rounded-lg border border-stone-200 py-2 pl-8 pr-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                     required
                   />
                 </div>
@@ -802,7 +802,7 @@ function EscalationModal({ type, zone, onClose }: { type: string; zone: string; 
                     onChange={(e) => setMessage(e.target.value)}
                     rows={4}
                     placeholder="Type the emergency message to broadcast to all residents in this zone..."
-                    className="w-full resize-none rounded-lg border border-stone-200 py-2 pl-8 pr-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                    className="w-full resize-none rounded-lg border border-stone-200 py-2 pl-8 pr-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                     required
                   />
                 </div>
@@ -825,7 +825,7 @@ function EscalationModal({ type, zone, onClose }: { type: string; zone: string; 
                   <select
                     value={patrolUnit}
                     onChange={(e) => setPatrolUnit(e.target.value)}
-                    className="w-full appearance-none rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-8 text-[12px] text-stone-900 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                    className="w-full appearance-none rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-8 text-[12px] text-stone-900 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                   >
                     {PATROL_UNITS.map((u) => (
                       <option key={u} value={u}>{u}</option>
@@ -843,7 +843,7 @@ function EscalationModal({ type, zone, onClose }: { type: string; zone: string; 
                     onChange={(e) => setMessage(e.target.value)}
                     rows={3}
                     placeholder="e.g. Increase patrol presence near the main plaza. Focus on late-night noise complaints and suspicious activity around the convenience store..."
-                    className="w-full resize-none rounded-lg border border-stone-200 py-2 pl-8 pr-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                    className="w-full resize-none rounded-lg border border-stone-200 py-2 pl-8 pr-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                     required
                   />
                 </div>
@@ -851,7 +851,7 @@ function EscalationModal({ type, zone, onClose }: { type: string; zone: string; 
               <div>
                 <p className="mb-1.5 text-[11px] font-semibold text-stone-700">Dispatch Route</p>
                 <div className="flex items-start gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
-                  <FileBadge size={13} className="mt-0.5 shrink-0 text-[#0038A8]" />
+                  <FileBadge size={13} className="mt-0.5 shrink-0 text-[#15803D]" />
                   <p className="text-[10px] text-stone-500">
                     Sent as a <span className="font-semibold text-stone-700">high-priority re-route request</span> to the
                     Desk Officer queue. The Desk Officer confirms and executes the re-route to {patrolUnit}'s mobile app.
@@ -870,7 +870,7 @@ function EscalationModal({ type, zone, onClose }: { type: string; zone: string; 
                   <select
                     value={assignTo}
                     onChange={(e) => setAssignTo(e.target.value)}
-                    className="w-full appearance-none rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-8 text-[12px] text-stone-900 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                    className="w-full appearance-none rounded-lg border border-stone-200 bg-white py-2 pl-8 pr-8 text-[12px] text-stone-900 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                   >
                     {DESK_OFFICERS.map((o) => (
                       <option key={o} value={o}>{o}</option>
@@ -888,13 +888,13 @@ function EscalationModal({ type, zone, onClose }: { type: string; zone: string; 
                     onChange={(e) => setMessage(e.target.value)}
                     rows={4}
                     placeholder="Describe what action you are requesting the Desk Officer to take. e.g. Review high incident counts in Purok 3, coordinate with the Purok Leader, and schedule a community safety meeting..."
-                    className="w-full resize-none rounded-lg border border-stone-200 py-2 pl-8 pr-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                    className="w-full resize-none rounded-lg border border-stone-200 py-2 pl-8 pr-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                     required
                   />
                 </div>
               </div>
               <div className="flex items-start gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
-                <Flag size={13} className="mt-0.5 shrink-0 text-[#0038A8]" />
+                <Flag size={13} className="mt-0.5 shrink-0 text-[#15803D]" />
                 <p className="text-[10px] text-stone-500">
                   Creates an <span className="font-semibold text-stone-700">escalation request</span> for the selected Desk
                   Officer. The Desk Officer reviews the request and owns the final action.
@@ -1040,7 +1040,7 @@ export default function PurokAnalyticsPage() {
               key={dr.key}
               onClick={() => setDateRange(dr.key)}
               className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
-                dateRange === dr.key ? "bg-[#0038A8] text-white" : "text-stone-500 hover:bg-stone-100"
+                dateRange === dr.key ? "bg-[#15803D] text-white" : "text-stone-500 hover:bg-stone-100"
               }`}
             >
               {dr.label}
@@ -1052,7 +1052,7 @@ export default function PurokAnalyticsPage() {
           <select
             value={purokFilter}
             onChange={(e) => setPurokFilter(e.target.value)}
-            className="appearance-none rounded-lg border border-black/10 bg-white px-3 py-1.5 pr-8 text-[11px] font-medium text-stone-900 hover:bg-stone-50 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+            className="appearance-none rounded-lg border border-black/10 bg-white px-3 py-1.5 pr-8 text-[11px] font-medium text-stone-900 hover:bg-stone-50 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
           >
             <option value="All Puroks">All Puroks</option>
             {PUROK_NAMES.map((p) => (
@@ -1066,7 +1066,7 @@ export default function PurokAnalyticsPage() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="appearance-none rounded-lg border border-black/10 bg-white px-3 py-1.5 pr-8 text-[11px] font-medium text-stone-900 hover:bg-stone-50 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+            className="appearance-none rounded-lg border border-black/10 bg-white px-3 py-1.5 pr-8 text-[11px] font-medium text-stone-900 hover:bg-stone-50 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
           >
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>{c}</option>
@@ -1079,7 +1079,7 @@ export default function PurokAnalyticsPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="appearance-none rounded-lg border border-black/10 bg-white px-3 py-1.5 pr-8 text-[11px] font-medium text-stone-900 hover:bg-stone-50 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+            className="appearance-none rounded-lg border border-black/10 bg-white px-3 py-1.5 pr-8 text-[11px] font-medium text-stone-900 hover:bg-stone-50 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
           >
             {STATUSES.map((s) => (
               <option key={s} value={s}>{s === "All Statuses" ? s : STATUS_LABELS[s]}</option>
@@ -1092,7 +1092,7 @@ export default function PurokAnalyticsPage() {
 
         <button
           onClick={() => setShowExportModal(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+          className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
         >
           <Download size={13} />
           Export Report
@@ -1140,12 +1140,12 @@ export default function PurokAnalyticsPage() {
               <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
                 <div className="flex items-start justify-between">
                   <span className="text-[10px] font-medium tracking-wider text-stone-400">{label}</span>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                     <Icon size={15} />
                   </div>
                 </div>
                 <div className="mt-2 flex items-center gap-2">
-                  <span className="text-[26px] font-bold text-[#0038A8]">{value}</span>
+                  <span className="text-[26px] font-bold text-[#15803D]">{value}</span>
                   {trend !== undefined && <TrendBadge current={totalIncidents} previous={prevTotalIncidents} />}
                   {trendVal !== undefined && trendVal !== null && (
                     <TrendBadge current={parseFloat(avgResponseTime)} previous={prevAvgResponseTime} />
@@ -1182,7 +1182,7 @@ export default function PurokAnalyticsPage() {
 
           <div className="overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center gap-2 border-b border-black/5 px-5 py-4">
-              <BarChart3 size={16} className="text-[#0038A8]" />
+              <BarChart3 size={16} className="text-[#15803D]" />
               <div>
                 <h3 className="text-[14px] font-semibold text-stone-900">Purok Detailed Summary</h3>
                 <p className="text-[11px] text-stone-400">Zone-by-zone peace and order metrics</p>

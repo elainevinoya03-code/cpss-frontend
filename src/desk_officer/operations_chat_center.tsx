@@ -180,10 +180,10 @@ export default function OperationsChatCenter() {
         key={c.id}
         onClick={() => selectContact(c.id)}
         className={`flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition ${
-          activeId === c.id ? "border-[#0038A8]/30 bg-[#0038A8]/5" : "border-transparent hover:bg-stone-50"
+          activeId === c.id ? "border-[#15803D]/30 bg-[#15803D]/5" : "border-transparent hover:bg-stone-50"
         }`}
       >
-        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0038A8] text-[10px] font-bold text-white">
+        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#15803D] text-[10px] font-bold text-white">
           {c.initials}
           <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${statusDot(c.status)}`} />
         </span>
@@ -208,7 +208,7 @@ export default function OperationsChatCenter() {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pt-4 sm:px-6">
         <header className="mb-4 shrink-0 border-b border-stone-200 pb-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -224,7 +224,7 @@ export default function OperationsChatCenter() {
                 {onlineTanods}/{tanods.length} Tanods online
               </span>
               <span className="flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-[10px] font-semibold text-stone-600">
-                <Users size={11} className="text-[#0038A8]" />
+                <Users size={11} className="text-[#15803D]" />
                 {onlineLeaders}/{leaders.length} Leaders online
               </span>
               {totalUnread > 0 && (
@@ -252,7 +252,7 @@ export default function OperationsChatCenter() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search contacts..."
-                  className="w-full rounded-lg border border-stone-200 bg-stone-50 py-1.5 pl-7 pr-2.5 text-[11px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none"
+                  className="w-full rounded-lg border border-stone-200 bg-stone-50 py-1.5 pl-7 pr-2.5 text-[11px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none"
                 />
               </div>
             </div>
@@ -273,7 +273,7 @@ export default function OperationsChatCenter() {
           <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex shrink-0 items-center justify-between border-b border-stone-100 px-4 py-3">
               <div className="flex items-center gap-2.5">
-                <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[#0038A8] text-[10px] font-bold text-white">
+                <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-[#15803D] text-[10px] font-bold text-white">
                   {active.initials}
                   <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${statusDot(active.status)}`} />
                 </span>
@@ -301,7 +301,7 @@ export default function OperationsChatCenter() {
                 <div key={m.id} className={`flex ${m.from === "me" ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`max-w-[75%] rounded-lg px-3 py-2 ${
-                      m.from === "me" ? "bg-[#0038A8] text-white" : "border border-stone-200 bg-stone-50 text-stone-800"
+                      m.from === "me" ? "bg-[#15803D] text-white" : "border border-stone-200 bg-stone-50 text-stone-800"
                     }`}
                   >
                     <p className="text-[12px] leading-snug">{m.text}</p>
@@ -320,7 +320,7 @@ export default function OperationsChatCenter() {
                   <button
                     key={q.label}
                     onClick={() => sendText(q.text)}
-                    className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[10px] font-medium text-stone-600 transition hover:border-[#0038A8]/30 hover:bg-[#0038A8]/5 hover:text-[#0038A8]"
+                    className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[10px] font-medium text-stone-600 transition hover:border-[#15803D]/30 hover:bg-[#15803D]/5 hover:text-[#15803D]"
                   >
                     {q.label}
                   </button>
@@ -332,12 +332,12 @@ export default function OperationsChatCenter() {
                   onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && sendText(chatInput)}
                   placeholder={`Message ${active.name}...`}
-                  className="flex-1 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                  className="flex-1 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                 />
                 <button
                   onClick={() => sendText(chatInput)}
                   disabled={!chatInput.trim()}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#0038A8] text-white transition hover:bg-[#002A8C] disabled:opacity-40"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#15803D] text-white transition hover:bg-[#166534] disabled:opacity-40"
                 >
                   <Send size={14} />
                 </button>
@@ -349,10 +349,10 @@ export default function OperationsChatCenter() {
             <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-stone-100 px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <Radio size={14} className="text-[#0038A8]" />
+                  <Radio size={14} className="text-[#15803D]" />
                   <span className="text-[11px] font-bold text-stone-800">Active Dispatch Progress</span>
                 </div>
-                <span className="rounded-full bg-[#0038A8]/5 px-2 py-0.5 text-[9px] font-semibold text-[#0038A8]">{ACTIVE_DISPATCHES.length}</span>
+                <span className="rounded-full bg-[#15803D]/5 px-2 py-0.5 text-[9px] font-semibold text-[#15803D]">{ACTIVE_DISPATCHES.length}</span>
               </div>
               <div className="space-y-2 px-3 py-3">
                 {ACTIVE_DISPATCHES.map((d) => (
@@ -369,7 +369,7 @@ export default function OperationsChatCenter() {
                       </span>
                       <button
                         onClick={() => sendTo(UNIT_CONTACT[d.unit], `Please provide a quick status update on ${d.id}.`)}
-                        className="rounded-md bg-[#0038A8]/5 px-2 py-1 text-[9px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white"
+                        className="rounded-md bg-[#15803D]/5 px-2 py-1 text-[9px] font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white"
                       >
                         Ask Status
                       </button>
@@ -382,7 +382,7 @@ export default function OperationsChatCenter() {
             <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-stone-100 px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <BellRing size={14} className="text-[#0038A8]" />
+                  <BellRing size={14} className="text-[#15803D]" />
                   <span className="text-[11px] font-bold text-stone-800">IoT Alert Coordination</span>
                 </div>
               </div>
@@ -396,7 +396,7 @@ export default function OperationsChatCenter() {
                     <p className="mt-0.5 text-[10px] text-stone-500">{a.id} · {a.purok}</p>
                     <button
                       onClick={() => sendTo(UNIT_CONTACT[a.purok === "Purok 6" ? "Team Charlie" : "Team Alpha"], `Request on-site reading confirmation for ${a.id} (${a.purok}).`)}
-                      className="mt-1.5 w-full rounded-md bg-[#0038A8]/5 px-2 py-1.5 text-[9px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white"
+                      className="mt-1.5 w-full rounded-md bg-[#15803D]/5 px-2 py-1.5 text-[9px] font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white"
                     >
                       Request On-Site Reading
                     </button>
@@ -408,7 +408,7 @@ export default function OperationsChatCenter() {
             <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-stone-100 px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <UserCheck size={14} className="text-[#0038A8]" />
+                  <UserCheck size={14} className="text-[#15803D]" />
                   <span className="text-[11px] font-bold text-stone-800">Resident Report Verification</span>
                 </div>
               </div>
@@ -426,7 +426,7 @@ export default function OperationsChatCenter() {
                     <p className="text-[9px] text-stone-400">reported by {r.reporter}</p>
                     <button
                       onClick={() => sendTo(PUROK_LEADER_CONTACT[r.purok], `Verify local context for ${r.id} (${r.topic}) reported by ${r.reporter}.`)}
-                      className="mt-1.5 w-full rounded-md bg-[#0038A8]/5 px-2 py-1.5 text-[9px] font-semibold text-[#0038A8] transition hover:bg-[#0038A8] hover:text-white"
+                      className="mt-1.5 w-full rounded-md bg-[#15803D]/5 px-2 py-1.5 text-[9px] font-semibold text-[#15803D] transition hover:bg-[#15803D] hover:text-white"
                     >
                       Verify With Leader
                     </button>

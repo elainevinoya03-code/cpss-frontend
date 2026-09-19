@@ -232,7 +232,7 @@ function HazardMap({ sensors, tanodUnits, showPatrol, onTogglePatrol, onSensorCl
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
-          <Map size={16} className="text-[#0038A8]" />
+          <Map size={16} className="text-[#15803D]" />
           <div>
             <h3 className="text-[14px] font-semibold text-stone-900">Sensor &amp; Hazard Map</h3>
             <p className="text-[11px] text-stone-400">Geofenced purok boundaries with live IoT markers</p>
@@ -319,8 +319,8 @@ function HazardMap({ sensors, tanodUnits, showPatrol, onTogglePatrol, onSensorCl
                 onMouseEnter={() => setHoveredTanod(unit.id)}
                 onMouseLeave={() => setHoveredTanod(null)}
               >
-                <circle cx={unit.lat} cy={unit.lng} r={12} fill="#0038A8" opacity={0.12} />
-                <circle cx={unit.lat} cy={unit.lng} r={5} fill="#0038A8" stroke="white" strokeWidth={1.5} />
+                <circle cx={unit.lat} cy={unit.lng} r={12} fill="#15803D" opacity={0.12} />
+                <circle cx={unit.lat} cy={unit.lng} r={5} fill="#15803D" stroke="white" strokeWidth={1.5} />
                 <text x={unit.lat} y={unit.lng + 1.5} textAnchor="middle" fontSize="5" fontWeight="700" fill="white">T</text>
               </g>
             ))}
@@ -437,7 +437,7 @@ function PurokAnalytics({ incidents }) {
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
-          <BarChart3 size={16} className="text-[#0038A8]" />
+          <BarChart3 size={16} className="text-[#15803D]" />
           <div>
             <h3 className="text-[14px] font-semibold text-stone-900">Purok Incident Breakdown</h3>
             <p className="text-[11px] text-stone-400">Distribution by zone and severity</p>
@@ -450,7 +450,7 @@ function PurokAnalytics({ incidents }) {
           <div key={p.id}>
             <div className="mb-1 flex items-center justify-between">
               <span className="text-[11px] font-medium text-stone-900">{p.name}</span>
-              <span className="text-[11px] font-semibold text-[#0038A8]">{p.total}</span>
+              <span className="text-[11px] font-semibold text-[#15803D]">{p.total}</span>
             </div>
             <div className="flex h-5 w-full overflow-hidden rounded bg-stone-100">
               <div
@@ -543,7 +543,7 @@ function IncidentDetail({ incident, onClose, onBroadcast, onRequestFollowUp }) {
             {incident.status !== "resolved" ? (
               <button
                 onClick={() => onBroadcast(incident)}
-                className="flex h-10 items-center justify-center gap-1.5 rounded-lg bg-[#0038A8] px-4 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+                className="flex h-10 items-center justify-center gap-1.5 rounded-lg bg-[#15803D] px-4 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
               >
                 <Megaphone size={13} />
                 Prepare Broadcast
@@ -635,7 +635,7 @@ function RequestFollowUpModal({ incident, onClose, onSubmit }: { incident: any; 
     <Modal
       size="md"
       onClose={onClose}
-      icon={<MessageSquarePlus size={16} className="text-[#0038A8]" />}
+      icon={<MessageSquarePlus size={16} className="text-[#15803D]" />}
       title="Request Follow-up"
       subtitle={`Send a follow-up request for ${incident?.id ?? "this incident"} to the Desk Officer`}
       footer={
@@ -649,7 +649,7 @@ function RequestFollowUpModal({ incident, onClose, onSubmit }: { incident: any; 
           <button
             onClick={() => onSubmit(reason.trim())}
             disabled={!reason.trim()}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C] disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534] disabled:opacity-50"
           >
             <Send size={13} />
             Send Request
@@ -669,7 +669,7 @@ function RequestFollowUpModal({ incident, onClose, onSubmit }: { incident: any; 
             onChange={(e) => setReason(e.target.value)}
             rows={4}
             placeholder="What would you like the Desk Officer to follow up on?"
-            className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+            className="w-full resize-none rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
           />
         </div>
         <p className="mt-2 text-[10px] text-stone-400">
@@ -901,7 +901,7 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
 
   return (
     <>
-      <main className="flex-1 min-h-0 overflow-y-auto bg-[#E9EDFB] px-3 py-4 sm:px-6 sm:py-6">
+      <main className="flex-1 min-h-0 overflow-y-auto bg-[#DCFCE7] px-3 py-4 sm:px-6 sm:py-6">
         {activeKey === "analytics" ? (
           <PurokAnalyticsPage />
         ) : isDashboardView ? (
@@ -915,7 +915,7 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={handleMassAlert}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+                    className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
                   >
                     <Megaphone size={13} />
                     Mass Alert
@@ -928,7 +928,7 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
                     key={t.key}
                     onClick={() => setDashTab(t.key as "overview" | "reports")}
                     className={`rounded-md px-3 py-1.5 text-[11px] font-medium transition ${
-                      dashTab === t.key ? "bg-[#0038A8] text-white" : "text-stone-500 hover:bg-stone-100"
+                      dashTab === t.key ? "bg-[#15803D] text-white" : "text-stone-500 hover:bg-stone-100"
                     }`}
                   >
                     {t.label}
@@ -946,7 +946,7 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
                     key={tr.key}
                     onClick={() => setTimeRange(tr.key)}
                     className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
-                      timeRange === tr.key ? "bg-[#0038A8] text-white" : "text-stone-500 hover:bg-stone-100"
+                      timeRange === tr.key ? "bg-[#15803D] text-white" : "text-stone-500 hover:bg-stone-100"
                     }`}
                   >
                     {tr.label}
@@ -974,7 +974,7 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
                               key={opt.key}
                               onClick={() => setCategoryFilter(opt.key)}
                               className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${
-                                categoryFilter === opt.key ? "bg-[#0038A8] text-white" : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+                                categoryFilter === opt.key ? "bg-[#15803D] text-white" : "bg-stone-100 text-stone-500 hover:bg-stone-200"
                               }`}
                             >
                               {opt.label}
@@ -990,7 +990,7 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
                               key={opt.key}
                               onClick={() => setPurokFilter(opt.key)}
                               className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${
-                                purokFilter === opt.key ? "bg-[#0038A8] text-white" : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+                                purokFilter === opt.key ? "bg-[#15803D] text-white" : "bg-stone-100 text-stone-500 hover:bg-stone-200"
                               }`}
                             >
                               {opt.label}
@@ -1022,11 +1022,11 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
                 >
                   <div className="flex items-start justify-between">
                     <span className="text-[10px] font-medium tracking-wider text-stone-400">{label}</span>
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                       <Icon size={15} />
                     </div>
                   </div>
-                  <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+                  <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
                   <div className="mt-1 text-[11px] text-stone-400">{sub}</div>
                 </div>
               ))}
@@ -1046,7 +1046,7 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
               <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
                 <div className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-2">
-                    <AlertTriangle size={16} className="text-[#0038A8]" />
+                    <AlertTriangle size={16} className="text-[#15803D]" />
                     <div>
                       <h3 className="text-[14px] font-semibold text-stone-900">Active Incident Queue</h3>
                       <p className="text-[11px] text-stone-400">{activeIncidents.length} open</p>
@@ -1127,7 +1127,7 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
               <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
                 <div className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-2">
-                    <ListChecks size={16} className="text-[#0038A8]" />
+                    <ListChecks size={16} className="text-[#15803D]" />
                     <div>
                       <h3 className="text-[14px] font-semibold text-stone-900">Operational Follow-ups</h3>
                       <p className="text-[11px] text-stone-400">Escalations, SLA concerns &amp; requests to/from the Desk</p>
@@ -1193,7 +1193,7 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
                           {item.reason && <p className="mt-1 text-[10px] italic leading-snug text-stone-400">“{item.reason}”</p>}
                           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-stone-500">
                             <span className="flex items-center gap-1">
-                              <MapPin size={9} className="text-[#0038A8]" />
+                              <MapPin size={9} className="text-[#15803D]" />
                               <span className="font-medium text-stone-700">{related}</span>
                             </span>
                             <span className="flex items-center gap-1">
@@ -1219,7 +1219,7 @@ export default function CaptainDashboard({ activeKey = "dashboard" }) {
               <div className="xl:col-span-1 rounded-xl border border-black/5 bg-white shadow-sm">
                 <div className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-2">
-                    <Clock size={16} className="text-[#0038A8]" />
+                    <Clock size={16} className="text-[#15803D]" />
                     <div>
                       <h3 className="text-[14px] font-semibold text-stone-900">Recent Activity</h3>
                       <p className="text-[11px] text-stone-400">Latest system and field events</p>

@@ -56,13 +56,13 @@ export function pointInPolygon(p: { x: number; y: number }, nodes: { x: number; 
 // ─── Shared Tailwind class strings ─────────────────────────────────────────────
 
 export const INPUT_CLASS =
-  "w-full rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none placeholder:text-stone-400 focus:border-[#0038A8] focus:ring-1 focus:ring-[#0038A8]";
+  "w-full rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none placeholder:text-stone-400 focus:border-[#15803D] focus:ring-1 focus:ring-[#15803D]";
 
 export const STYLES = {
   input:
-    "w-full rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 placeholder-stone-400 outline-none transition focus:border-[#0038A8] focus:ring-2 focus:ring-[#0038A8]/15 disabled:cursor-not-allowed disabled:bg-stone-50",
+    "w-full rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 placeholder-stone-400 outline-none transition focus:border-[#15803D] focus:ring-2 focus:ring-[#15803D]/15 disabled:cursor-not-allowed disabled:bg-stone-50",
   select:
-    "w-full appearance-none rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#0038A8] focus:ring-2 focus:ring-[#0038A8]/15",
+    "w-full appearance-none rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-[#15803D] focus:ring-2 focus:ring-[#15803D]/15",
   label:
     "mb-1.5 block text-[11px] font-semibold tracking-wide text-stone-500",
   section:
@@ -70,13 +70,13 @@ export const STYLES = {
   sectionTitle: "text-base font-bold text-stone-900",
   sectionDesc: "mt-1 text-xs text-stone-400",
   primaryBtn:
-    "flex items-center justify-center gap-2 rounded-md bg-[#0038A8] py-2.5 text-sm font-semibold text-white transition hover:bg-[#002A8C] active:scale-[0.99]",
+    "flex items-center justify-center gap-2 rounded-md bg-[#15803D] py-2.5 text-sm font-semibold text-white transition hover:bg-[#166534] active:scale-[0.99]",
   secondaryBtn:
     "flex items-center gap-1.5 rounded-md border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-50",
 };
 
 export const ACTION_STYLES: Record<string, string> = {
-  "Configuration Change": "bg-blue-50 text-blue-700",
+  "Configuration Change": "bg-green-50 text-green-700",
   "User Deactivation": "bg-red-50 text-red-600",
   "User Disabled": "bg-red-50 text-red-600",
   "User Enabled": "bg-emerald-50 text-emerald-700",
@@ -131,7 +131,7 @@ export function MapControlButton({
       title={label}
       aria-label={label}
       className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
-        active ? "bg-[#0038A8] text-white" : "text-stone-600 hover:bg-stone-100"
+        active ? "bg-[#15803D] text-white" : "text-stone-600 hover:bg-stone-100"
       }`}
     >
       <Icon className="h-4 w-4" />

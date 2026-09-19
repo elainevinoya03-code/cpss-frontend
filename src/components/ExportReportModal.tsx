@@ -96,7 +96,7 @@ export default function ExportReportModal({
       onClose={onClose}
       centered
       title={title}
-      icon={<Download size={16} className="text-[#0038A8]" />}
+      icon={<Download size={16} className="text-[#15803D]" />}
       footer={
         <div className="flex items-center justify-end gap-2">
           <button onClick={onClose} className="rounded-lg px-3 py-1.5 text-[11px] font-medium text-stone-500 hover:bg-stone-100">
@@ -104,7 +104,7 @@ export default function ExportReportModal({
           </button>
           <button
             onClick={handleExport}
-            className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#002A8C]"
+            className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-[#166534]"
           >
             <Download size={12} />
             Export {format.toUpperCase()}
@@ -122,7 +122,7 @@ export default function ExportReportModal({
                 <label
                   key={f.key}
                   className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2.5 transition ${
-                    format === f.key ? "border-[#0038A8] bg-[#0038A8]/5" : "border-stone-200 hover:bg-stone-50"
+                    format === f.key ? "border-[#15803D] bg-[#15803D]/5" : "border-stone-200 hover:bg-stone-50"
                   }`}
                 >
                   <input
@@ -131,7 +131,7 @@ export default function ExportReportModal({
                     value={f.key}
                     checked={format === f.key}
                     onChange={() => setFormat(f.key)}
-                    className="accent-[#0038A8]"
+                    className="accent-[#15803D]"
                   />
                   <Icon size={14} className="text-stone-500" />
                   <div>
@@ -151,14 +151,14 @@ export default function ExportReportModal({
               type="date"
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
-              className="flex-1 rounded-lg border border-stone-200 px-3 py-1.5 text-[11px] text-stone-900 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+              className="flex-1 rounded-lg border border-stone-200 px-3 py-1.5 text-[11px] text-stone-900 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
             />
             <span className="text-[11px] text-stone-400">to</span>
             <input
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
-              className="flex-1 rounded-lg border border-stone-200 px-3 py-1.5 text-[11px] text-stone-900 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+              className="flex-1 rounded-lg border border-stone-200 px-3 py-1.5 text-[11px] text-stone-900 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
             />
           </div>
         </div>

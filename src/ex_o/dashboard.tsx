@@ -225,7 +225,7 @@ export default function ExOfficerDashboard() {
   }, [liveLogs]);
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-6 border-b border-stone-200 pb-5">
           <h1 className="text-2xl font-bold text-stone-900">Executive Officer Dashboard</h1>
@@ -245,11 +245,11 @@ export default function ExOfficerDashboard() {
               >
                 <div className="flex items-start justify-between">
                   <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">{label}</span>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                     <Icon size={15} />
                   </div>
                 </div>
-                <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+                <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
                 <div className="mt-1 text-[11px] text-[#94A3B8]">{sub}</div>
               </div>
             ))}
@@ -264,7 +264,7 @@ export default function ExOfficerDashboard() {
             <div className="xl:col-span-2 rounded-xl border border-black/5 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
                 <div className="flex items-center gap-2">
-                  <Activity size={16} className="text-[#0038A8]" />
+                  <Activity size={16} className="text-[#15803D]" />
                   <div>
                     <h3 className="text-[14px] font-semibold text-[#334155]">Active Incident Queue</h3>
                     <p className="text-[11px] text-[#94A3B8]">
@@ -309,7 +309,7 @@ export default function ExOfficerDashboard() {
                             {inc.purok} · {inc.category} · {formatElapsed(inc.time)}
                           </p>
                         </div>
-                        <div className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-[#0038A8]">
+                        <div className="flex shrink-0 items-center gap-1 text-[11px] font-medium text-[#15803D]">
                           View
                           <ArrowUpRight size={11} />
                         </div>
@@ -323,7 +323,7 @@ export default function ExOfficerDashboard() {
             {/* Field response */}
             <div className="rounded-xl border border-black/5 bg-white shadow-sm">
               <div className="flex items-center gap-2 border-b border-stone-100 px-5 py-4">
-                <Radio size={16} className="text-[#0038A8]" />
+                <Radio size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-[#334155]">Field Response</h3>
                   <p className="text-[11px] text-[#94A3B8]">{onDutyTanods.length} tanod teams on shift</p>
@@ -368,7 +368,7 @@ export default function ExOfficerDashboard() {
                     const Icon = team.icon;
                     return (
                       <div key={team.name} className="flex items-center gap-2.5">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                           <Icon size={13} />
                         </div>
                         <div className="min-w-0 flex-1">
@@ -397,7 +397,7 @@ export default function ExOfficerDashboard() {
               return (
                 <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                       <Icon size={15} />
                     </div>
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${st.badge}`}>
@@ -486,7 +486,7 @@ export default function ExOfficerDashboard() {
                 key={i}
                 className={`flex items-start gap-3 px-5 py-3 ${i < recentActivity.length - 1 ? "border-b border-black/5" : ""}`}
               >
-                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#0038A8]" />
+                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[#15803D]" />
                 <div className="min-w-0 flex-1">
                   <p className="text-[12px] leading-snug text-[#334155]">{log.description}</p>
                   <p className="mt-0.5 flex items-center gap-1 text-[11px] text-[#94A3B8]">

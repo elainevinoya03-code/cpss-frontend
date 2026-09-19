@@ -222,7 +222,7 @@ export default function BulletinPublisher() {
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-5 border-b border-stone-200 pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -232,16 +232,16 @@ export default function BulletinPublisher() {
                 Compose and publish routine bulletins to the entire barangay
               </p>
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-[#0038A8]/20 bg-white px-3.5 py-2 shadow-sm">
-              <Megaphone size={15} className="text-[#0038A8]" />
+            <div className="flex items-center gap-2 rounded-lg border border-[#15803D]/20 bg-white px-3.5 py-2 shadow-sm">
+              <Megaphone size={15} className="text-[#15803D]" />
               <div>
                 <p className="text-[9px] font-semibold tracking-wider text-stone-400">AUTHORITY</p>
-                <p className="text-[12px] font-bold text-[#0038A8]">Barangay Captain</p>
+                <p className="text-[12px] font-bold text-[#15803D]">Barangay Captain</p>
               </div>
             </div>
           </div>
-          <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#0038A8]/15 bg-[#0038A8]/5 px-3.5 py-2.5">
-            <Info size={14} className="mt-0.5 shrink-0 text-[#0038A8]" />
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#15803D]/15 bg-[#15803D]/5 px-3.5 py-2.5">
+            <Info size={14} className="mt-0.5 shrink-0 text-[#15803D]" />
             <p className="text-[11px] leading-relaxed text-stone-600">
               Official barangay-wide communication:{" "}
               <span className="font-semibold text-stone-800">Safety Alerts</span>,{" "}
@@ -259,11 +259,11 @@ export default function BulletinPublisher() {
             <div key={label} className="rounded-xl border border-black/5 bg-white px-5 py-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-medium tracking-wider text-stone-400">{label}</span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E9EDFB] text-[#0038A8]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
                   <Icon size={15} />
                 </div>
               </div>
-              <div className="mt-2 text-[26px] font-bold text-[#0038A8]">{value}</div>
+              <div className="mt-2 text-[26px] font-bold text-[#15803D]">{value}</div>
               <div className="mt-1 text-[11px] text-stone-400">{sub}</div>
             </div>
           ))}
@@ -272,7 +272,7 @@ export default function BulletinPublisher() {
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm">
             <div className="flex items-center gap-2 border-b border-stone-100 px-5 py-4">
-              <Megaphone size={16} className="text-[#0038A8]" />
+              <Megaphone size={16} className="text-[#15803D]" />
               <div>
                 <h3 className="text-[14px] font-semibold text-stone-900">Compose Bulletin</h3>
                 <p className="text-[11px] text-stone-400">Compose, review, then publish to all residents</p>
@@ -311,7 +311,7 @@ export default function BulletinPublisher() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Curfew reminder for all minors"
-                  className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                  className="w-full rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                 />
               </div>
 
@@ -322,14 +322,14 @@ export default function BulletinPublisher() {
                   onChange={(e) => setBody(e.target.value)}
                   rows={4}
                   placeholder="Write the announcement content residents will read..."
-                  className="w-full resize-none rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+                  className="w-full resize-none rounded-lg border border-stone-200 px-3 py-2.5 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
                 />
               </div>
 
               <div>
                 <p className="mb-1.5 text-[11px] font-semibold text-stone-700">Audience</p>
-                <div className="flex w-full items-start gap-3 rounded-lg border border-[#0038A8] bg-[#0038A8]/5 px-3 py-2.5 text-left">
-                  <Globe size={14} className="mt-0.5 text-[#0038A8]" />
+                <div className="flex w-full items-start gap-3 rounded-lg border border-[#15803D] bg-[#15803D]/5 px-3 py-2.5 text-left">
+                  <Globe size={14} className="mt-0.5 text-[#15803D]" />
                   <div className="flex-1">
                     <p className="text-[11px] font-medium text-stone-900">Entire Barangay</p>
                     <p className="text-[10px] text-stone-400">
@@ -337,7 +337,7 @@ export default function BulletinPublisher() {
                       purok-specific messages, coordinate with the Desk Officer or Purok Leader.
                     </p>
                   </div>
-                  <CheckCircle2 size={14} className="mt-0.5 text-[#0038A8]" />
+                  <CheckCircle2 size={14} className="mt-0.5 text-[#15803D]" />
                 </div>
               </div>
 
@@ -370,7 +370,7 @@ export default function BulletinPublisher() {
             <div className="border-t border-stone-100 px-5 py-4">
               <button
                 onClick={openReview}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#0038A8] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#15803D] px-4 py-2.5 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
               >
                 <Send size={13} />
                 Review &amp; Publish
@@ -384,13 +384,13 @@ export default function BulletinPublisher() {
           <div className="flex flex-col overflow-hidden rounded-xl border border-black/5 bg-white shadow-sm xl:col-span-2">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-5 py-4">
               <div className="flex items-center gap-2">
-                <Bell size={16} className="text-[#0038A8]" />
+                <Bell size={16} className="text-[#15803D]" />
                 <div>
                   <h3 className="text-[14px] font-semibold text-stone-900">Published Bulletins</h3>
                   <p className="text-[11px] text-stone-400">Announcements &amp; their push delivery status</p>
                 </div>
               </div>
-              <span className="rounded-full bg-[#0038A8]/5 px-2.5 py-1 text-[10px] font-semibold text-[#0038A8]">
+              <span className="rounded-full bg-[#15803D]/5 px-2.5 py-1 text-[10px] font-semibold text-[#15803D]">
                 {activeBulletins.length} live
               </span>
             </div>
@@ -402,7 +402,7 @@ export default function BulletinPublisher() {
                   onClick={() => setBFilter(t.key as any)}
                   className={`rounded-full border px-2.5 py-1 text-[10px] font-medium transition ${
                     bFilter === t.key
-                      ? "border-[#0038A8] bg-[#0038A8] text-white"
+                      ? "border-[#15803D] bg-[#15803D] text-white"
                       : "border-stone-200 text-stone-500 hover:border-stone-300 hover:bg-stone-50"
                   }`}
                 >
@@ -511,7 +511,7 @@ export default function BulletinPublisher() {
         <Modal
           onClose={() => setShowReview(false)}
           icon={<Megaphone size={16} />}
-          iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+          iconClass="bg-[#15803D]/10 text-[#15803D]"
           title="Publish Barangay Bulletin"
           subtitle="Review the bulletin before publishing to the entire barangay"
           size="md"
@@ -525,7 +525,7 @@ export default function BulletinPublisher() {
               </button>
               <button
                 onClick={confirmPublish}
-                className="flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-[#002A8C]"
+                className="flex items-center gap-1.5 rounded-lg bg-[#15803D] px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-[#166534]"
               >
                 <Send size={12} />
                 Publish
@@ -580,7 +580,7 @@ export default function BulletinPublisher() {
         <Modal
           onClose={() => setViewTarget(null)}
           icon={<Bell size={16} />}
-          iconClass="bg-[#0038A8]/10 text-[#0038A8]"
+          iconClass="bg-[#15803D]/10 text-[#15803D]"
           title={viewTarget.title}
           subtitle={`${viewTarget.id} Â· published ${formatTime(viewTarget.publishedAt)}`}
           size="md"

@@ -118,7 +118,7 @@ export default function PurokContacts() {
   }, [contacts, query]);
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-[#E9EDFB]">
+    <div className="flex flex-1 flex-col overflow-hidden bg-[#DCFCE7]">
       <main className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-6">
         <header className="mb-5 border-b border-stone-200 pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -126,16 +126,16 @@ export default function PurokContacts() {
               <h1 className="text-2xl font-bold text-stone-900">Contacts</h1>
               <p className="mt-1 text-sm text-stone-500">Approved community contacts in your purok for report validation &amp; follow-up</p>
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-[#0038A8]/20 bg-white px-3.5 py-2 shadow-sm">
-              <Users size={15} className="text-[#0038A8]" />
+            <div className="flex items-center gap-2 rounded-lg border border-[#15803D]/20 bg-white px-3.5 py-2 shadow-sm">
+              <Users size={15} className="text-[#15803D]" />
               <div>
                 <p className="text-[9px] font-semibold tracking-wider text-stone-400">ASSIGNED JURISDICTION</p>
-                <p className="text-[12px] font-bold text-[#0038A8]">{JURISDICTION_LABEL}</p>
+                <p className="text-[12px] font-bold text-[#15803D]">{JURISDICTION_LABEL}</p>
               </div>
             </div>
           </div>
-          <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#0038A8]/15 bg-[#0038A8]/5 px-3.5 py-2.5">
-            <Info size={14} className="mt-0.5 shrink-0 text-[#0038A8]" />
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-[#15803D]/15 bg-[#15803D]/5 px-3.5 py-2.5">
+            <Info size={14} className="mt-0.5 shrink-0 text-[#15803D]" />
             <p className="text-[11px] leading-relaxed text-stone-600">
               Reference directory only — use these contacts to corroborate local reports during validation or follow-up. Calling, messaging, resident profiling, and Tanod paging are not part of this tool.
             </p>
@@ -150,7 +150,7 @@ export default function PurokContacts() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name, area, tag, or phone..."
-              className="w-full rounded-lg border border-stone-200 py-2 pl-8 pr-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#0038A8] focus:outline-none focus:ring-1 focus:ring-[#0038A8]/30"
+              className="w-full rounded-lg border border-stone-200 py-2 pl-8 pr-3 text-[12px] text-stone-900 placeholder:text-stone-300 focus:border-[#15803D] focus:outline-none focus:ring-1 focus:ring-[#15803D]/30"
             />
           </div>
           <span className="rounded-full bg-stone-100 px-2.5 py-1 text-[10px] font-semibold text-stone-600">
@@ -169,7 +169,7 @@ export default function PurokContacts() {
             {filtered.map((c) => (
               <div key={c.id} className="flex flex-col rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0038A8]/10 text-[13px] font-bold text-[#0038A8]">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#15803D]/10 text-[13px] font-bold text-[#15803D]">
                     {initials(c.name)}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -187,7 +187,7 @@ export default function PurokContacts() {
                 {c.tags.length > 0 && (
                   <div className="mt-2.5 flex flex-wrap gap-1.5">
                     {c.tags.map((t) => (
-                      <span key={t} className="rounded-md bg-[#0038A8]/5 px-2 py-1 text-[9px] font-medium text-[#0038A8]">
+                      <span key={t} className="rounded-md bg-[#15803D]/5 px-2 py-1 text-[9px] font-medium text-[#15803D]">
                         {t}
                       </span>
                     ))}
