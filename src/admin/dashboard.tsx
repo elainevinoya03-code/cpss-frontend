@@ -26,6 +26,11 @@ import {
   Shield,
   ArrowRight,
   Radio,
+  TrendingUp,
+  TrendingDown,
+  BarChart3,
+  Activity,
+  PieChart,
 } from "lucide-react";
 import { batteryColor } from "../utils/colors";
 import { ConfirmModal, Modal } from "../components/ui";
@@ -455,6 +460,58 @@ const RECENT_AUDIT_SEED = [
   },
 ];
 
+const ANALYTICS_DATA = {
+  deviceUptime: {
+    label: "Device Uptime",
+    value: "94.2%",
+    change: "+2.3%",
+    trend: "up",
+    description: "Average uptime across all IoT devices (30 days)",
+  },
+  alertResponse: {
+    label: "Alert Response Time",
+    value: "4.2 min",
+    change: "-1.1 min",
+    trend: "up",
+    description: "Average time to address critical alerts",
+  },
+  patrolCoverage: {
+    label: "Patrol Coverage",
+    value: "87%",
+    change: "+5%",
+    trend: "up",
+    description: "Percentage of scheduled routes completed",
+  },
+  systemEfficiency: {
+    label: "System Efficiency",
+    value: "92.8%",
+    change: "-0.5%",
+    trend: "down",
+    description: "Overall system performance index",
+  },
+};
+
+const DEVICE_TRENDS = [
+  { period: "Week 1", online: 6, offline: 1, maintenance: 0 },
+  { period: "Week 2", online: 6, offline: 1, maintenance: 1 },
+  { period: "Week 3", online: 5, offline: 2, maintenance: 1 },
+  { period: "Week 4", online: 6, offline: 1, maintenance: 1 },
+];
+
+const ALERT_DISTRIBUTION = [
+  { category: "IoT", count: 4, color: "bg-blue-500" },
+  { category: "CCTV", count: 1, color: "bg-purple-500" },
+  { category: "Security", count: 1, color: "bg-rose-500" },
+  { category: "System", count: 2, color: "bg-amber-500" },
+];
+
+const PATROL_METRICS = [
+  { route: "Market District", completion: 95, distance: "2.1 km", incidents: 0 },
+  { route: "Residential Zone", completion: 88, distance: "1.8 km", incidents: 1 },
+  { route: "Industrial Area", completion: 92, distance: "2.4 km", incidents: 0 },
+  { route: "School District", completion: 85, distance: "1.5 km", incidents: 2 },
+];
+
 function SectionTitle({
   title,
   sub,
@@ -876,6 +933,239 @@ export default function Dashboard({ onNavigate }: { onNavigate?: (page: string) 
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        {/* Data Analytics */}
+        <section className="mb-6">
+          <SectionTitle
+            title="Data Analytics"
+            sub="Performance metrics and operational insights"
+          />
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+            {/* Key Performance Metrics */}
+            <div className="rounded-xl border border-black/5 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <BarChart3 size={16} className="text-[#0038A8]" />
+                  <div>
+                    <h3 className="text-[14px] font-semibold text-[#334155]">Key Performance Metrics</h3>
+                    <p className="text-[11px] text-[#94A3B8]">30-day performance overview</p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 p-5">
+                {Object.entries(ANALYTICS_DATA).map(([key, metric]) => {
+                  const TrendIcon = metric.trend === "up" ? TrendingUp : TrendingDown;
+                  const trendColor = metric.trend === "up" ? "text-emerald-600" : "text-rose-600";
+                  const trendBg = metric.trend === "up" ? "bg-emerald-50" : "bg-rose-50";
+                  return (
+                    <div key={key} className="rounded-lg border border-stone-100 bg-stone-50/60 p-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-medium tracking-wider text-[#94A3B8]">
+                          {metric.label}
+                        </span>
+                        <div className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${trendBg} ${trendColor}`}>
+                          <TrendIcon size={10} />
+                          {metric.change}
+                        </div>
+                      </div>
+                      <p className="mt-2 text-[20px] font-bold text-[#0038A8]">{metric.value}</p>
+                      <p className="mt-1 text-[10px] text-[#94A3B8]">{metric.description}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Device Trends */}
+            <div className="rounded-xl border border-black/5 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <Activity size={16} className="text-[#0038A8]" />
+                  <div>
+                    <h3 className="text-[14px] font-semibold text-[#334155]">Device Status Trends</h3>
+                    <p className="text-[11px] text-[#94A3B8]">Weekly device status distribution</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-5">
+                <div className="space-y-4">
+                  {DEVICE_TRENDS.map((week) => (
+                    <div key={week.period} className="flex items-center gap-4">
+                      <div className="w-16 text-[11px] font-medium text-[#64748B]">{week.period}</div>
+                      <div className="flex-1 flex gap-1">
+                        <div
+                          className="h-6 rounded-sm bg-emerald-500 transition-all hover:opacity-80"
+                          style={{ width: `${(week.online / 8) * 100}%` }}
+                          title={`Online: ${week.online}`}
+                        />
+                        <div
+                          className="h-6 rounded-sm bg-rose-500 transition-all hover:opacity-80"
+                          style={{ width: `${(week.offline / 8) * 100}%` }}
+                          title={`Offline: ${week.offline}`}
+                        />
+                        <div
+                          className="h-6 rounded-sm bg-orange-500 transition-all hover:opacity-80"
+                          style={{ width: `${(week.maintenance / 8) * 100}%` }}
+                          title={`Maintenance: ${week.maintenance}`}
+                        />
+                      </div>
+                      <div className="flex gap-3 text-[10px] text-[#94A3B8]">
+                        <span className="flex items-center gap-1">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                          {week.online}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="h-2 w-2 rounded-full bg-rose-500" />
+                          {week.offline}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="h-2 w-2 rounded-full bg-orange-500" />
+                          {week.maintenance}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 flex items-center justify-center gap-4 text-[10px] text-[#94A3B8]">
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    Online
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-rose-500" />
+                    Offline
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-orange-500" />
+                    Maintenance
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Alert Distribution */}
+            <div className="rounded-xl border border-black/5 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <PieChart size={16} className="text-[#0038A8]" />
+                  <div>
+                    <h3 className="text-[14px] font-semibold text-[#334155]">Alert Distribution</h3>
+                    <p className="text-[11px] text-[#94A3B8]">Alerts by category (last 30 days)</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-5">
+                <div className="flex items-center gap-6">
+                  <div className="relative h-32 w-32">
+                    <svg className="h-full w-full transform -rotate-90" viewBox="0 0 36 36">
+                      {ALERT_DISTRIBUTION.map((item, index) => {
+                        const total = ALERT_DISTRIBUTION.reduce((sum, i) => sum + i.count, 0);
+                        const percentage = (item.count / total) * 100;
+                        const dashArray = `${percentage} ${100 - percentage}`;
+                        const offset = ALERT_DISTRIBUTION.slice(0, index).reduce(
+                          (sum, i) => sum - (i.count / total) * 100,
+                          0
+                        );
+                        return (
+                          <circle
+                            key={item.category}
+                            cx="18"
+                            cy="18"
+                            r="15.9"
+                            fill="none"
+                            stroke={item.color.replace("bg-", "").replace("500", "#3B82F6")}
+                            strokeWidth="3"
+                            strokeDasharray={dashArray}
+                            strokeDashoffset={offset}
+                            className="transition-all hover:opacity-80"
+                          />
+                        );
+                      })}
+                    </svg>
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    {ALERT_DISTRIBUTION.map((item) => (
+                      <div key={item.category} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`h-2 w-2 rounded-full ${item.color}`} />
+                          <span className="text-[11px] text-[#334155]">{item.category}</span>
+                        </div>
+                        <span className="text-[11px] font-semibold text-[#0038A8]">{item.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Patrol Metrics */}
+            <div className="rounded-xl border border-black/5 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <Shield size={16} className="text-[#0038A8]" />
+                  <div>
+                    <h3 className="text-[14px] font-semibold text-[#334155]">Patrol Performance</h3>
+                    <p className="text-[11px] text-[#94A3B8]">Route completion and incident metrics</p>
+                  </div>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[400px] border-collapse">
+                  <thead>
+                    <tr className="border-y border-black/5 text-left">
+                      {["ROUTE", "COMPLETION", "DISTANCE", "INCIDENTS"].map((h) => (
+                        <th
+                          key={h}
+                          className="px-4 py-3 text-[10px] font-semibold tracking-wider text-[#94A3B8]"
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {PATROL_METRICS.map((metric) => (
+                      <tr key={metric.route} className="border-b border-black/5 last:border-0 hover:bg-[#F8FAFC]">
+                        <td className="px-4 py-3 text-[12px] font-semibold text-[#334155]">
+                          {metric.route}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-16 rounded-sm bg-stone-200">
+                              <div
+                                className={`h-full rounded-sm ${
+                                  metric.completion >= 90
+                                    ? "bg-emerald-500"
+                                    : metric.completion >= 80
+                                      ? "bg-amber-500"
+                                      : "bg-rose-500"
+                                }`}
+                                style={{ width: `${metric.completion}%` }}
+                              />
+                            </div>
+                            <span className="text-[12px] text-[#334155]">{metric.completion}%</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-[12px] text-[#64748B]">{metric.distance}</td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                              metric.incidents === 0
+                                ? "bg-emerald-50 text-emerald-700"
+                                : "bg-rose-50 text-rose-600"
+                            }`}
+                          >
+                            {metric.incidents}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </section>
 

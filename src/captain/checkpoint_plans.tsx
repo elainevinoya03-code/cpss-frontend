@@ -23,7 +23,15 @@ import {
   useCheckpointPlans,
 } from "../chief_tanod/checkpointPlanStore";
 import { type CheckpointPlan } from "../chief_tanod/patrolShared";
-import { formatDay, formatDateTime, PLAN_STATUS_META } from "../chief_tanod/patrolShared";
+import {
+  formatDay,
+  formatDateTime,
+  planMarkers,
+  planPolylines,
+  PLAN_STATUS_META,
+} from "../chief_tanod/patrolShared";
+import { BarangayMap } from "../chief_tanod/patrolMap";
+import { useDigitalBoundaries } from "../hooks/useDigitalBoundaries";
 
 interface CheckpointPlansProps {
   role?: string;
@@ -32,6 +40,7 @@ interface CheckpointPlansProps {
 export default function CheckpointPlans({ role = "captain" }: CheckpointPlansProps) {
   const { flash, ToastPortal } = useToast();
   const plans = useCheckpointPlans();
+  const { boundaries: digitalBoundaries } = useDigitalBoundaries();
   const [selectedPlan, setSelectedPlan] = useState<CheckpointPlan | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
@@ -356,6 +365,36 @@ export default function CheckpointPlans({ role = "captain" }: CheckpointPlansPro
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+                Location Map
+              </p>
+              <div className="h-[340px] overflow-hidden rounded-xl border border-stone-200">
+                <BarangayMap
+                  incidents={[]}
+                  selectedIncident={null}
+                  onSelectIncident={() => {}}
+                  draftPoints={planMarkers(selectedPlan)}
+                  draftPolylines={planPolylines(selectedPlan)}
+                  mapMode="view"
+                  interactive={false}
+                  onMapClick={() => {}}
+                  layers={{
+                    digitalBoundaries: true,
+                    hotspots: false,
+                    incidents: false,
+                    checkpoints: false,
+                    patrols: false,
+                  }}
+                  heatCounts={{}}
+                  showCoverage={false}
+                  coveragePct={0}
+                  nowLabel={`${selectedPlan.code} — checkpoint location${selectedPlan.points.length === 1 ? "" : "s"}`}
+                  digitalBoundaries={digitalBoundaries}
+                />
               </div>
             </div>
 

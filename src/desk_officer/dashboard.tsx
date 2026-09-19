@@ -122,6 +122,7 @@ const SOURCE_META: Record<IncidentSource, { label: string; icon: typeof Smartpho
 };
 
 const DESK_PRIORITY_META: Record<DeskPriority, { chip: string; dot: string; ring: string }> = {
+  Emergency: { chip: "bg-red-100 text-red-700", dot: "bg-red-600", ring: "stroke-red-600" },
   Low: { chip: "bg-sky-100 text-sky-700", dot: "bg-sky-400", ring: "stroke-sky-400" },
   Medium: { chip: "bg-amber-100 text-amber-700", dot: "bg-amber-400", ring: "stroke-amber-400" },
   High: { chip: "bg-rose-100 text-rose-700", dot: "bg-rose-500", ring: "stroke-rose-500" },
@@ -176,6 +177,7 @@ const ATTENTION_ACTION_TEXT: Record<Exclude<AttentionAction, "clip">, string> = 
 const EMERGENCY_URGENCY = { label: "Emergency", chip: "bg-red-100 text-red-700" };
 
 const SLA_TARGETS: Record<DeskPriority, { minutes: number; label: string }> = {
+  Emergency: { minutes: 5, label: "5 min" },
   High: { minutes: 15, label: "15 min" },
   Medium: { minutes: 60, label: "1 hr" },
   Low: { minutes: 240, label: "4 hr" },

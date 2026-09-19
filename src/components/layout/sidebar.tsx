@@ -36,6 +36,7 @@ const ADMIN_NAV_ITEMS = [
   { key: "iot", label: "IoT Provisioning", icon: Settings },
   { key: "cctv", label: "CCTV Placement", icon: Camera },
   { key: "boundaries", label: "Digital Boundaries", icon: Map },
+  { key: "broadcasts", label: "Mass Broadcast", icon: Megaphone },
   { key: "logs", label: "Audit Logs", icon: FileText },
   { key: "data_requests", label: "Data Requests", icon: FileSearch },
   { key: "settings", label: "System Settings", icon: SlidersHorizontal },

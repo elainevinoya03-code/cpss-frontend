@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { type CheckpointPlan } from "./patrolShared";
 import {
-  SEED_ROSTER,
-  SEED_TEAMS,
   type CheckInOutRecord,
   type DutyLog,
   type PatrolSchedule,
@@ -11,158 +9,26 @@ import {
   type SkillsInventory,
 } from "./patrolScheduleShared";
 import { fetchRosterMembers } from "./rosterApi";
+import {
+  deleteTeamApi,
+  fetchCheckIns,
+  fetchDutyLogs,
+  fetchSchedules,
+  fetchTeams,
+  patchCheckIn,
+  patchDutyLog,
+  saveCheckIn,
+  saveDutyLog,
+  saveSchedule,
+  saveTeam,
+} from "./patrolSchedulingApi";
 
-let roster: RosterMember[] = SEED_ROSTER.map((m) => ({ ...m, skills: [...m.skills] }));
-let teams: PatrolTeam[] = SEED_TEAMS.map((t) => ({ ...t, memberIds: [...t.memberIds] }));
-const todayStr = new Date().toISOString().split("T")[0];
+let roster: RosterMember[] = [];
+let teams: PatrolTeam[] = [];
 
-let schedules: PatrolSchedule[] = [
-  {
-    id: "PS-2026-043",
-    code: "PS-043",
-    planId: "CP-2026-118",
-    startDate: todayStr,
-    endDate: todayStr,
-    startTime: "18:00",
-    endTime: "23:00",
-    frequency: "one_time",
-    frequencyDays: [],
-    customNotes: "",
-    shiftType: "night",
-    teamId: "team-alpha",
-    assignmentMode: "whole_team",
-    assignments: [],
-    ops: {
-      assemblyPoint: "Barangay Hall Front",
-      equipment: "Two search lights, traffic cones, log sheet, two handheld radios.",
-      instructions: "Full tanod uniform with reflective vest. Briefing 30 min before start.",
-      pulisCoordination: "Coordinate with Purok 3 leader and PNP substation / Pulis sa Barangay on channel 2.",
-      emergencyProcedure: "Radio Desk Officer immediately; log observations on BLOTTER-1; escalate SOS to PNP.",
-    },
-    status: "scheduled",
-    createdBy: "Chief Tanod",
-    createdAt: `${todayStr}T08:10:00`,
-    submittedAt: `${todayStr}T09:00:00`,
-    decidedBy: "Punong Barangay",
-    decidedAt: `${todayStr}T14:20:00`,
-    notifiedAt: `${todayStr}T14:21:00`,
-  },
-  {
-    id: "PS-2026-041",
-    code: "PS-041",
-    planId: "CP-2026-118",
-    startDate: "2026-09-16",
-    endDate: "2026-09-16",
-    startTime: "18:00",
-    endTime: "23:00",
-    frequency: "one_time",
-    frequencyDays: [],
-    customNotes: "",
-    shiftType: "night",
-    teamId: "team-alpha",
-    assignmentMode: "whole_team",
-    assignments: [],
-    ops: {
-      assemblyPoint: "Market North Gate",
-      equipment: "Two search lights, traffic cones, log sheet, two handheld radios.",
-      instructions: "Full tanod uniform with reflective vest. Briefing 30 min before start.",
-      pulisCoordination: "Coordinate with Purok 3 leader and PNP substation / Pulis sa Barangay on channel 2.",
-      emergencyProcedure: "Radio Desk Officer immediately; log observations on BLOTTER-1; escalate SOS to PNP.",
-    },
-    status: "scheduled",
-    createdBy: "Chief Tanod",
-    createdAt: "2026-09-12T08:10:00",
-    submittedAt: "2026-09-12T09:00:00",
-    decidedBy: "Punong Barangay",
-    decidedAt: "2026-09-12T14:20:00",
-    notifiedAt: "2026-09-12T14:21:00",
-  },
-  {
-    id: "PS-2026-042",
-    code: "PS-042",
-    planId: "CP-2026-118",
-    startDate: "2026-09-20",
-    endDate: "2026-09-27",
-    startTime: "18:00",
-    endTime: "23:00",
-    frequency: "specific_days",
-    frequencyDays: ["Fri", "Sat", "Sun"],
-    customNotes: "",
-    shiftType: "night",
-    teamId: "team-bravo",
-    assignmentMode: "whole_team",
-    assignments: [],
-    ops: {
-      assemblyPoint: "Market North Gate",
-      equipment: "Two search lights, traffic cones, log sheet, two handheld radios.",
-      instructions: "Full tanod uniform with reflective vest. Briefing 30 min before start.",
-      pulisCoordination: "Coordinate with Purok 3 leader and PNP substation / Pulis sa Barangay on channel 2.",
-      emergencyProcedure: "Radio Desk Officer immediately; log observations on BLOTTER-1; escalate SOS to PNP.",
-    },
-    status: "scheduled",
-    createdBy: "Chief Tanod",
-    createdAt: "2026-09-12T08:10:00",
-    submittedAt: "2026-09-12T09:00:00",
-    decidedBy: "Punong Barangay",
-    decidedAt: "2026-09-12T14:20:00",
-    notifiedAt: "2026-09-12T14:21:00",
-  },
-];
-let dutyLogs: DutyLog[] = [
-  {
-    id: "DL-001",
-    scheduleId: "PS-2026-041",
-    tanodId: "tn-01",
-    startedAt: "2026-09-13T18:05:00",
-    endedAt: "2026-09-13T23:02:00",
-    observations: "Market row quiet after 21:00. Two motorcycle stops logged; no incident referral.",
-    linkedBlotter: true,
-    linkedBpops: true,
-    confirmedBy: "Chief Tanod",
-    status: "completed",
-  },
-];
-
-let checkInOutRecords: CheckInOutRecord[] = [
-  {
-    id: "CIO-001",
-    scheduleId: "PS-2026-043",
-    tanodId: "tn-01",
-    teamId: "team-alpha",
-    checkInTime: `${todayStr}T18:05:00`,
-    confirmedBy: "Chief Tanod",
-    checkInNotes: "On time. Full uniform, radio issued.",
-    checkpointPlanId: "CP-2026-118",
-    status: "checked_in",
-    createdAt: `${todayStr}T18:05:00`,
-  },
-  {
-    id: "CIO-002",
-    scheduleId: "PS-2026-043",
-    tanodId: "tn-02",
-    teamId: "team-alpha",
-    checkInTime: `${todayStr}T18:07:00`,
-    confirmedBy: "Chief Tanod",
-    checkInNotes: "Late by 7 mins, reminded of assembly time.",
-    checkpointPlanId: "CP-2026-118",
-    status: "checked_in",
-    createdAt: `${todayStr}T18:07:00`,
-  },
-  {
-    id: "CIO-003",
-    scheduleId: "PS-2026-041",
-    tanodId: "tn-03",
-    teamId: "team-alpha",
-    checkInTime: "2026-09-16T18:04:00",
-    checkOutTime: "2026-09-16T23:02:00",
-    confirmedBy: "Chief Tanod",
-    checkInNotes: "Night patrol briefing completed.",
-    checkOutNotes: "Duty completed, no incident. Equipment returned.",
-    checkpointPlanId: "CP-2026-118",
-    status: "checked_out",
-    createdAt: "2026-09-16T18:04:00",
-  },
-];
+let schedules: PatrolSchedule[] = [];
+let dutyLogs: DutyLog[] = [];
+let checkInOutRecords: CheckInOutRecord[] = [];
 
 const listeners = new Set<() => void>();
 function emit() {
@@ -185,7 +51,30 @@ export async function loadRosterFromBackend(): Promise<void> {
   }
 }
 
+let opsLoaded = false;
+
+export async function loadPatrolOperationsFromBackend(): Promise<void> {
+  if (opsLoaded) return;
+  try {
+    const [teamRows, schedRows, dutyRows, checkInRows] = await Promise.all([
+      fetchTeams(),
+      fetchSchedules(),
+      fetchDutyLogs(),
+      fetchCheckIns(),
+    ]);
+    if (teamRows.length) teams = teamRows;
+    if (schedRows.length) schedules = schedRows;
+    if (dutyRows.length) dutyLogs = dutyRows;
+    if (checkInRows.length) checkInOutRecords = checkInRows;
+    opsLoaded = true;
+    emit();
+  } catch (err) {
+    console.warn("Failed to load patrol operations from backend. Using in-memory state.", err);
+  }
+}
+
 loadRosterFromBackend();
+loadPatrolOperationsFromBackend();
 
 export function subscribePatrolSchedules(fn: () => void) {
   listeners.add(fn);
@@ -211,16 +100,38 @@ export function getCheckInOutRecords(): CheckInOutRecord[] {
   return checkInOutRecords;
 }
 
-export function upsertTeam(team: PatrolTeam): PatrolTeam {
-  const exists = teams.some((t) => t.id === team.id);
-  teams = exists ? teams.map((t) => (t.id === team.id ? team : t)) : [team, ...teams];
+export async function upsertTeam(team: PatrolTeam): Promise<PatrolTeam> {
+  const existing = teams.find((t) => t.id === team.id);
+  const inserting = !existing;
+  teams = inserting ? [team, ...teams] : teams.map((t) => (t.id === team.id ? team : t));
   emit();
-  return team;
+  try {
+    const saved = await saveTeam(team);
+    teams = teams.map((t) => (t.id === saved.id ? saved : t));
+    emit();
+    return saved;
+  } catch (err) {
+    if (inserting) {
+      teams = teams.filter((t) => t.id !== team.id);
+    } else if (existing) {
+      teams = teams.map((t) => (t.id === team.id ? existing : t));
+    }
+    emit();
+    throw err;
+  }
 }
 
-export function deleteTeam(id: string): void {
+export async function deleteTeam(id: string): Promise<void> {
+  const existing = teams.find((t) => t.id === id);
   teams = teams.filter((t) => t.id !== id);
   emit();
+  try {
+    await deleteTeamApi(id);
+  } catch (err) {
+    if (existing) teams = [existing, ...teams];
+    emit();
+    throw err;
+  }
 }
 
 export function upsertRosterMember(member: RosterMember): RosterMember {
@@ -234,31 +145,42 @@ export function upsertSchedule(s: PatrolSchedule): PatrolSchedule {
   const exists = schedules.some((x) => x.id === s.id);
   schedules = exists ? schedules.map((x) => (x.id === s.id ? s : x)) : [s, ...schedules];
   emit();
+  saveSchedule(s).catch((err) => console.warn("Failed to persist schedule", s.id, err));
   return s;
 }
 
 export function addDutyLog(log: DutyLog): DutyLog {
   dutyLogs = [log, ...dutyLogs];
   emit();
+  saveDutyLog(log).catch((err) => console.warn("Failed to persist duty log", log.id, err));
   return log;
 }
 
 export function updateDutyLog(id: string, patch: Partial<DutyLog>): DutyLog | null {
-  dutyLogs = dutyLogs.map((l) => (l.id === id ? { ...l, ...patch } : l));
+  const next = dutyLogs.map((l) => (l.id === id ? { ...l, ...patch } : l));
+  const found = next.find((l) => l.id === id) ?? null;
+  if (!found) return null;
+  dutyLogs = next;
   emit();
-  return dutyLogs.find((l) => l.id === id) ?? null;
+  patchDutyLog(id, patch).catch((err) => console.warn("Failed to update duty log", id, err));
+  return found;
 }
 
 export function addCheckInOutRecord(record: CheckInOutRecord): CheckInOutRecord {
   checkInOutRecords = [record, ...checkInOutRecords];
   emit();
+  saveCheckIn(record).catch((err) => console.warn("Failed to persist check-in record", record.id, err));
   return record;
 }
 
 export function updateCheckInOutRecord(id: string, patch: Partial<CheckInOutRecord>): CheckInOutRecord | null {
-  checkInOutRecords = checkInOutRecords.map((r) => (r.id === id ? { ...r, ...patch } : r));
+  const next = checkInOutRecords.map((r) => (r.id === id ? { ...r, ...patch } : r));
+  const found = next.find((r) => r.id === id) ?? null;
+  if (!found) return null;
+  checkInOutRecords = next;
   emit();
-  return checkInOutRecords.find((r) => r.id === id) ?? null;
+  patchCheckIn(id, patch).catch((err) => console.warn("Failed to update check-in record", id, err));
+  return found;
 }
 
 export function getTodaySchedules(): PatrolSchedule[] {

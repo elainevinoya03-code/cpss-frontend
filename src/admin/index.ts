@@ -6,3 +6,4 @@ export { default as DigitalBoundaries } from "./digital_boundaries";
 export { default as SystemLogs } from "./system_logs";
 export { default as SystemSettings } from "./system_settings";
 export { default as DataRequests } from "./data_requests";
+export { default as MassBroadcast } from "./mass_broadcast";

@@ -140,14 +140,6 @@ export const SCHED_STATUS_META: Record<PatrolScheduleStatus, { label: string; ba
   completed: { label: "Completed", badge: "bg-stone-100 text-stone-500", dot: "bg-stone-400" },
 };
 
-export const SEED_ROSTER: RosterMember[] = [];
-
-export const SEED_TEAMS: PatrolTeam[] = [
-  { id: "team-alpha", name: "Team Alpha", leaderId: "tn-01", memberIds: ["tn-01", "tn-02", "tn-03", "tn-07"], isActive: true, createdAt: "2026-09-01T08:00:00" },
-  { id: "team-bravo", name: "Team Bravo", leaderId: "tn-05", memberIds: ["tn-05", "tn-08", "tn-06"], isActive: true, createdAt: "2026-09-02T08:00:00" },
-  { id: "team-delta", name: "Team Delta", leaderId: "tn-08", memberIds: ["tn-08", "tn-04", "tn-10"], isActive: true, createdAt: "2026-09-03T08:00:00" },
-];
-
 export function emptyOps(): PatrolOpsNotes {
   return { assemblyPoint: "", equipment: "", instructions: "", pulisCoordination: "", emergencyProcedure: "" };
 }
@@ -342,7 +334,8 @@ export function validateSchedule(
   if ((s.frequency === "date_range" || s.frequency === "daily" || s.frequency === "nightly") && !s.endDate) {
     issues.push({ level: "error", message: "End date is required for this frequency." });
   }
-  if (!team || !s.teamId) issues.push({ level: "error", message: "Assign a team with a Team Leader." });
+  if (!s.teamId) issues.push({ level: "error", message: "Select a team." });
+  if (s.teamId && !team) issues.push({ level: "error", message: "Selected team not found." });
   if (team && !team.leaderId) issues.push({ level: "error", message: "Team Leader is required." });
   if (team && team.isActive === false) issues.push({ level: "error", message: `${team.name} is deactivated — reactivate it in Team Management.` });
   if (team) {

@@ -577,7 +577,7 @@ function generateDeviceId(hardwareType: string, purok: string): string {
     "Main Barangay Boundary": "MAIN",
     "Evacuation Zone Alpha": "EVA",
   };
-  const zone = zoneMap[purok] ?? purok.replace(/\W+/g, "").slice(0, 4).toUpperCase();
+  const zone = zoneMap[purok] ?? (purok || "UNKNOWN").replace(/\W+/g, "").slice(0, 4).toUpperCase();
   return `${typePrefix}-${zone}-${String(randomBetween(1, 99)).padStart(2, "0")}`;
 }
 
@@ -3110,11 +3110,11 @@ export default function IotProvisioning() {
   const [hardwareType, setHardwareType] = useState(HARDWARE_TYPES[0]);
   const [deviceName, setDeviceName] = useState("");
   const [deviceId, setDeviceId] = useState(() =>
-    generateDeviceId(HARDWARE_TYPES[0], PUROK_OPTIONS[0]),
+    generateDeviceId(HARDWARE_TYPES[0], PUROK_OPTIONS[0] || "Unknown"),
   );
   const [serialNumber, setSerialNumber] = useState("");
   const [mac, setMac] = useState(`${MAC_PREFIX}:`);
-  const [purok, setPurok] = useState(PUROK_OPTIONS[0]);
+  const [purok, setPurok] = useState(PUROK_OPTIONS[0] || "Unknown");
   const [installationLocation, setInstallationLocation] = useState("");
   const [lat, setLat] = useState("14.5995");
   const [lng, setLng] = useState("120.9842");
@@ -3313,10 +3313,10 @@ export default function IotProvisioning() {
     setRegErrors({});
     setHardwareType(HARDWARE_TYPES[0]);
     setDeviceName("");
-    setDeviceId(generateUniqueDeviceId(HARDWARE_TYPES[0], PUROK_OPTIONS[0], devices));
+    setDeviceId(generateUniqueDeviceId(HARDWARE_TYPES[0], PUROK_OPTIONS[0] || "Unknown", devices));
     setSerialNumber("");
     setMac(`${MAC_PREFIX}:`);
-    setPurok(PUROK_OPTIONS[0]);
+    setPurok(PUROK_OPTIONS[0] || "Unknown");
     setInstallationLocation("");
     setLat("14.5995");
     setLng("120.9842");

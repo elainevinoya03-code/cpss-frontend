@@ -109,6 +109,7 @@ export const ACTION_STYLES: Record<string, string> = {
   "Camera Disabled": "bg-amber-50 text-amber-700",
   "Camera Placed Under Maintenance": "bg-sky-50 text-sky-700",
   "Camera Restored": "bg-emerald-50 text-emerald-700",
+  "Mass Broadcast": "bg-fuchsia-50 text-fuchsia-700",
 };
 
 // ─── Shared UI components ──────────────────────────────────────────────────────

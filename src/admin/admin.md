@@ -20,10 +20,11 @@ role routes here, making Admin the fallback role.
 | 3 | IoT Provisioning | `iot` | `iot_provisioning.tsx` |
 | 4 | CCTV Placement | `cctv` | `cctv_placement.tsx` |
 | 5 | Digital Boundaries | `boundaries` | `digital_boundaries.tsx` |
-| 6 | Patrol Routes | `patrol` | `patrol_configuration.tsx` |
-| 7 | Audit Logs | `logs` | `system_logs.tsx` |
-| 8 | Data Requests | `data_requests` | `data_requests.tsx` |
-| 9 | System Settings | `settings` | `system_settings.tsx` |
+| 6 | Mass Broadcast | `broadcasts` | `mass_broadcast.tsx` |
+| 7 | Patrol Routes | `patrol` | `patrol_configuration.tsx` |
+| 8 | Audit Logs | `logs` | `system_logs.tsx` |
+| 9 | Data Requests | `data_requests` | `data_requests.tsx` |
+| 10 | System Settings | `settings` | `system_settings.tsx` |
 
 The admin lands on **Dashboard** by default (`defaultNav` in `App.tsx`). Login routing in `App.tsx`
 maps every unrecognized username to the `admin` role (`handleLogin`, the `else` branch). **Profile and

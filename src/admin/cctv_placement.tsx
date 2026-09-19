@@ -1,7 +1,8 @@
-﻿import React, { useState, useRef, useEffect } from "react";
+﻿import React, { useState, useRef, useEffect, useMemo } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import {
   Camera,
-  MapPin,
   Wifi,
   WifiOff,
   Video,
@@ -17,22 +18,26 @@ import {
   Radio,
   CheckCircle2,
   Info,
-  ArrowUp,
+  MapPin,
   PowerOff,
   Loader2,
   Search,
   RotateCw,
   XCircle,
+  ZoomIn,
+  ZoomOut,
+  Scan,
+  RotateCcw,
+  Zap,
+  Trash2,
 } from "lucide-react";
-import { PUROK_OPTIONS } from "../constants/purok";
 import { ConfirmModal, Modal } from "../components/ui";
 import { pushAuditLog } from "../utils/auditLog";
 import { getCctvStorageConfig, subscribeCctvStorage } from "../utils/cctvStorage";
-import { today, STYLES } from "./_shared";
+import { today, STYLES, MapControlButton } from "./_shared";
+import { geocodeAddress, reverseGeocode } from "../chief_tanod/patrolShared";
 
 type CameraStatus = "pending" | "online" | "offline" | "disabled";
-
-type SimMode = "auto" | "pass" | "fail-timeout" | "fail-endpoint" | "fail-credentials";
 
 interface ConnectionTestRecord {
   timestamp: string;
@@ -53,11 +58,14 @@ interface MaintenanceRecord {
 interface Camera {
   id: string;
   name: string;
+  address: string;
   purok: string;
   assignment: string;
   purpose: string;
   resolution: string;
   ip: string;
+  port: string;
+  streamPath: string;
   status: CameraStatus;
   top: number;
   left: number;
@@ -102,6 +110,8 @@ interface EditForm {
   connectionType: string;
   streamProtocol: string;
   ip: string;
+  port: string;
+  streamPath: string;
   operatorGroup: string;
   maintenanceContact: string;
 }
@@ -116,20 +126,107 @@ function maskToken(value: string): string {
   return `••••-••••-••••-${clean}`;
 }
 
+function maskUser(value: string): string {
+  const clean = value.trim();
+  if (!clean || clean === "—") return "—";
+  if (clean.length <= 2) return "••";
+  return `${clean.slice(0, 2)}${"•".repeat(Math.min(clean.length - 2, 10))}`;
+}
+
+function generateCameraId(name: string, existing: Camera[]): string {
+  const clean = name
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const base = clean ? `CAM-${clean}` : "CAM-CAMERA";
+  const used = new Set(existing.map((c) => c.id));
+  if (!used.has(base)) return base;
+  let n = 2;
+  while (used.has(`${base}-${n}`)) n += 1;
+  return `${base}-${n}`;
+}
+
+function maskedStreamUrl(
+  cam: Pick<Camera, "ip" | "streamProtocol" | "port" | "streamPath" | "credUser">,
+): string {
+  const proto = (cam.streamProtocol || "RTSP").toLowerCase();
+  const host = cam.ip.trim() || "<ip>";
+  const port = cam.port.trim() || "554";
+  const rawPath = cam.streamPath.trim() || "/stream1";
+  const path = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
+  const user = cam.credUser && cam.credUser.trim() ? maskUser(cam.credUser) : "••••";
+  return `${proto}://${user}:••••••••@${host}:${port}${path}`;
+}
+
 function now(): string {
   return new Date().toISOString().replace("T", " ").slice(0, 16);
 }
 
+const IPV4_RE =
+  /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+
+// Validates the fields that a connection test actually depends on. A camera is
+// only allowed to be registered/verified with real, complete stream details —
+// missing or malformed values are rejected rather than silently auto-filled.
+function validateRegistrationConfig(fields: {
+  name: string;
+  ip: string;
+  port: string;
+  streamPath: string;
+  streamProtocol: string;
+}): string[] {
+  const errors: string[] = [];
+  if (!fields.name.trim()) errors.push("Camera name is required.");
+  if (!IPV4_RE.test(fields.ip.trim())) {
+    errors.push("A valid IPv4 address is required (e.g. 192.168.1.40).");
+  }
+  const portRaw = fields.port.trim();
+  const portNum = Number(portRaw);
+  if (!/^\d+$/.test(portRaw) || portNum < 1 || portNum > 65535) {
+    errors.push("A valid stream port between 1 and 65535 is required.");
+  }
+  const path = fields.streamPath.trim();
+  if (!path || !path.startsWith("/")) {
+    errors.push("A stream path starting with '/' is required (e.g. /stream1).");
+  }
+  if (!STREAM_PROTOCOLS.includes(fields.streamProtocol)) {
+    errors.push("Select a valid stream protocol.");
+  }
+  return errors;
+}
+
+// Offline cache used by the Digital Boundaries module — reused here so the
+// purok/boundary pickers still work when the backend is unreachable.
+function loadCachedBoundaries(): Array<{
+  id: string;
+  name: string;
+  badge: string;
+  classification: string;
+  status: string;
+}> {
+  try {
+    const raw = localStorage.getItem("digital_boundaries_regions");
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((r) => r && typeof r.name === "string" && r.name.trim())
+      .map((r) => ({
+        id: typeof r.id === "string" ? r.id : "",
+        name: String(r.name).trim(),
+        badge: r.badge === "Primary" ? "Primary" : "Sub-zone",
+        classification: String(r.classification ?? "Standard"),
+        status: r.status === "Inactive" ? "Inactive" : "Active",
+      }));
+  } catch {
+    return [];
+  }
+}
+
 const RESOLUTIONS = ["1080p", "4K", "2K", "720p"];
 
-const BOUNDARY_OPTIONS = [
-  "Main Barangay Boundary",
-  "Purok 1 — Riverside",
-  "Purok 2 — Chapel Area",
-  "Purok 3 — Market Zone",
-  "Purok 4 — School District",
-  "Evacuation Zone Alpha",
-];
+
 
 const PURPOSES = [
   "Main Road",
@@ -159,12 +256,7 @@ const CONNECTION_TYPES = ["Ethernet (PoE)", "Ethernet", "Wi-Fi", "LTE / 4G"];
 
 const STREAM_PROTOCOLS = ["RTSP", "HLS", "ONVIF", "HTTP"];
 
-const MONITORING_GROUPS = [
-  "CO-01 — Surveillance Unit",
-  "CO-02 — Surveillance Unit",
-  "CO-03 — Operations Desk",
-  "Not Assigned",
-];
+const NOT_ASSIGNED = "Not Assigned";
 
 const MAINTENANCE_CONTACTS = [
   "Field Tech — Team A",
@@ -174,25 +266,8 @@ const MAINTENANCE_CONTACTS = [
   "Unassigned",
 ];
 
-const ORIENTATION_ANGLES: Record<string, number> = {
-  North: 0,
-  Northeast: 45,
-  East: 90,
-  Southeast: 135,
-  South: 180,
-  Southwest: 225,
-  West: 270,
-  Northwest: 315,
-};
-
-function orientationAngle(o: string): number {
-  return ORIENTATION_ANGLES[o] ?? 0;
-}
-
-function fovToDeg(fov: string): number {
-  const m = fov.match(/(\d+)/);
-  return m ? Math.min(180, Number(m[1])) : 90;
-}
+const MAP_CENTER: [number, number] = [14.6681, 121.0567];
+const MAP_ZOOM = 15;
 
 function coordsToPosition(lat: string, lng: string): { top: number; left: number } {
   const la = Number(lat);
@@ -240,11 +315,14 @@ const STATUS_CONFIG: Record<
 function seedCamera(patch: Partial<Camera> & { id: string }): Camera {
   return {
     name: "",
-    purok: PUROK_OPTIONS[0],
-    assignment: BOUNDARY_OPTIONS[0],
+    address: "",
+    purok: "",
+    assignment: "",
     purpose: "Public Area",
     resolution: "1080p",
     ip: "",
+    port: "554",
+    streamPath: "/stream1",
     status: "online",
     top: 30,
     left: 30,
@@ -274,445 +352,6 @@ function seedCamera(patch: Partial<Camera> & { id: string }): Camera {
     credPass: generateCredToken(),
     ...patch,
   };
-}
-
-const INITIAL_CAMERAS: Camera[] = [
-  seedCamera({
-    id: "CAM-GATE-01",
-    name: "Main Gate — Perimeter",
-    purok: "Purok 1 — Riverside",
-    assignment: "Purok 1 — Riverside",
-    purpose: "Main Road",
-    resolution: "4K",
-    ip: "10.0.4.11",
-    status: "online",
-    top: 32,
-    left: 24,
-    enabled: true,
-    registeredAt: "2026-05-04",
-    lastTested: "2026-07-20 08:40",
-    maintenanceContact: "Field Tech — Team A",
-    operatorGroup: "CO-01 — Surveillance Unit",
-    mountingType: "Wall",
-    height: "4.5 m",
-    orientation: "Northeast",
-    fov: "120°",
-    connectionType: "Ethernet (PoE)",
-    streamProtocol: "RTSP",
-    latency: "34ms",
-    lastHeartbeat: "2026-07-20 09:12",
-    lastSuccessful: "2026-07-20 08:40",
-    lastFailed: "—",
-    powerState: "Powered",
-    uptime: "21d 4h",
-    maintenanceStatus: "OK",
-    maintenanceHistory: [
-      {
-        date: "2026-06-18",
-        type: "Inspection",
-        performedBy: "Field Tech — Team A",
-        description: "Routine quarterly inspection of housing and cabling",
-        result: "Passed",
-      },
-      {
-        date: "2026-05-02",
-        type: "Cleaning",
-        performedBy: "Field Tech — Team A",
-        description: "Lens cleaning after heavy rain",
-        result: "Passed",
-      },
-    ],
-    testHistory: [
-      {
-        timestamp: "2026-07-20 08:40",
-        result: "Passed",
-        reason: "—",
-        latency: "34ms",
-        resultingStatus: "online",
-      },
-      {
-        timestamp: "2026-07-20 08:35",
-        result: "Passed",
-        reason: "—",
-        latency: "31ms",
-        resultingStatus: "online",
-      },
-    ],
-    credUser: "svc_cam_gate_01",
-    credPass: generateCredToken(),
-  }),
-  seedCamera({
-    id: "CAM-PLAZA-02",
-    name: "Plaza Pan-Tilt-Zoom",
-    purok: "Purok 2 — Chapel Area",
-    assignment: "Purok 2 — Chapel Area",
-    purpose: "Public Area",
-    resolution: "1080p",
-    ip: "10.0.4.12",
-    status: "online",
-    top: 48,
-    left: 52,
-    enabled: true,
-    registeredAt: "2026-05-11",
-    lastTested: "2026-07-20 09:05",
-    maintenanceContact: "Barangay Facilities",
-    operatorGroup: "CO-01 — Surveillance Unit",
-    mountingType: "Pole",
-    height: "6.0 m",
-    orientation: "Southeast",
-    fov: "180°",
-    connectionType: "Ethernet (PoE)",
-    streamProtocol: "HLS",
-    latency: "41ms",
-    lastHeartbeat: "2026-07-20 09:14",
-    lastSuccessful: "2026-07-20 09:05",
-    lastFailed: "—",
-    powerState: "Powered",
-    uptime: "18d 9h",
-    maintenanceStatus: "OK",
-    maintenanceHistory: [
-      {
-        date: "2026-06-30",
-        type: "Cleaning",
-        performedBy: "Barangay Facilities",
-        description: "Dome housing wiped down, insect nests removed",
-        result: "Passed",
-      },
-    ],
-    credUser: "svc_cam_plaza_02",
-    credPass: generateCredToken(),
-  }),
-  seedCamera({
-    id: "CAM-MARKET-03",
-    name: "Public Market Stall Front",
-    purok: "Purok 3 — Market Zone",
-    assignment: "Purok 3 — Market Zone",
-    purpose: "Public Area",
-    resolution: "1080p",
-    ip: "10.0.4.13",
-    status: "online",
-    top: 55,
-    left: 72,
-    enabled: true,
-    registeredAt: "2026-05-19",
-    lastTested: "2026-07-20 08:15",
-    maintenanceContact: "External Contractor",
-    operatorGroup: "CO-02 — Surveillance Unit",
-    mountingType: "Ceiling",
-    height: "3.5 m",
-    orientation: "South",
-    fov: "90°",
-    connectionType: "Wi-Fi",
-    streamProtocol: "RTSP",
-    latency: "28ms",
-    lastHeartbeat: "2026-07-20 09:15",
-    lastSuccessful: "2026-07-20 08:15",
-    lastFailed: "—",
-    powerState: "Powered",
-    uptime: "31d 2h",
-    maintenanceStatus: "OK",
-    maintenanceHistory: [
-      {
-        date: "2026-06-12",
-        type: "Cleaning",
-        performedBy: "External Contractor",
-        description: "Lens clean, stall lighting glare adjustment",
-        result: "Passed",
-      },
-      {
-        date: "2026-04-15",
-        type: "Replacement",
-        performedBy: "External Contractor",
-        description: "Replaced damaged mounting housing",
-        result: "Passed",
-      },
-    ],
-    credUser: "svc_cam_market_03",
-    credPass: generateCredToken(),
-  }),
-  seedCamera({
-    id: "CAM-SCHOOL-04",
-    name: "School Gate Approach",
-    purok: "Purok 4 — School District",
-    assignment: "Purok 4 — School District",
-    purpose: "Entrance / Exit",
-    resolution: "2K",
-    ip: "10.0.4.14",
-    status: "offline",
-    top: 22,
-    left: 66,
-    enabled: true,
-    registeredAt: "2026-04-27",
-    lastTested: "2026-07-15 11:20",
-    maintenanceContact: "Field Tech — Team B",
-    operatorGroup: "CO-02 — Surveillance Unit",
-    mountingType: "Pole",
-    height: "5.0 m",
-    orientation: "West",
-    fov: "120°",
-    connectionType: "Ethernet (PoE)",
-    streamProtocol: "RTSP",
-    latency: "—",
-    lastHeartbeat: "—",
-    lastSuccessful: "2026-07-14 22:30",
-    lastFailed: "2026-07-15 11:20",
-    powerState: "Powered",
-    uptime: "—",
-    maintenanceStatus: "Service Due",
-    maintenanceHistory: [
-      {
-        date: "2026-07-15",
-        type: "Connectivity Check",
-        performedBy: "Field Tech — Team B",
-        description: "Feed drop reported — endpoint unreachable, cabling suspected",
-        result: "Failed",
-      },
-      {
-        date: "2026-06-10",
-        type: "Inspection",
-        performedBy: "Field Tech — Team B",
-        description: "Pole mount torque check",
-        result: "Passed",
-      },
-    ],
-    testHistory: [
-      {
-        timestamp: "2026-07-15 11:20",
-        result: "Failed",
-        reason: "Connection Timeout",
-        latency: "—",
-        resultingStatus: "offline",
-      },
-      {
-        timestamp: "2026-07-14 22:30",
-        result: "Passed",
-        reason: "—",
-        latency: "47ms",
-        resultingStatus: "online",
-      },
-    ],
-    credUser: "svc_cam_school_04",
-    credPass: generateCredToken(),
-  }),
-  seedCamera({
-    id: "CAM-HALL-05",
-    name: "Barangay Hall Entrance",
-    purok: "Main Barangay Boundary",
-    assignment: "Main Barangay Boundary",
-    purpose: "Barangay Hall",
-    resolution: "1080p",
-    ip: "10.0.4.15",
-    status: "offline",
-    top: 68,
-    left: 40,
-    enabled: true,
-    registeredAt: "2026-06-01",
-    lastTested: "2026-07-19 21:45",
-    maintenanceContact: "Barangay Facilities",
-    operatorGroup: "CO-01 — Surveillance Unit",
-    mountingType: "Wall",
-    height: "4.0 m",
-    orientation: "East",
-    fov: "90°",
-    connectionType: "Ethernet (PoE)",
-    streamProtocol: "HLS",
-    latency: "142ms",
-    lastHeartbeat: "2026-07-20 09:10",
-    lastSuccessful: "2026-07-19 21:45",
-    lastFailed: "2026-07-19 21:40",
-    powerState: "Powered",
-    uptime: "5d 12h",
-    maintenanceStatus: "Service Due",
-    maintenanceHistory: [
-      {
-        date: "2026-07-19",
-        type: "Connectivity Check",
-        performedBy: "Barangay Facilities",
-        description: "Intermittent feed — signal drops every few minutes",
-        result: "Failed",
-      },
-      {
-        date: "2026-06-25",
-        type: "Cleaning",
-        performedBy: "Barangay Facilities",
-        description: "Entrance canopy area cleaned",
-        result: "Passed",
-      },
-    ],
-    testHistory: [
-      {
-        timestamp: "2026-07-19 21:45",
-        result: "Passed",
-        reason: "—",
-        latency: "142ms",
-        resultingStatus: "online",
-      },
-      {
-        timestamp: "2026-07-19 21:40",
-        result: "Failed",
-        reason: "Connection Timeout",
-        latency: "—",
-        resultingStatus: "offline",
-      },
-    ],
-    credUser: "svc_cam_hall_05",
-    credPass: generateCredToken(),
-  }),
-  seedCamera({
-    id: "CAM-EVAC-06",
-    name: "Evacuation Zone Overwatch",
-    purok: "Evacuation Zone Alpha",
-    assignment: "Evacuation Zone Alpha",
-    purpose: "Evacuation Center",
-    resolution: "720p",
-    ip: "10.0.4.16",
-    status: "pending",
-    top: 40,
-    left: 33,
-    enabled: true,
-    registeredAt: "2026-07-19",
-    lastTested: "—",
-    maintenanceContact: "Unassigned",
-    operatorGroup: "Not Assigned",
-    mountingType: "Pole",
-    height: "5.5 m",
-    orientation: "North",
-    fov: "120°",
-    connectionType: "Ethernet (PoE)",
-    streamProtocol: "RTSP",
-    latency: "—",
-    lastHeartbeat: "—",
-    lastSuccessful: "—",
-    lastFailed: "—",
-    powerState: "Powered",
-    uptime: "—",
-    maintenanceStatus: "—",
-    maintenanceHistory: [],
-    testHistory: [
-      {
-        timestamp: "2026-07-19 16:10",
-        result: "Failed",
-        reason: "Invalid Credentials",
-        latency: "—",
-        resultingStatus: "pending",
-      },
-    ],
-    credUser: "svc_cam_evac_06",
-    credPass: generateCredToken(),
-  }),
-  seedCamera({
-    id: "CAM-PUROK2-08",
-    name: "Chapel Side Street",
-    purok: "Purok 2 — Chapel Area",
-    assignment: "Purok 2 — Chapel Area",
-    purpose: "Main Road",
-    resolution: "1080p",
-    ip: "10.0.4.18",
-    status: "pending",
-    top: 44,
-    left: 58,
-    enabled: true,
-    registeredAt: "2026-07-21",
-    lastTested: "2026-07-22 09:20",
-    maintenanceContact: "Unassigned",
-    operatorGroup: "Not Assigned",
-    mountingType: "Wall",
-    height: "4.0 m",
-    orientation: "East",
-    fov: "120°",
-    connectionType: "Ethernet (PoE)",
-    streamProtocol: "HLS",
-    latency: "38ms",
-    lastHeartbeat: "2026-07-22 09:20",
-    lastSuccessful: "2026-07-22 09:20",
-    lastFailed: "—",
-    powerState: "Powered",
-    uptime: "—",
-    maintenanceStatus: "OK",
-    maintenanceHistory: [],
-    testHistory: [
-      {
-        timestamp: "2026-07-22 09:20",
-        result: "Passed",
-        reason: "—",
-        latency: "38ms",
-        resultingStatus: "online",
-      },
-    ],
-    credUser: "svc_cam_chapel_08",
-    credPass: generateCredToken(),
-  }),
-];
-
-function CameraMarker({ camera }: { camera: Camera }) {
-  const cfg = STATUS_CONFIG[camera.status];
-  const angle = orientationAngle(camera.orientation);
-  const dimmed = camera.status === "disabled";
-  const coneW = 30 + fovToDeg(camera.fov) * 0.22;
-  const coneH = 38;
-
-  return (
-    <div
-      className={`absolute flex -translate-x-1/2 -translate-y-full flex-col items-center transition-opacity ${
-        dimmed ? "opacity-50 grayscale" : ""
-      }`}
-      style={{ top: `${camera.top}%`, left: `${camera.left}%`, zIndex: Math.round(camera.top) }}
-    >
-      <div
-        className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2"
-        style={{ width: coneW, height: coneH }}
-        title={`${camera.orientation} · ${camera.fov} FOV`}
-      >
-        <div
-          className="absolute inset-0"
-          style={{
-            clipPath: "polygon(50% 100%, 0 0, 100% 0)",
-            background: dimmed ? "rgba(120,113,108,0.12)" : "rgba(245,158,11,0.14)",
-            transform: `rotate(${angle}deg)`,
-            transformOrigin: "50% 100%",
-          }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            clipPath: "polygon(50% 100%, 0.8% 1%, 99.2% 1%)",
-            background: dimmed ? "rgba(120,113,108,0.28)" : "rgba(245,158,11,0.4)",
-            transform: `rotate(${angle}deg)`,
-            transformOrigin: "50% 100%",
-          }}
-        />
-      </div>
-      <div className="relative flex flex-col items-center">
-        <span
-          className="mb-0.5 flex items-center justify-center rounded-full bg-white/80 shadow-sm"
-          title={`Orientation: ${camera.orientation}`}
-        >
-          <ArrowUp
-            size={9}
-            strokeWidth={2.5}
-            color={cfg.pin}
-            fill={cfg.pin}
-            style={{ transform: `rotate(${angle}deg)` }}
-          />
-        </span>
-        <span className="mb-1 whitespace-nowrap rounded bg-[#0038A8] px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
-          {camera.id}
-        </span>
-        <div className="relative">
-          <Camera
-            size={22}
-            strokeWidth={1.5}
-            color={cfg.pin}
-            fill={cfg.pin}
-            className="drop-shadow-sm"
-          />
-          <span
-            className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white ${cfg.dot}`}
-          />
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function LabeledInput({
@@ -933,6 +572,15 @@ function CameraDetailModal({
           <DetailRow label="IP ADDRESS" mono>
             {camera.ip}
           </DetailRow>
+          <DetailRow label="STREAM PORT" mono>
+            {camera.port || "554"}
+          </DetailRow>
+          <DetailRow label="STREAM PATH" mono>
+            {camera.streamPath || "/stream1"}
+          </DetailRow>
+          <DetailRow label="STREAM ENDPOINT (MASKED)" mono>
+            {maskedStreamUrl(camera)}
+          </DetailRow>
           <DetailRow label="CONNECTION TYPE">{camera.connectionType}</DetailRow>
           <DetailRow label="STREAM PROTOCOL">{camera.streamProtocol}</DetailRow>
           <DetailRow label="CONNECTION STATUS">
@@ -1054,8 +702,8 @@ function CameraDetailModal({
         </DetailGroup>
 
         <DetailGroup title="Credentials">
-          <DetailRow label="ACCESS USERNAME" mono>
-            {camera.credUser}
+          <DetailRow label="ACCESS USERNAME (MASKED)" mono>
+            {maskUser(camera.credUser)}
           </DetailRow>
           <DetailRow label="ACCESS PASSWORD / TOKEN" mono>
             {camera.credPass}
@@ -1071,33 +719,221 @@ function CameraDetailModal({
   );
 }
 
+// ─── Backend API (FastAPI + PostgreSQL — source of truth) ─────────────────────
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
+function alternateApiBase() {
+  return API_BASE.includes("8080")
+    ? API_BASE.replace("8080", "8000")
+    : API_BASE.replace("8000", "8080");
+}
+
+async function cctvFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const request = {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options?.headers || {}),
+    },
+  };
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, request);
+    if (!res.ok) {
+      try {
+        const altRes = await fetch(`${alternateApiBase()}${path}`, request);
+        if (altRes.ok) {
+          res = altRes;
+        }
+      } catch {
+        // Keep the original response if the alternate backend is unreachable.
+      }
+    }
+  } catch {
+    res = await fetch(`${alternateApiBase()}${path}`, request);
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const detail = (data as { detail?: unknown })?.detail;
+    const message =
+      typeof detail === "string"
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((d: any) => d?.msg || JSON.stringify(d)).join("; ")
+          : `Request failed (${res.status})`;
+    throw new Error(message);
+  }
+  if (res.status === 204) return undefined as T;
+  return (await res.json()) as T;
+}
+
+const API_STATUSES: CameraStatus[] = ["online", "offline", "pending", "disabled"];
+
+function fromApiCamera(row: any): Camera {
+  const lat = row.lat != null ? String(row.lat) : "";
+  const lng = row.lng != null ? String(row.lng) : "";
+  const pos = coordsToPosition(lat, lng);
+  const status: CameraStatus = API_STATUSES.includes(row.status) ? row.status : "pending";
+  const maintenanceHistory: MaintenanceRecord[] = Array.isArray(row.maintenance_history)
+    ? (row.maintenance_history as any[]).map((m) => ({
+        date: String(m.date ?? ""),
+        type: String(m.type ?? ""),
+        performedBy: String(m.performed_by ?? ""),
+        description: String(m.description ?? ""),
+        result: String(m.result ?? ""),
+      }))
+    : [];
+  const testHistory: ConnectionTestRecord[] = Array.isArray(row.test_history)
+    ? (row.test_history as any[]).map((t) => ({
+        timestamp: String(t.timestamp ?? ""),
+        result: t.result === "Passed" || t.result === "Failed" ? t.result : "Failed",
+        reason: String(t.reason ?? ""),
+        latency: String(t.latency ?? ""),
+        resultingStatus: API_STATUSES.includes(t.resulting_status)
+          ? (t.resulting_status as CameraStatus)
+          : "pending",
+      }))
+    : [];
+  return {
+    id: String(row.id ?? ""),
+    name: row.name ?? "",
+    address: row.address ?? "",
+    purok: row.purok ?? "",
+    assignment: row.assignment ?? "",
+    purpose: row.purpose ?? "",
+    resolution: row.resolution ?? "1080p",
+    ip: row.ip ?? "",
+    port: row.port ?? "554",
+    streamPath: row.stream_path ?? "/stream1",
+    status,
+    top: pos.top,
+    left: pos.left,
+    enabled: row.enabled !== false,
+    registeredAt: row.registered_at ?? "",
+    lastTested: row.last_tested ?? "—",
+    maintenanceContact: row.maintenance_contact ?? "Unassigned",
+    operatorGroup: row.operator_group ?? "Not Assigned",
+    mountingType: row.mounting_type ?? "Pole",
+    height: row.height ?? "",
+    orientation: row.orientation ?? "North",
+    fov: row.fov ?? "90°",
+    connectionType: row.connection_type ?? "Ethernet (PoE)",
+    streamProtocol: row.stream_protocol ?? "RTSP",
+    latency: row.latency ?? "—",
+    lastHeartbeat: row.last_heartbeat ?? "—",
+    lastSuccessful: row.last_successful ?? "",
+    lastFailed: row.last_failed ?? "",
+    powerState: row.power_state ?? "Powered",
+    uptime: row.uptime ?? "—",
+    maintenanceStatus: row.maintenance_status ?? "—",
+    maintenanceHistory,
+    testHistory,
+    lat,
+    lng,
+    credUser: row.cred_user ?? "",
+    credPass: row.cred_pass ?? "",
+  };
+}
+
+function toApiPayload(c: Camera): Record<string, unknown> {
+  return {
+    name: c.name,
+    address: c.address,
+    purok: c.purok,
+    assignment: c.assignment,
+    purpose: c.purpose,
+    resolution: c.resolution,
+    ip: c.ip,
+    port: c.port,
+    stream_path: c.streamPath,
+    status: c.status,
+    enabled: c.enabled,
+    registered_at: c.registeredAt,
+    last_tested: c.lastTested,
+    maintenance_contact: c.maintenanceContact,
+    operator_group: c.operatorGroup,
+    mounting_type: c.mountingType,
+    height: c.height,
+    orientation: c.orientation,
+    fov: c.fov,
+    connection_type: c.connectionType,
+    stream_protocol: c.streamProtocol,
+    latency: c.latency,
+    last_heartbeat: c.lastHeartbeat,
+    last_successful: c.lastSuccessful,
+    last_failed: c.lastFailed,
+    power_state: c.powerState,
+    uptime: c.uptime,
+    maintenance_status: c.maintenanceStatus,
+    lat: c.lat && Number.isFinite(Number(c.lat)) ? Number(c.lat) : null,
+    lng: c.lng && Number.isFinite(Number(c.lng)) ? Number(c.lng) : null,
+    cred_user: c.credUser || "",
+    cred_pass: c.credPass || "",
+  };
+}
+
 export default function CctvPlacement() {
   const mapRef = useRef<HTMLDivElement>(null);
+  const leafletMapRef = useRef<L.Map | null>(null);
+  const camerasLayerRef = useRef<L.LayerGroup | null>(null);
+  const regMapRef = useRef<HTMLDivElement>(null);
+  const regLeafletMapRef = useRef<L.Map | null>(null);
+  const regPickMarkerRef = useRef<L.Marker | null>(null);
   const [modalMessage, setModalMessage] = useState<{ title: string; message: string } | null>(null);
-  const [cameras, setCameras] = useState<Camera[]>(INITIAL_CAMERAS);
+  const [cameras, setCameras] = useState<Camera[]>([]);
+  // Registered but not yet verified — only cameras that really connect during
+  // the connection test are admitted to the inventory (cameras).
+  const [pendingRegistrations, setPendingRegistrations] = useState<Camera[]>([]);
+  // Raw RTSP credentials for unverified registrations, kept only in the browser
+  // (localStorage) so the connection test can authenticate. Cleared on promote/remove.
+  // Server-side credentials stay masked; this store is purely for the live probe.
+  const [pendingCredentials, setPendingCredentials] = useState<Record<string, { user: string; pass: string }>>(
+    () => {
+      try {
+        const parsed = JSON.parse(localStorage.getItem("cctv_pending_credentials") || "{}");
+        return typeof parsed === "object" && parsed !== null ? parsed : {};
+      } catch {
+        return {};
+      }
+    },
+  );
+  useEffect(() => {
+    try {
+      localStorage.setItem("cctv_pending_credentials", JSON.stringify(pendingCredentials));
+    } catch {
+      // Ignore storage failures (private mode, quota).
+    }
+  }, [pendingCredentials]);
+  const [operatorUsers, setOperatorUsers] = useState<Array<{ userId: string; name: string }>>([]);
+  const [boundaries, setBoundaries] = useState<
+    Array<{ id: string; name: string; badge: string; classification: string; status: string }>
+  >([]);
 
-  const [cameraId, setCameraId] = useState("");
+  const [regAddress, setRegAddress] = useState("");
+  const [regLat, setRegLat] = useState("");
+  const [regLng, setRegLng] = useState("");
+  const [regLocating, setRegLocating] = useState(false);
+  const [regLocMsg, setRegLocMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+
   const [cameraName, setCameraName] = useState("");
-  const [purok, setPurok] = useState(PUROK_OPTIONS[0]);
-  const [assignment, setAssignment] = useState(BOUNDARY_OPTIONS[0]);
+  const [purok, setPurok] = useState("");
+  const [assignment, setAssignment] = useState("");
   const [purpose, setPurpose] = useState(PURPOSES[0]);
   const [resolution, setResolution] = useState(RESOLUTIONS[0]);
   const [mountingType, setMountingType] = useState(MOUNTING_TYPES[0]);
   const [height, setHeight] = useState("");
   const [orientation, setOrientation] = useState(ORIENTATIONS[0]);
   const [fov, setFov] = useState("90°");
-  const [ip, setIp] = useState(`10.0.4.${Math.floor(Math.random() * 90) + 20}`);
+  const [ip, setIp] = useState("");
+  const [port, setPort] = useState("554");
+  const [streamPath, setStreamPath] = useState("/stream1");
   const [connectionType, setConnectionType] = useState(CONNECTION_TYPES[0]);
   const [streamProtocol, setStreamProtocol] = useState(STREAM_PROTOCOLS[0]);
-  const [operatorGroup, setOperatorGroup] = useState(
-    MONITORING_GROUPS[MONITORING_GROUPS.length - 1],
-  );
+  const [operatorGroup, setOperatorGroup] = useState(NOT_ASSIGNED);
   const [maintenanceContact, setMaintenanceContact] = useState(
     MAINTENANCE_CONTACTS[MAINTENANCE_CONTACTS.length - 1],
   );
-  const [lat, setLat] = useState("14.5995");
-  const [lng, setLng] = useState("120.9842");
-  const [pickingPin, setPickingPin] = useState(false);
   const [credUser, setCredUser] = useState("");
   const [credPass, setCredPass] = useState("");
   const [credShowPass, setCredShowPass] = useState(false);
@@ -1118,16 +954,22 @@ export default function CctvPlacement() {
     connectionType: "",
     streamProtocol: "",
     ip: "",
+    port: "",
+    streamPath: "",
     operatorGroup: "",
     maintenanceContact: "",
   });
 
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [savingRegistration, setSavingRegistration] = useState(false);
   const [viewId, setViewId] = useState<string | null>(null);
+  const openDetailsRef = useRef<(id: string) => void>(() => {});
+  openDetailsRef.current = (id: string) => setViewId(id);
   const [credEditId, setCredEditId] = useState<string | null>(null);
   const [credForm, setCredForm] = useState({ user: "", pass: "" });
   const [credShow, setCredShow] = useState(false);
   const [credConfirmId, setCredConfirmId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{
     id: string;
     success: boolean;
@@ -1138,12 +980,316 @@ export default function CctvPlacement() {
     reason: string;
     checks: { auth: boolean; reach: boolean; response: boolean };
   } | null>(null);
-  const [simMode, setSimMode] = useState<SimMode>("auto");
   const [mapFilter, setMapFilter] = useState<"all" | CameraStatus>("all");
   const [mapSearch, setMapSearch] = useState("");
   const [storage, setStorage] = useState(getCctvStorageConfig());
 
+  // CCTV Operator options for the assignment dropdown: users with the
+  // "CCTV Operator" role only. Any legacy group label already stored on a
+  // camera is preserved so editing never drops an existing assignment.
+  const operatorOptions = useMemo(() => {
+    const names = operatorUsers.map((u) => u.name);
+    cameras.forEach((c) => {
+      if (c.operatorGroup && c.operatorGroup !== NOT_ASSIGNED && !names.includes(c.operatorGroup)) {
+        names.push(c.operatorGroup);
+      }
+    });
+    return [...names, NOT_ASSIGNED];
+  }, [operatorUsers, cameras]);
+
+  // Digital-boundary options (from the Digital Boundaries module): the
+  // purok/zone picker lists Sub-zone boundaries, while the assigned digital
+  // boundary lists every Active boundary. Values already stored on a camera
+  // are preserved so edits never drop existing assignments.
+  const purokOptions = useMemo(() => {
+    const names = boundaries
+      .filter((b) => b.status === "Active" && b.badge === "Sub-zone")
+      .map((b) => b.name)
+      .filter((n) => !!n);
+    cameras.forEach((c) => {
+      if (c.purok && !names.includes(c.purok)) names.push(c.purok);
+    });
+    return names;
+  }, [boundaries, cameras]);
+
+  const boundaryOptions = useMemo(() => {
+    const names = boundaries
+      .filter((b) => b.status === "Active")
+      .map((b) => b.name)
+      .filter((n) => !!n);
+    cameras.forEach((c) => {
+      if (c.assignment && !names.includes(c.assignment)) names.push(c.assignment);
+    });
+    return names;
+  }, [boundaries, cameras]);
+
   useEffect(() => subscribeCctvStorage(() => setStorage(getCctvStorageConfig())), []);
+
+  // Load registered cameras from the backend. Cameras that are still awaiting
+  // connectivity verification (status "pending") are restored to the Pending
+  // Verification list; only verified inventory rows go straight to the table.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows: any[] = await cctvFetch("/api/cctv/cameras");
+        if (cancelled || !Array.isArray(rows)) return;
+
+        // The backend is the single source of truth. Replace (never append to)
+        // local state so a camera removed from the database — including a
+        // previously saved but incorrect registration — stops being displayed.
+        const pending = rows.filter((r) => r && String(r.status ?? "") === "pending");
+        const verified = rows.filter((r) => r && String(r.status ?? "") !== "pending");
+        const pendingIds = new Set(pending.map((r) => String(r.id ?? "")));
+
+        setPendingRegistrations(pending.map(fromApiCamera));
+        setCameras(verified.map(fromApiCamera));
+
+        // Drop raw credentials cached from earlier registrations that are no
+        // longer awaiting verification, so stale data is never reused.
+        setPendingCredentials((prev) => {
+          const next: Record<string, { user: string; pass: string }> = {};
+          Object.keys(prev).forEach((id) => {
+            if (pendingIds.has(id)) next[id] = prev[id];
+          });
+          return next;
+        });
+      } catch {
+        // Backend unreachable — keep the last known state.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Load CCTV Operator accounts from user management so the operator
+  // assignment dropdown only lists users with the "CCTV Operator" role.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows: any[] = await cctvFetch("/api/users");
+        if (cancelled) return;
+        if (Array.isArray(rows)) {
+          setOperatorUsers(
+            rows
+              .filter((u) => u && (u.role ?? "") === "CCTV Operator")
+              .map((u) => ({ userId: String(u.userId ?? ""), name: String(u.name ?? "").trim() }))
+              .filter((u) => u.name),
+          );
+        }
+      } catch {
+        // Backend unreachable — fall back to "Not Assigned" only.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Load digital boundaries (same source as the Digital Boundaries module) so
+  // the purok/zone and assigned-boundary pickers use live geofence data.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const normalize = (rows: any[]) =>
+        rows
+          .map((r) => ({
+            id: String(r.id ?? ""),
+            name: String(r.name ?? "").trim(),
+            badge: r.badge === "Primary" ? "Primary" : "Sub-zone",
+            classification: String(r.classification ?? "Standard"),
+            status: r.status === "Inactive" ? "Inactive" : "Active",
+          }))
+          .filter((b) => b.name);
+      try {
+        const rows: any[] = await cctvFetch("/api/digital-boundaries");
+        if (cancelled) return;
+        const list = Array.isArray(rows) ? normalize(rows) : [];
+        if (list.length === 0) {
+          setBoundaries(loadCachedBoundaries());
+          return;
+        }
+        setBoundaries(list);
+      } catch {
+        if (!cancelled) setBoundaries(loadCachedBoundaries());
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current || leafletMapRef.current) return;
+
+    const map = L.map(mapRef.current, {
+      center: MAP_CENTER,
+      zoom: MAP_ZOOM,
+      zoomControl: false,
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+
+    camerasLayerRef.current = L.layerGroup().addTo(map);
+    leafletMapRef.current = map;
+
+    const resizeObserver = new ResizeObserver(() => map.invalidateSize());
+    resizeObserver.observe(mapRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      camerasLayerRef.current = null;
+      map.remove();
+      leafletMapRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const layer = camerasLayerRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+
+    const q = mapSearch.trim().toLowerCase();
+    cameras
+      .filter((c) => {
+        if (mapFilter !== "all" && c.status !== mapFilter) return false;
+        if (!q) return true;
+        return [c.id, c.name, c.purok, c.assignment].join(" ").toLowerCase().includes(q);
+      })
+      .forEach((c) => {
+        const la = Number(c.lat);
+        const ln = Number(c.lng);
+        if (!Number.isFinite(la) || !Number.isFinite(ln)) return;
+        const cfg = STATUS_CONFIG[c.status];
+        const dotColor =
+          c.status === "online" ? "#10b981" : c.status === "offline" ? "#f43f5e" : "#a8a29e";
+        const html = `
+          <div style="transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; cursor: pointer; ${c.status === "disabled" ? "opacity: 0.5; filter: grayscale(1);" : ""}">
+            <span style="background: #0038A8; color: #fff; font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 3px; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.25);">${c.id}</span>
+            <div style="position: relative; margin-top: 2px;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="${cfg.pin}" stroke="${cfg.pin}" stroke-width="1.5"><rect x="3" y="6" width="12" height="9" rx="1.5"/><path d="M15 9l6-3v9l-6-3z"/></svg>
+              <span style="position: absolute; top: 0; right: -2px; width: 9px; height: 9px; border-radius: 999px; border: 2px solid #fff; background: ${dotColor};"></span>
+            </div>
+          </div>
+        `;
+        const icon = L.divIcon({ html, className: "", iconSize: [0, 0] });
+        const marker = L.marker([la, ln], { icon });
+        marker.bindTooltip(`${c.id} · ${c.name}`, { direction: "top", offset: [0, -8] });
+        marker.on("click", (e) => {
+          L.DomEvent.stopPropagation(e);
+          openDetailsRef.current(c.id);
+        });
+        marker.addTo(layer);
+      });
+
+    leafletMapRef.current?.invalidateSize();
+  }, [cameras, mapFilter, mapSearch]);
+
+  const zoomIn = () => leafletMapRef.current?.zoomIn();
+  const zoomOut = () => leafletMapRef.current?.zoomOut();
+  const resetView = () => leafletMapRef.current?.setView(MAP_CENTER, MAP_ZOOM);
+  const fitAllCameras = () => {
+    const map = leafletMapRef.current;
+    if (!map) return;
+    const pts = cameras
+      .map((c) => ({ la: Number(c.lat), ln: Number(c.lng) }))
+      .filter((p) => Number.isFinite(p.la) && Number.isFinite(p.ln))
+      .map((p) => L.latLng(p.la, p.ln));
+    if (pts.length === 0) return;
+    map.fitBounds(L.latLngBounds(pts), { padding: [40, 40], maxZoom: 17 });
+  };
+
+  const PICK_PIN_ICON = L.divIcon({
+    className: "",
+    iconSize: [0, 0],
+    html: `<div style="transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; pointer-events: none;">
+      <div style="width: 22px; height: 22px; border-radius: 999px; background: #0038A8; border: 3px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.4);"></div>
+      <div style="width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 13px solid #0038A8;"></div>
+    </div>`,
+  });
+
+  // Lightweight pick-a-pin map embedded in the registration form.
+  useEffect(() => {
+    if (!regMapRef.current || regLeafletMapRef.current) return;
+    const map = L.map(regMapRef.current, {
+      center: MAP_CENTER,
+      zoom: 14,
+      zoomControl: false,
+    });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+    map.on("click", (evt: L.LeafletMouseEvent) => {
+      placeRegPinRef.current(evt.latlng.lat, evt.latlng.lng, true);
+    });
+    regLeafletMapRef.current = map;
+    const sizeTimer = window.setTimeout(() => map.invalidateSize(), 80);
+    const ro = new ResizeObserver(() => map.invalidateSize());
+    ro.observe(regMapRef.current);
+    return () => {
+      window.clearTimeout(sizeTimer);
+      ro.disconnect();
+      map.remove();
+      regLeafletMapRef.current = null;
+      regPickMarkerRef.current = null;
+    };
+  }, []);
+
+  const placeRegPinRef = useRef<(lat: number, lng: number, reverse?: boolean) => void>(() => {});
+  placeRegPinRef.current = (lat, lng, reverse = false) => {
+    const map = regLeafletMapRef.current;
+    if (!map) return;
+    setRegLat(lat.toFixed(6));
+    setRegLng(lng.toFixed(6));
+    regPickMarkerRef.current?.remove();
+    const marker = L.marker([lat, lng], { icon: PICK_PIN_ICON }).addTo(map);
+    regPickMarkerRef.current = marker;
+    setRegLocMsg(null);
+    if (reverse) {
+      void reverseGeocode(lat, lng).then((addr) => {
+        if (addr) {
+          setRegAddress(addr);
+          setRegLocMsg({ kind: "ok", text: "Pin placed — address resolved from the map." });
+        }
+      });
+    }
+  };
+
+  const clearRegLocation = () => {
+    setRegAddress("");
+    setRegLat("");
+    setRegLng("");
+    setRegLocMsg(null);
+    regPickMarkerRef.current?.remove();
+    regPickMarkerRef.current = null;
+  };
+
+  const handleRegLocate = async () => {
+    const q = regAddress.trim();
+    if (!q || regLocating) return;
+    setRegLocating(true);
+    setRegLocMsg(null);
+    const found = await geocodeAddress(q);
+    setRegLocating(false);
+    if (!found) {
+      setRegLocMsg({
+        kind: "err",
+        text: "Could not resolve that address on the map — try a street name, landmark or barangay.",
+      });
+      return;
+    }
+    regLeafletMapRef.current?.setView([found.lat, found.lng], 16, { animate: true });
+    placeRegPinRef.current(found.lat, found.lng, false);
+    setRegLocMsg({ kind: "ok", text: "Address located — pin placed on the map." });
+  };
 
   const usedPctRaw = storage.totalGb > 0 ? (storage.usedGb / storage.totalGb) * 100 : 0;
   const usedPctStr = usedPctRaw.toFixed(1);
@@ -1161,40 +1307,85 @@ export default function CctvPlacement() {
       });
       return;
     }
+
+    // Verify against the camera's current registration data only. Incomplete or
+    // malformed details cannot pass — the test never falls back to a guess.
+    const configErrors = validateRegistrationConfig({
+      name: cam.name,
+      ip: cam.ip,
+      port: cam.port,
+      streamPath: cam.streamPath,
+      streamProtocol: cam.streamProtocol,
+    });
+    if (configErrors.length > 0) {
+      setTestResult({
+        id: cam.id,
+        success: false,
+        latency: "—",
+        timestamp: now(),
+        previous: cam.status,
+        resulting: cam.status,
+        reason: configErrors.join(" "),
+        checks: { auth: false, reach: false, response: false },
+      });
+      return;
+    }
+
     setTestingId(cam.id);
     setTestResult(null);
-    setTimeout(() => {
+    void (async () => {
       const previous: CameraStatus = cam.status;
 
-      let success: boolean;
-      let reason: string = "";
-      if (simMode === "pass") {
-        success = true;
-      } else if (simMode === "fail-timeout") {
-        success = false;
-        reason = "Connection Timeout";
-      } else if (simMode === "fail-endpoint") {
-        success = false;
-        reason = "Stream Endpoint Unreachable";
-      } else if (simMode === "fail-credentials") {
-        success = false;
-        reason = "Invalid Credentials";
-      } else {
-        success = Math.random() > 0.3;
-        if (!success) {
-          reason = ["Connection Timeout", "Stream Endpoint Unreachable", "Invalid Credentials"][
-            Math.floor(Math.random() * 3)
-          ];
+      // Real connectivity probe against the camera endpoint. A successful
+      // verdict requires the backend to actually confirm reachability, stream
+      // authentication and a readable frame — there is no simulated fallback.
+      let success = false;
+      let reason = "";
+      let latency = "—";
+      let auth = false;
+      let reach = false;
+      let response = false;
+      try {
+        const diagPayload: Record<string, string> = {
+          ip: cam.ip,
+          port: cam.port,
+          stream_path: cam.streamPath,
+          stream_protocol: cam.streamProtocol,
+        };
+        const pendingCred = pendingCredentials[cam.id];
+        if (pendingCred) {
+          diagPayload.username = pendingCred.user;
+          diagPayload.password = pendingCred.pass;
         }
+        const diag = (await cctvFetch("/api/cctv/cameras/diagnose", {
+          method: "POST",
+          body: JSON.stringify(diagPayload),
+        })) as {
+          connected: boolean;
+          reachable: boolean;
+          authentication: boolean;
+          response: boolean;
+          latency: string;
+          reason: string;
+        };
+        success = !!diag.connected;
+        reason = diag.reason || "";
+        latency = diag.latency || "—";
+        reach = !!diag.reachable;
+        auth = !!diag.authentication;
+        response = !!diag.response;
+      } catch (err) {
+        success = false;
+        reason = `Camera diagnosis service unavailable — ${
+          err instanceof Error ? err.message : String(err)
+        }. The camera cannot be verified.`;
+        latency = "—";
+        auth = false;
+        reach = false;
+        response = false;
       }
 
-      const latency = success ? `${25 + Math.floor(Math.random() * 85)}ms` : "—";
       const timestamp = now();
-
-      const auth = success || reason !== "Invalid Credentials";
-      const reach = success || reason === "Invalid Credentials";
-      const response = success;
-
       const resulting: CameraStatus = success
         ? "online"
         : previous === "pending"
@@ -1209,37 +1400,176 @@ export default function CctvPlacement() {
         resultingStatus: resulting,
       };
 
-      setCameras((prev) =>
-        prev.map((c) =>
-          c.id === cam.id
-            ? {
-                ...c,
-                status: resulting,
-                lastTested: timestamp,
-                latency: success ? latency : "—",
-                lastHeartbeat: success ? timestamp : c.lastHeartbeat,
-                lastSuccessful: success ? timestamp : c.lastSuccessful,
-                lastFailed: success ? c.lastFailed : timestamp,
-                uptime: success ? (previous === "online" ? c.uptime : "Restarted") : c.uptime,
-                maintenanceStatus: "OK",
-                testHistory: [record, ...c.testHistory].slice(0, 10),
-              }
-            : c,
-        ),
-      );
+      const isPendingReg = pendingRegistrations.some((r) => r.id === cam.id);
 
-      pushAuditLog(
-        "Camera Connectivity Test",
-        `Connection test for camera ${cam.id} — Stream Reachability: ${
-          reach ? "PASS" : "FAIL"
-        }; Authentication: ${auth ? "PASS" : "FAIL"}; Response Time: ${
-          response ? "PASS" : "FAIL"
-        }; Overall Result: ${success ? "PASS" : "FAIL"}; Previous Status: ${previous.toUpperCase()}; Resulting Status: ${resulting.toUpperCase()}; ${
-          success
-            ? `Latency: ${latency}; endpoint reachable; stream available.`
-            : `Reason: ${reason}; latency: —; stream unavailable.`
-        }`,
-      );
+      if (success) {
+        if (isPendingReg) {
+          // The camera genuinely connected — admit it to the inventory now.
+          const admitted: Camera = {
+            ...cam,
+            status: "online",
+            enabled: true,
+            lastTested: timestamp,
+            latency,
+            lastHeartbeat: timestamp,
+            lastSuccessful: timestamp,
+            uptime: "Restarted",
+            maintenanceStatus: "OK",
+            testHistory: [record, ...cam.testHistory].slice(0, 10),
+          };
+          setPendingRegistrations((prev) => prev.filter((r) => r.id !== cam.id));
+          setPendingCredentials((prev) => {
+            const next = { ...prev };
+            delete next[cam.id];
+            return next;
+          });
+          setCameras((prev) => [...prev, admitted]);
+          void (async () => {
+            try {
+              // Camera was already saved (as pending) at registration — record
+              // the passed test and flip it online.
+              await cctvFetch(`/api/cctv/cameras/${encodeURIComponent(admitted.id)}/tests`, {
+                method: "POST",
+                body: JSON.stringify({
+                  timestamp: record.timestamp,
+                  result: record.result,
+                  reason: record.reason,
+                  latency: record.latency,
+                  resulting_status: "online",
+                  new_status: "online",
+                  last_tested: timestamp,
+                  new_latency: latency,
+                  last_heartbeat: timestamp,
+                  last_successful: timestamp,
+                  last_failed: admitted.lastFailed,
+                  uptime: "Restarted",
+                  maintenance_status: "OK",
+                }),
+              });
+            } catch {
+              // Registration save failed earlier — persist the camera now.
+              await cctvFetch("/api/cctv/cameras", {
+                method: "POST",
+                body: JSON.stringify({ id: admitted.id, ...toApiPayload(admitted) }),
+              }).catch(() => {});
+            }
+          })();
+          pushAuditLog(
+            "Camera Registration",
+            `Camera ${admitted.id} confirmed connected (latency ${latency}) — added to the Camera Inventory as Online.`,
+          );
+        } else {
+          setCameras((prev) =>
+            prev.map((c) =>
+              c.id === cam.id
+                ? {
+                    ...c,
+                    status: "online",
+                    lastTested: timestamp,
+                    latency,
+                    lastHeartbeat: timestamp,
+                    lastSuccessful: timestamp,
+                    uptime: previous === "online" ? c.uptime : "Restarted",
+                    maintenanceStatus: "OK",
+                    testHistory: [record, ...c.testHistory].slice(0, 10),
+                  }
+                : c,
+            ),
+          );
+          void cctvFetch(`/api/cctv/cameras/${encodeURIComponent(cam.id)}/tests`, {
+            method: "POST",
+            body: JSON.stringify({
+              timestamp: record.timestamp,
+              result: record.result,
+              reason: record.reason,
+              latency: record.latency,
+              resulting_status: record.resultingStatus,
+              new_status: resulting,
+              last_tested: timestamp,
+              new_latency: latency,
+              last_heartbeat: timestamp,
+              last_successful: timestamp,
+              last_failed: cam.lastFailed,
+              uptime: previous === "online" ? cam.uptime : "Restarted",
+              maintenance_status: "OK",
+            }),
+          }).catch(() => {});
+          pushAuditLog(
+            "Camera Connectivity Test",
+            `Connection test for camera ${cam.id} — Stream Reachability: ${
+              reach ? "PASS" : "FAIL"
+            }; Authentication: ${auth ? "PASS" : "FAIL"}; Response Time: ${
+              response ? "PASS" : "FAIL"
+            }; Overall Result: ${success ? "PASS" : "FAIL"}; Previous Status: ${previous.toUpperCase()}; Resulting Status: ${resulting.toUpperCase()}; ${
+              success
+                ? `Latency: ${latency}; endpoint reachable; stream available.`
+                : `Reason: ${reason}; latency: —; stream unavailable.`
+            }`,
+          );
+        }
+      } else {
+        if (isPendingReg) {
+          setPendingRegistrations((prev) =>
+            prev.map((r) =>
+              r.id === cam.id
+                ? {
+                    ...r,
+                    lastTested: timestamp,
+                    lastFailed: timestamp,
+                    testHistory: [record, ...r.testHistory].slice(0, 10),
+                  }
+                : r,
+            ),
+          );
+        } else {
+          setCameras((prev) =>
+            prev.map((c) =>
+              c.id === cam.id
+                ? {
+                    ...c,
+                    status: resulting,
+                    lastTested: timestamp,
+                    latency: "—",
+                    lastHeartbeat: c.lastHeartbeat,
+                    lastSuccessful: c.lastSuccessful,
+                    lastFailed: timestamp,
+                    uptime: c.uptime,
+                    maintenanceStatus: "OK",
+                    testHistory: [record, ...c.testHistory].slice(0, 10),
+                  }
+                : c,
+            ),
+          );
+          void cctvFetch(`/api/cctv/cameras/${encodeURIComponent(cam.id)}/tests`, {
+            method: "POST",
+            body: JSON.stringify({
+              timestamp: record.timestamp,
+              result: record.result,
+              reason: record.reason,
+              latency: record.latency,
+              resulting_status: record.resultingStatus,
+              new_status: resulting,
+              last_tested: timestamp,
+              new_latency: "—",
+              last_heartbeat: cam.lastHeartbeat,
+              last_successful: cam.lastSuccessful,
+              last_failed: timestamp,
+              uptime: cam.uptime,
+              maintenance_status: "OK",
+            }),
+          }).catch(() => {});
+        }
+        pushAuditLog(
+          "Camera Connectivity Test",
+          `Connection test failed for camera ${cam.id} — Stream Reachability: ${
+            reach ? "PASS" : "FAIL"
+          }; Authentication: ${auth ? "PASS" : "FAIL"}; Response Time: ${
+            response ? "PASS" : "FAIL"
+          }; Overall Result: FAIL; Previous Status: ${previous.toUpperCase()}; Resulting Status: ${resulting.toUpperCase()}; Reason: ${
+            reason || "—"
+          }.${isPendingReg ? " Camera was NOT added to the inventory." : ""}`,
+        );
+      }
 
       setTestingId(null);
       setTestResult({
@@ -1252,28 +1582,47 @@ export default function CctvPlacement() {
         reason,
         checks: { auth, reach, response },
       });
-    }, 1500);
+    })();
   }
 
   function handleRegister() {
-    if (!cameraId.trim()) {
-      setModalMessage({ title: "Registration Required", message: "Enter a unique camera ID before registering." });
+    const cameraNameValue = cameraName.trim();
+    // Reject incomplete or malformed registration data up front. Never
+    // auto-fill fake network details — a camera must be registered with the
+    // real endpoint that the connection test will later validate.
+    const configErrors = validateRegistrationConfig({
+      name: cameraNameValue,
+      ip,
+      port,
+      streamPath,
+      streamProtocol,
+    });
+    if (configErrors.length > 0) {
+      setModalMessage({
+        title: "Registration Blocked — Invalid Camera Details",
+        message: configErrors.join(" "),
+      });
       return;
     }
-    if (cameras.some((c) => c.id === cameraId.trim())) {
-      setModalMessage({ title: "Duplicate Camera ID", message: `${cameraId.trim()} is already registered.` });
-      return;
-    }
-    const finalIp = ip.trim() || `10.0.4.${Math.floor(Math.random() * 90) + 20}`;
-    const pos = coordsToPosition(lat, lng);
+    const finalIp = ip.trim();
+    const pinned = regLat && regLng && Number.isFinite(Number(regLat)) && Number.isFinite(Number(regLng));
+    const placeLat = pinned ? Number(regLat).toFixed(4) : (MAP_CENTER[0] + Math.random() * 0.009).toFixed(4);
+    const placeLng = pinned ? Number(regLng).toFixed(4) : (MAP_CENTER[1] + Math.random() * 0.015).toFixed(4);
+    const pos = coordsToPosition(placeLat, placeLng);
+    const newId = generateCameraId(cameraNameValue, [...pendingRegistrations, ...cameras]);
+    const finalCredUser = credUser.trim() || `svc_${newId.toLowerCase()}`;
+    const finalCredPass = credPass.trim() ? credPass : generateCredToken();
     const newCamera: Camera = seedCamera({
-      id: cameraId.trim(),
-      name: cameraName.trim() || `${cameraId.trim()} — Unnamed`,
+      id: newId,
+      name: cameraNameValue,
+      address: regAddress.trim(),
       purok,
       assignment,
       purpose,
       resolution,
       ip: finalIp,
+      port: port.trim(),
+      streamPath: streamPath.trim(),
       status: "pending",
       top: pos.top,
       left: pos.left,
@@ -1296,49 +1645,62 @@ export default function CctvPlacement() {
       uptime: "—",
       maintenanceStatus: "—",
       maintenanceHistory: [],
-      lat,
-      lng,
-      credUser: credUser.trim() || `svc_${cameraId.trim().toLowerCase()}`,
-      credPass: credPass.trim() ? maskToken(credPass) : generateCredToken(),
+      lat: placeLat,
+      lng: placeLng,
+      credUser: finalCredUser,
+      credPass: finalCredPass.trim() ? maskToken(finalCredPass) : finalCredPass,
     });
-    setCameras((prev) => [...prev, newCamera]);
-    pushAuditLog(
-      "Camera Registration",
-      `Registered camera ${cameraId.trim()} (${resolution}, ${purpose}) assigned to ${assignment} / ${operatorGroup} — Pending connection test`,
-    );
-    setModalMessage({
-      title: "Camera Registered",
-      message: `${cameraId.trim()} registered in a Pending state. Run a connection test before the camera can go Online.`,
-    });
-    setCameraId("");
-    setCameraName("");
-    setPurpose(PURPOSES[0]);
-    setResolution(RESOLUTIONS[0]);
-    setMountingType(MOUNTING_TYPES[0]);
-    setHeight("");
-    setOrientation(ORIENTATIONS[0]);
-    setFov("90°");
-    setConnectionType(CONNECTION_TYPES[0]);
-    setStreamProtocol(STREAM_PROTOCOLS[0]);
-    setIp(`10.0.4.${Math.floor(Math.random() * 90) + 20}`);
-    setOperatorGroup(MONITORING_GROUPS[MONITORING_GROUPS.length - 1]);
-    setMaintenanceContact(MAINTENANCE_CONTACTS[MAINTENANCE_CONTACTS.length - 1]);
-    setCredUser("");
-    setCredPass("");
-  }
-
-  function handleMapClick(e: React.MouseEvent) {
-    if (!pickingPin || !mapRef.current) return;
-    const rect = mapRef.current.getBoundingClientRect();
-    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
-    const yPct = ((e.clientY - rect.top) / rect.height) * 100;
-    const newLat = (14.595 + (yPct / 100) * 0.01).toFixed(4);
-    const newLng = (120.98 + (xPct / 100) * 0.015).toFixed(4);
-    setLat(newLat);
-    setLng(newLng);
-    setPickingPin(false);
-    pushAuditLog("Camera Placement", `Pinned coordinates ${newLat}, ${newLng} for camera placement`);
-    setModalMessage({ title: "Placement Set", message: `Camera placement coordinates set: ${newLat}, ${newLng}` });
+    setSavingRegistration(true);
+    void (async () => {
+      try {
+        await cctvFetch("/api/cctv/cameras", {
+          method: "POST",
+          body: JSON.stringify({ id: newId, ...toApiPayload(newCamera) }),
+        });
+      } catch (err) {
+        setSavingRegistration(false);
+        setModalMessage({
+          title: "Registration Not Saved",
+          message: `Could not save ${newId} to the database. ${err instanceof Error ? err.message : String(err)} The camera has NOT been registered — fix the connection and try again.`,
+        });
+        return;
+      }
+      setSavingRegistration(false);
+      setPendingRegistrations((prev) => [...prev, newCamera]);
+      setPendingCredentials((prev) => ({
+        ...prev,
+        [newCamera.id]: { user: finalCredUser, pass: finalCredPass },
+      }));
+      pushAuditLog(
+        "Camera Registration",
+        `Registered camera ${newId} (${resolution}, ${purpose}) assigned to ${assignment} / ${operatorGroup} — awaiting connectivity verification${
+          pinned ? ` — placed at ${placeLat}, ${placeLng}` : " — auto-placed on map"
+        }`,
+      );
+      setModalMessage({
+        title: "Camera Registered — Verify Connection",
+        message: `${newId} saved to the database. Run the connection test to confirm the camera really connects before it is added to the Inventory.`,
+      });
+      setCameraName("");
+      setPurok("");
+      setAssignment("");
+      setPurpose(PURPOSES[0]);
+      setResolution(RESOLUTIONS[0]);
+      setMountingType(MOUNTING_TYPES[0]);
+      setHeight("");
+      setOrientation(ORIENTATIONS[0]);
+      setFov("90°");
+      setConnectionType(CONNECTION_TYPES[0]);
+      setStreamProtocol(STREAM_PROTOCOLS[0]);
+      setIp("");
+      setPort("554");
+      setStreamPath("/stream1");
+      setOperatorGroup(NOT_ASSIGNED);
+      setMaintenanceContact(MAINTENANCE_CONTACTS[MAINTENANCE_CONTACTS.length - 1]);
+      setCredUser("");
+      setCredPass("");
+      clearRegLocation();
+    })();
   }
 
   function openEdit(cam: Camera) {
@@ -1358,6 +1720,8 @@ export default function CctvPlacement() {
       connectionType: cam.connectionType,
       streamProtocol: cam.streamProtocol,
       ip: cam.ip,
+      port: cam.port,
+      streamPath: cam.streamPath,
       operatorGroup: cam.operatorGroup,
       maintenanceContact: cam.maintenanceContact || "Unassigned",
     });
@@ -1367,33 +1731,36 @@ export default function CctvPlacement() {
     const prev = cameras.find((c) => c.id === editId);
     if (!prev) return;
     const pos = coordsToPosition(editForm.lat, editForm.lng);
+    const updatedCamera: Camera = {
+      ...prev,
+      name: editForm.name || prev.name,
+      purok: editForm.purok,
+      assignment: editForm.assignment,
+      purpose: editForm.purpose,
+      resolution: editForm.resolution,
+      lat: editForm.lat,
+      lng: editForm.lng,
+      top: pos.top,
+      left: pos.left,
+      mountingType: editForm.mountingType,
+      height: editForm.height,
+      orientation: editForm.orientation,
+      fov: editForm.fov,
+      connectionType: editForm.connectionType,
+      streamProtocol: editForm.streamProtocol,
+      ip: editForm.ip.trim() || prev.ip,
+      port: editForm.port.trim() || "554",
+      streamPath: editForm.streamPath.trim() || prev.streamPath,
+      operatorGroup: editForm.operatorGroup,
+      maintenanceContact: editForm.maintenanceContact,
+    };
     setCameras((prevCameras) =>
-      prevCameras.map((c) =>
-        c.id === editId
-          ? {
-              ...c,
-              name: editForm.name || c.name,
-              purok: editForm.purok,
-              assignment: editForm.assignment,
-              purpose: editForm.purpose,
-              resolution: editForm.resolution,
-              lat: editForm.lat,
-              lng: editForm.lng,
-              top: pos.top,
-              left: pos.left,
-              mountingType: editForm.mountingType,
-              height: editForm.height,
-              orientation: editForm.orientation,
-              fov: editForm.fov,
-              connectionType: editForm.connectionType,
-              streamProtocol: editForm.streamProtocol,
-              ip: editForm.ip.trim() || c.ip,
-              operatorGroup: editForm.operatorGroup,
-              maintenanceContact: editForm.maintenanceContact,
-            }
-          : c,
-      ),
+      prevCameras.map((c) => (c.id === editId ? updatedCamera : c)),
     );
+    void cctvFetch(`/api/cctv/cameras/${encodeURIComponent(editId ?? "")}`, {
+      method: "PUT",
+      body: JSON.stringify(toApiPayload(updatedCamera)),
+    }).catch(() => {});
     const changed: string[] = [];
     if (prev.assignment !== editForm.assignment) changed.push(`assigned to ${editForm.assignment}`);
     if (prev.name !== editForm.name) changed.push("name");
@@ -1404,6 +1771,8 @@ export default function CctvPlacement() {
     if (prev.maintenanceContact !== editForm.maintenanceContact) changed.push("maintenance contact");
     if (prev.ip !== editForm.ip.trim()) changed.push("network IP");
     if (prev.streamProtocol !== editForm.streamProtocol) changed.push("stream protocol");
+    if (prev.port !== editForm.port.trim() || prev.streamPath !== editForm.streamPath.trim())
+      changed.push("stream endpoint");
     if (prev.connectionType !== editForm.connectionType) changed.push("connection type");
     if (prev.mountingType !== editForm.mountingType) changed.push("mounting");
     if (prev.height !== editForm.height) changed.push("height");
@@ -1423,6 +1792,10 @@ export default function CctvPlacement() {
       setCameras((prev) =>
         prev.map((c) => (c.id === id ? { ...c, enabled: false, status: "disabled" } : c)),
       );
+      void cctvFetch(`/api/cctv/cameras/${encodeURIComponent(id)}/toggle`, {
+        method: "PATCH",
+        body: JSON.stringify({ enabled: false, status: "disabled" }),
+      }).catch(() => {});
       pushAuditLog("Camera Disabled", `Camera ${id} disabled by authorized user — removed from active surveillance`);
       setModalMessage({
         title: "Camera Disabled",
@@ -1432,12 +1805,32 @@ export default function CctvPlacement() {
       setCameras((prev) =>
         prev.map((c) => (c.id === id ? { ...c, enabled: true, status: "pending" } : c)),
       );
+      void cctvFetch(`/api/cctv/cameras/${encodeURIComponent(id)}/toggle`, {
+        method: "PATCH",
+        body: JSON.stringify({ enabled: true, status: "pending" }),
+      }).catch(() => {});
       pushAuditLog("Camera Enabled", `Camera ${id} re-enabled — must pass a connection test before returning to Online`);
       setModalMessage({
         title: "Camera Enabled",
         message: `${id} re-enabled in a Pending state. Run a connection test to bring it Online.`,
       });
     }
+  }
+
+  function deleteCamera(cam: Camera) {
+    setDeleteConfirmId(null);
+    setCameras((prev) => prev.filter((c) => c.id !== cam.id));
+    void cctvFetch(`/api/cctv/cameras/${encodeURIComponent(cam.id)}`, {
+      method: "DELETE",
+    }).catch(() => {});
+    pushAuditLog(
+      "Camera Deleted",
+      `Camera ${cam.id} deleted from the system — removed from surveillance and map placement`,
+    );
+    setModalMessage({
+      title: "Camera Deleted",
+      message: `${cam.id} has been deleted from the Camera Inventory.`,
+    });
   }
 
   function openCredentialEdit(cam: Camera) {
@@ -1456,6 +1849,10 @@ export default function CctvPlacement() {
         c.id === cam.id ? { ...c, credUser: user, credPass: pass } : c,
       ),
     );
+    void cctvFetch(`/api/cctv/cameras/${encodeURIComponent(cam.id)}/credentials`, {
+      method: "PATCH",
+      body: JSON.stringify({ cred_user: user, cred_pass: pass }),
+    }).catch(() => {});
     pushAuditLog(
       "Configuration Change",
       `Updated camera access credentials for ${cam.id} — new masked credential issued (value not recorded)`,
@@ -1466,13 +1863,6 @@ export default function CctvPlacement() {
       message: `Access credentials for ${cam.id} updated. Stored server-side only and never written to the audit trail.`,
     });
   }
-
-  const filteredCameras = cameras.filter((c) => {
-    if (mapFilter !== "all" && c.status !== mapFilter) return false;
-    const q = mapSearch.trim().toLowerCase();
-    if (!q) return true;
-    return [c.id, c.name, c.purok, c.assignment].join(" ").toLowerCase().includes(q);
-  });
 
   const summaryParts = [`${onlineCount} online`];
   if (pendingCount > 0) summaryParts.push(`${pendingCount} pending`);
@@ -1522,149 +1912,185 @@ export default function CctvPlacement() {
         <div className="space-y-5">
           <SectionCard
             title="Camera Registration"
-            description="Provision a new camera and place it on the barangay map"
+            description="Register a camera with its live stream, placement and assignment details — everything captured here feeds the Camera Inventory below and can be edited afterwards."
           >
             <div className="space-y-4">
-              <FormSection title="Identity &amp; Location">
+              <FormSection title="Camera Identity">
                 <LabeledInput
-                  label="CAMERA ID"
-                  placeholder="e.g. CAM-PUROK5-01"
-                  value={cameraId}
-                  onChange={(e) => setCameraId(e.target.value)}
-                />
-
-                <LabeledInput
-                  label="DISPLAY NAME / LOCATION LABEL"
-                  placeholder="e.g. Riverside Corner Pole"
+                  label="CAMERA NAME / LOCATION LABEL"
+                  placeholder="e.g. Market Zone Overwatch"
                   value={cameraName}
                   onChange={(e) => setCameraName(e.target.value)}
                 />
-
+                <div className="md:col-span-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
+                  <p className="text-[11px] font-semibold tracking-wide text-[#0038A8]">
+                    CAMERA ID (AUTO-GENERATED)
+                  </p>
+                  <p className="mt-1 break-all font-mono text-[11px] text-stone-500">
+                    {cameraName.trim() ? generateCameraId(cameraName, cameras) : "—"}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-stone-400">
+                    Derived from the camera name and guaranteed to be unique. Shown on the map and
+                    in the inventory.
+                  </p>
+                </div>
                 <SelectField
                   label="PUROK / LOCATION ZONE"
                   value={purok}
                   onChange={(e) => setPurok(e.target.value)}
-                  options={PUROK_OPTIONS}
+                  options={purokOptions}
                 />
-
                 <SelectField
                   label="ASSIGNED DIGITAL BOUNDARY"
                   value={assignment}
                   onChange={(e) => setAssignment(e.target.value)}
-                  options={BOUNDARY_OPTIONS}
+                  options={boundaryOptions}
                 />
               </FormSection>
 
-              <FormSection title="Camera Specs">
+              <FormSection title="Purpose &amp; Operation">
                 <SelectField
                   label="CAMERA PURPOSE"
                   value={purpose}
                   onChange={(e) => setPurpose(e.target.value)}
                   options={PURPOSES}
                 />
-
                 <SelectField
                   label="RESOLUTION"
                   value={resolution}
                   onChange={(e) => setResolution(e.target.value)}
                   options={RESOLUTIONS}
                 />
-
                 <SelectField
-                  label="MOUNTING TYPE"
-                  value={mountingType}
-                  onChange={(e) => setMountingType(e.target.value)}
-                  options={MOUNTING_TYPES}
-                />
-                <LabeledInput
-                  label="CAMERA HEIGHT"
-                  placeholder="e.g. 4.5 m"
-                  value={height}
-                  onChange={(e) => setHeight(e.target.value)}
-                />
-
-                <SelectField
-                  label="ORIENTATION / DIRECTION"
-                  value={orientation}
-                  onChange={(e) => setOrientation(e.target.value)}
-                  options={ORIENTATIONS}
-                />
-                <SelectField
-                  label="FIELD OF VIEW (FOV)"
-                  value={fov}
-                  onChange={(e) => setFov(e.target.value)}
-                  options={FOV_OPTIONS}
+                  label="ASSIGNED CCTV OPERATOR / MONITORING GROUP"
+                  value={operatorGroup}
+                  onChange={(e) => setOperatorGroup(e.target.value)}
+                  options={operatorOptions}
                 />
               </FormSection>
 
-              <FormSection title="Network">
+              <FormSection title="Stream Connection">
                 <LabeledInput
                   label="NETWORK IP"
-                  placeholder="e.g. 10.0.4.21"
+                  placeholder="e.g. 192.168.1.40"
                   value={ip}
                   onChange={(e) => setIp(e.target.value)}
                 />
 
-                <SelectField
-                  label="CONNECTION TYPE"
-                  value={connectionType}
-                  onChange={(e) => setConnectionType(e.target.value)}
-                  options={CONNECTION_TYPES}
+                <LabeledInput
+                  label="STREAM PORT"
+                  placeholder="e.g. 554"
+                  value={port}
+                  onChange={(e) => setPort(e.target.value)}
                 />
+
+                <LabeledInput
+                  label="STREAM PATH"
+                  placeholder="e.g. /stream1"
+                  value={streamPath}
+                  onChange={(e) => setStreamPath(e.target.value)}
+                />
+
                 <SelectField
                   label="STREAM PROTOCOL"
                   value={streamProtocol}
                   onChange={(e) => setStreamProtocol(e.target.value)}
                   options={STREAM_PROTOCOLS}
                 />
+
+                <div className="md:col-span-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
+                  <div className="flex items-start gap-2">
+                    <Radio size={14} className="mt-0.5 shrink-0 text-[#0038A8]" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold tracking-wide text-[#0038A8]">
+                        STREAM ENDPOINT (MASKED)
+                      </p>
+                      <p className="mt-1 break-all font-mono text-[11px] text-stone-500">
+                        {maskedStreamUrl({ ip, streamProtocol, port, streamPath, credUser })}
+                      </p>
+                      <p className="mt-0.5 text-[10px] text-stone-400">
+                        The backend builds the live MJPEG feed from this endpoint (served at{" "}
+                        <code>/video_feed</code>). Credentials are masked everywhere in the UI and
+                        stored server-side only.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </FormSection>
 
-              <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <span className={STYLES.label}>PLACEMENT COORDINATES</span>
-                  <button
-                    onClick={() => setPickingPin((p) => !p)}
-                    className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition ${
-                      pickingPin
-                        ? "bg-[#0038A8] text-white"
-                        : "border border-stone-200 text-stone-500 hover:bg-stone-50"
-                    }`}
-                  >
-                    <MapPin size={11} />
-                    {pickingPin ? "Click map..." : "Click-to-Pin"}
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <LabeledInput
-                    label="LATITUDE"
-                    placeholder="14.5995"
-                    value={lat}
-                    onChange={(e) => setLat(e.target.value)}
-                    disabled={pickingPin}
-                  />
-                  <LabeledInput
-                    label="LONGITUDE"
-                    placeholder="120.9842"
-                    value={lng}
-                    onChange={(e) => setLng(e.target.value)}
-                    disabled={pickingPin}
-                  />
-                </div>
-              </div>
+              <FormSection title="Map Location / Placement">
+                <div className="space-y-3 md:col-span-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="relative flex-1">
+                      <MapPin size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                      <input
+                        value={regAddress}
+                        onChange={(e) => setRegAddress(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            void handleRegLocate();
+                          }
+                        }}
+                        placeholder="Search address / place, e.g. 467 Tandang Sora Ave, Quezon City"
+                        className={STYLES.input + " pl-8 pr-3"}
+                      />
+                    </div>
+                    <button
+                      onClick={() => void handleRegLocate()}
+                      disabled={regLocating || !regAddress.trim()}
+                      className={`${STYLES.primaryBtn} shrink-0 justify-center disabled:opacity-60`}
+                    >
+                      {regLocating ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <MapPin size={14} />
+                      )}
+                      Locate
+                    </button>
+                  </div>
 
-              <FormSection title="Assignment">
-                <SelectField
-                  label="ASSIGNED CCTV OPERATOR / MONITORING GROUP"
-                  value={operatorGroup}
-                  onChange={(e) => setOperatorGroup(e.target.value)}
-                  options={MONITORING_GROUPS}
-                />
-                <SelectField
-                  label="RESPONSIBLE MAINTENANCE CONTACT"
-                  value={maintenanceContact}
-                  onChange={(e) => setMaintenanceContact(e.target.value)}
-                  options={MAINTENANCE_CONTACTS}
-                />
+                  {regLocMsg && (
+                    <p
+                      className={`flex items-center gap-1.5 text-[11px] ${
+                        regLocMsg.kind === "ok" ? "text-emerald-700" : "text-rose-600"
+                      }`}
+                    >
+                      <Info size={11} className="shrink-0" />
+                      {regLocMsg.text}
+                    </p>
+                  )}
+
+                  <div className="relative h-64 overflow-hidden rounded-lg border border-stone-200 bg-[#dfe8e2]">
+                    <div ref={regMapRef} className="absolute inset-0 z-0 h-full w-full" />
+                    <div className="pointer-events-none absolute left-1/2 top-3 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-stone-900/85 px-3 py-1 text-[11px] font-medium text-white">
+                      Click the map to pin the camera location
+                    </div>
+                  </div>
+
+                  <p className="flex items-center gap-1.5 text-[11px] text-stone-400">
+                    {regLat && regLng ? (
+                      <>
+                        <CheckCircle2 size={11} className="text-emerald-600" />
+                        Pinned at{" "}
+                        <span className="font-mono text-stone-600">
+                          {Number(regLat).toFixed(4)}, {Number(regLng).toFixed(4)}
+                        </span>
+                        <button
+                          onClick={clearRegLocation}
+                          className="ml-auto font-medium text-[#0038A8] hover:underline"
+                        >
+                          Clear pin
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Info size={11} className="shrink-0" />
+                        No pin yet — the camera will be auto-placed on the map otherwise.
+                      </>
+                    )}
+                  </p>
+                </div>
               </FormSection>
 
               <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-3">
@@ -1672,11 +2098,12 @@ export default function CctvPlacement() {
                   <KeyRound size={14} className="mt-0.5 shrink-0 text-[#0038A8]" />
                   <div>
                     <p className="text-[11px] font-semibold tracking-wide text-[#0038A8]">
-                      OPTIONAL CAMERA ACCESS CREDENTIALS
+                      CAMERA ACCESS CREDENTIALS
                     </p>
                     <p className="mt-0.5 text-[10px] text-blue-800/80">
-                      Stored server-side only — shown masked everywhere in the UI. Used to
-                      authenticate to the camera stream endpoint.
+                      Used to authenticate to the RTSP stream endpoint. If left blank, a service
+                      credential is generated automatically. Stored server-side only and shown
+                      masked everywhere in the UI.
                     </p>
                   </div>
                 </div>
@@ -1708,9 +2135,13 @@ export default function CctvPlacement() {
                 </div>
               </div>
 
-              <button onClick={handleRegister} className={`${STYLES.primaryBtn} w-full`}>
-                <Camera size={15} />
-                Register &amp; Assign Camera
+              <button
+                onClick={handleRegister}
+                disabled={savingRegistration}
+                className={`${STYLES.primaryBtn} w-full disabled:opacity-60`}
+              >
+                {savingRegistration ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}
+                {savingRegistration ? "Saving to database…" : "Register &amp; Assign Camera"}
               </button>
             </div>
 
@@ -1720,11 +2151,6 @@ export default function CctvPlacement() {
                 description="Geographic placement of all CCTV nodes"
             headerRight={
               <div className="flex items-center gap-2">
-                {pickingPin && (
-                  <span className="rounded-md bg-[#0038A8] px-2.5 py-1 text-[11px] font-medium text-white animate-pulse">
-                    Click map to place camera
-                  </span>
-                )}
                 <span className="rounded-md bg-stone-100 px-2.5 py-1 text-[11px] text-stone-500">
                   {cameras.length} registered · {summaryParts.join(" · ")}
                 </span>
@@ -1767,44 +2193,42 @@ export default function CctvPlacement() {
               ))}
             </div>
 
-            <div
-              ref={mapRef}
-              onClick={handleMapClick}
-              className="relative h-72 overflow-hidden rounded-lg border border-stone-200"
-              style={{
-                backgroundColor: "#d9e6de",
-                backgroundImage:
-                  "linear-gradient(rgba(120,140,130,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(120,140,130,0.15) 1px, transparent 1px)",
-                backgroundSize: "28px 28px",
-                cursor: pickingPin ? "crosshair" : "default",
-              }}
-            >
-              {pickingPin && (
-                <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-center gap-2 bg-[#0038A8]/90 py-1.5 text-[11px] font-semibold text-white">
-                  <MapPin size={12} />
-                  Click-to-Pin enabled — click anywhere on the map to set the camera placement
-                </div>
-              )}
-              {filteredCameras.map((c) => (
-                <CameraMarker key={c.id} camera={c} />
-              ))}
-              <span className="absolute bottom-3 right-3 rounded-md bg-white/90 px-2.5 py-1 text-[11px] text-stone-500 shadow-sm">
-                Brgy. Sample, Metro Manila
-              </span>
-            </div>
+            <div className="relative min-h-[22rem] overflow-hidden rounded-lg border border-stone-200 bg-[#dfe8e2]">
+              <div ref={mapRef} className="db-map absolute inset-0 z-0 h-full w-full" />
 
-            <div className="mt-3 flex flex-wrap items-center gap-4 text-[11px] text-stone-500">
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" /> Online
+              {/* Map controls */}
+              <div
+                className="absolute right-3 top-3 z-10 flex flex-col gap-1 rounded-xl border border-stone-200 bg-white/95 p-1.5 shadow-sm backdrop-blur"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MapControlButton icon={ZoomIn} label="Zoom in" onClick={zoomIn} />
+                <MapControlButton icon={ZoomOut} label="Zoom out" onClick={zoomOut} />
+                <MapControlButton icon={Scan} label="Fit all cameras" onClick={fitAllCameras} />
+                <MapControlButton icon={RotateCcw} label="Reset view" onClick={resetView} />
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-rose-500" /> Offline
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-stone-400" /> Pending
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-stone-400" /> Disabled
+
+              {/* Legend */}
+              <div
+                className="absolute bottom-4 left-4 z-10 rounded-lg border border-stone-200 bg-white/95 px-3.5 py-3 text-[11px] shadow-sm backdrop-blur"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <p className="mb-1.5 font-semibold text-stone-700">Legend</p>
+                <div className="flex items-center gap-2 py-0.5">
+                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                  <span className="text-stone-500">Online</span>
+                </div>
+                <div className="flex items-center gap-2 py-0.5">
+                  <span className="inline-block h-2 w-2 rounded-full bg-rose-500" />
+                  <span className="text-stone-500">Offline</span>
+                </div>
+                <div className="flex items-center gap-2 py-0.5">
+                  <span className="inline-block h-2 w-2 rounded-full bg-stone-400" />
+                  <span className="text-stone-500">Pending</span>
+                </div>
+                <div className="flex items-center gap-2 py-0.5">
+                  <span className="inline-block h-2 w-2 rounded-full bg-stone-400" />
+                  <span className="text-stone-500">Disabled</span>
+                </div>
               </div>
             </div>
           </SectionCard>
@@ -1817,9 +2241,92 @@ export default function CctvPlacement() {
             <Loader2 size={16} className="shrink-0 animate-spin" />
             <span className="font-semibold">Testing connection — {testingId}</span>
             <span className="text-xs opacity-80">
-              Simulated ~1.5 s check of endpoint, stream and credentials…
+              Probing the camera endpoint for reachability and live stream frames…
             </span>
           </div>
+        )}
+
+        {pendingRegistrations.length > 0 && (
+          <section className="mt-5 rounded-xl border border-amber-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between px-6 py-4">
+              <div>
+                <h2 className={STYLES.sectionTitle}>Pending Verification</h2>
+                <p className="mt-0.5 text-xs text-stone-400">
+                  {pendingRegistrations.length} registered camera
+                  {pendingRegistrations.length === 1 ? "" : "s"} waiting to be added to the inventory — run
+                  the connection test to confirm the camera really connects
+                </p>
+              </div>
+            </div>
+            <div className="db-scroll overflow-x-auto">
+              <table className="w-full min-w-[760px] border-collapse">
+                <thead>
+                  <tr className="border-y border-stone-100 text-left">
+                    {["STATUS", "CAMERA ID", "IP ADDRESS", "LOCATION / ZONE", "OPERATOR / GROUP", "REGISTERED", "ACTIONS"].map(
+                      (h) => (
+                        <th
+                          key={h}
+                          className="px-5 py-3 text-[10px] font-semibold tracking-wider text-stone-400"
+                        >
+                          {h}
+                        </th>
+                      ),
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingRegistrations.map((r) => (
+                    <tr key={r.id} className="border-b border-stone-100 last:border-0 hover:bg-stone-50/50">
+                      <td className="px-5 py-3">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                          <Clock size={11} /> Pending
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-[12px] font-semibold text-stone-800">{r.id}</td>
+                      <td className="px-5 py-3 font-mono text-[12px] text-stone-600">
+                        {r.ip}:{r.port}
+                      </td>
+                      <td className="px-5 py-3 text-[12px] text-stone-600">{r.purok || "—"}</td>
+                      <td className="px-5 py-3 text-[12px] text-stone-600">{r.operatorGroup}</td>
+                      <td className="px-5 py-3 text-[12px] text-stone-400">{r.registeredAt}</td>
+                      <td className="px-5 py-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            onClick={() => testConnection(r)}
+                            disabled={testingId === r.id}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-[#0038A8] px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[#002A8C] disabled:opacity-50"
+                          >
+                            {testingId === r.id ? (
+                              <Loader2 size={13} className="animate-spin" />
+                            ) : (
+                              <Zap size={13} />
+                            )}{" "}
+                            {testingId === r.id ? "Verifying…" : "Run Test"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setPendingRegistrations((prev) => prev.filter((p) => p.id !== r.id));
+                              setPendingCredentials((prev) => {
+                                const next = { ...prev };
+                                delete next[r.id];
+                                return next;
+                              });
+                              void cctvFetch(`/api/cctv/cameras/${encodeURIComponent(r.id)}`, {
+                                method: "DELETE",
+                              }).catch(() => {});
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-1.5 text-[11px] font-medium text-stone-500 transition hover:bg-stone-50 hover:text-stone-700"
+                          >
+                            <Trash2 size={13} /> Remove
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
         )}
 
         <section className="mt-5 rounded-xl border border-stone-200 bg-white shadow-sm">
@@ -1827,29 +2334,10 @@ export default function CctvPlacement() {
             <div>
               <h2 className={STYLES.sectionTitle}>Camera Inventory</h2>
               <p className="mt-0.5 text-xs text-stone-400">
-                Manage all registered CCTV nodes — {cameras.length} total
+                Manage all verified CCTV nodes — {cameras.length} total
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span
-                title="Demo helper — controls the simulated outcome of the next connection test"
-                className="hidden text-[10px] font-semibold uppercase tracking-wider text-stone-400 sm:block"
-              >
-                Simulate next test
-              </span>
-              <select
-                value={simMode}
-                onChange={(e) => setSimMode(e.target.value as SimMode)}
-                className="rounded-md border border-stone-200 bg-white px-2 py-1.5 text-[11px] text-stone-600 outline-none transition focus:border-[#0038A8]"
-              >
-                <option value="auto">Auto (random)</option>
-                <option value="pass">Force Pass</option>
-                <option value="fail-timeout">Force Fail — Timeout</option>
-                <option value="fail-endpoint">Force Fail — Endpoint</option>
-                <option value="fail-credentials">Force Fail — Credentials</option>
-              </select>
             </div>
-          </div>
 
           <div className="db-scroll overflow-x-auto">
             <table className="w-full min-w-[1360px] border-collapse">
@@ -1947,6 +2435,13 @@ export default function CctvPlacement() {
                         >
                           <Power size={13} />
                         </button>
+                        <button
+                          onClick={() => setDeleteConfirmId(c.id)}
+                          title="Delete camera"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-stone-200 text-stone-400 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -1991,13 +2486,13 @@ export default function CctvPlacement() {
                 label="PUROK / LOCATION ZONE"
                 value={editForm.purok}
                 onChange={(e) => setEditForm({ ...editForm, purok: e.target.value })}
-                options={PUROK_OPTIONS}
+                options={purokOptions}
               />
               <SelectField
                 label="ASSIGNED DIGITAL BOUNDARY"
                 value={editForm.assignment}
                 onChange={(e) => setEditForm({ ...editForm, assignment: e.target.value })}
-                options={BOUNDARY_OPTIONS}
+                options={boundaryOptions}
               />
               <SelectField
                 label="CAMERA PURPOSE"
@@ -2059,6 +2554,18 @@ export default function CctvPlacement() {
                 value={editForm.ip}
                 onChange={(e) => setEditForm({ ...editForm, ip: e.target.value })}
               />
+              <LabeledInput
+                label="STREAM PORT"
+                placeholder="e.g. 554"
+                value={editForm.port}
+                onChange={(e) => setEditForm({ ...editForm, port: e.target.value })}
+              />
+              <LabeledInput
+                label="STREAM PATH"
+                placeholder="e.g. /stream1"
+                value={editForm.streamPath}
+                onChange={(e) => setEditForm({ ...editForm, streamPath: e.target.value })}
+              />
               <SelectField
                 label="CONNECTION TYPE"
                 value={editForm.connectionType}
@@ -2078,7 +2585,7 @@ export default function CctvPlacement() {
                 label="ASSIGNED CCTV OPERATOR / MONITORING GROUP"
                 value={editForm.operatorGroup}
                 onChange={(e) => setEditForm({ ...editForm, operatorGroup: e.target.value })}
-                options={MONITORING_GROUPS}
+                options={operatorOptions}
               />
               <SelectField
                 label="RESPONSIBLE MAINTENANCE CONTACT"
@@ -2137,9 +2644,10 @@ export default function CctvPlacement() {
       })()}
 
       {testResult && (() => {
-        const cam = cameras.find((c) => c.id === testResult.id);
+        const cam = cameras.find((c) => c.id === testResult.id) ?? pendingRegistrations.find((p) => p.id === testResult.id);
         if (!cam) return null;
         const passed = testResult.success;
+        const isPendingCamera = pendingRegistrations.some((p) => p.id === cam.id);
         const failMessage =
           testResult.previous === "online"
             ? "The camera failed the connection test and has been marked Offline."
@@ -2174,37 +2682,48 @@ export default function CctvPlacement() {
                   >
                     <RotateCw size={14} /> Retry Test
                   </button>
-                  <button
-                    onClick={() => {
-                      setTestResult(null);
-                      openEdit(cam);
-                    }}
-                    className="flex items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-600 transition hover:bg-stone-50"
-                  >
-                    <Pencil size={14} /> Edit Camera
-                  </button>
-                  <button
-                    onClick={() => {
-                      setTestResult(null);
-                      openCredentialEdit(cam);
-                    }}
-                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-semibold transition ${
-                      testResult.reason === "Invalid Credentials"
-                        ? "bg-[#0038A8] text-white shadow-sm hover:bg-[#002A8C]"
-                        : "border border-stone-200 bg-white text-stone-600 hover:bg-stone-50"
-                    }`}
-                  >
-                    <KeyRound size={14} /> Manage Credentials
-                  </button>
-                  <button
-                    onClick={() => {
-                      setTestResult(null);
-                      setViewId(cam.id);
-                    }}
-                    className="flex items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-600 transition hover:bg-stone-50"
-                  >
-                    <Info size={14} /> View Details
-                  </button>
+                  {isPendingCamera ? (
+                    <button
+                      onClick={() => setTestResult(null)}
+                      className="flex items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-600 transition hover:bg-stone-50"
+                    >
+                      Close
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          setTestResult(null);
+                          openEdit(cam);
+                        }}
+                        className="flex items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-600 transition hover:bg-stone-50"
+                      >
+                        <Pencil size={14} /> Edit Camera
+                      </button>
+                      <button
+                        onClick={() => {
+                          setTestResult(null);
+                          openCredentialEdit(cam);
+                        }}
+                        className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[12px] font-semibold transition ${
+                          testResult.reason === "Invalid Credentials"
+                            ? "bg-[#0038A8] text-white shadow-sm hover:bg-[#002A8C]"
+                            : "border border-stone-200 bg-white text-stone-600 hover:bg-stone-50"
+                        }`}
+                      >
+                        <KeyRound size={14} /> Manage Credentials
+                      </button>
+                      <button
+                        onClick={() => {
+                          setTestResult(null);
+                          setViewId(cam.id);
+                        }}
+                        className="flex items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-[12px] font-medium text-stone-600 transition hover:bg-stone-50"
+                      >
+                        <Info size={14} /> View Details
+                      </button>
+                    </>
+                  )}
                 </div>
               )
             }
@@ -2229,6 +2748,51 @@ export default function CctvPlacement() {
                   {passed
                     ? "The camera passed all checks — stream reachability, authentication, and response time — and is now Online."
                     : failMessage}
+                </p>
+              </div>
+
+              <div className="overflow-hidden rounded-xl border border-stone-200">
+                <div className="flex items-center justify-between border-b border-stone-100 px-4 py-2.5">
+                  <span className="flex items-center gap-1.5 text-[12px] font-semibold text-stone-600">
+                    <Video size={13} className="text-[#0038A8]" /> Live Camera View
+                  </span>
+                  {passed ? (
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-emerald-600">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> Live
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-stone-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-stone-300" /> No Feed
+                    </span>
+                  )}
+                </div>
+                <div className="relative aspect-video w-full bg-black">
+                  {passed ? (
+                    <>
+                      <img
+                        src={`${API_BASE}/video_feed`}
+                        alt={`Live feed for ${testResult.id}`}
+                        className="absolute inset-0 h-full w-full object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                          const fallback = e.currentTarget.nextElementSibling;
+                          if (fallback) fallback.classList.remove("hidden");
+                        }}
+                      />
+                      <span className="hidden absolute inset-0 flex items-center justify-center p-6 text-center text-[12px] text-stone-400">
+                        No live feed available for this camera.
+                      </span>
+                    </>
+                  ) : (
+                    <span className="absolute inset-0 flex items-center justify-center p-6 text-center text-[12px] text-stone-400">
+                      No live feed available — connection test failed for this camera.
+                    </span>
+                  )}
+                </div>
+                <p className="border-t border-stone-100 px-4 py-2 text-[10px] text-stone-400">
+                  {passed
+                    ? "Live MJPEG stream served by the backend (/video_feed). If this stays black, the camera stream is not currently available."
+                    : "The live stream is only shown when the connection test passes. No feed was shown because this camera failed the test."}
                 </p>
               </div>
 
@@ -2361,6 +2925,21 @@ export default function CctvPlacement() {
             confirmLabel="Update Credentials"
             onConfirm={() => saveCredentials(cam)}
             onClose={() => setCredConfirmId(null)}
+          />
+        );
+      })()}
+
+      {deleteConfirmId && (() => {
+        const cam = cameras.find((c) => c.id === deleteConfirmId);
+        if (!cam) return null;
+        return (
+          <ConfirmModal
+            type="confirm"
+            title="Delete Camera"
+            message={`Permanently delete ${cam.id} (${cam.name || "unnamed"}) from the Camera Inventory? This removes the camera, its placement, credentials, and all maintenance/connection-test history. This cannot be undone.`}
+            confirmLabel="Delete Camera"
+            onConfirm={() => deleteCamera(cam)}
+            onClose={() => setDeleteConfirmId(null)}
           />
         );
       })()}

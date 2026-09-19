@@ -197,7 +197,11 @@ export const DEFAULT_FILTERS: IncidentFilters = {
 };
 
 let POINT_SEQ = 0;
-export function nextPointId() {
+export function nextPointId(used: Iterable<string> = []) {
+  for (const id of used) {
+    const m = /^pt-(\d+)$/.exec(id);
+    if (m) POINT_SEQ = Math.max(POINT_SEQ, Number(m[1]));
+  }
   return `pt-${++POINT_SEQ}`;
 }
 
@@ -252,8 +256,8 @@ export function snapToRoad(lat: number, lng: number) {
     }
   }
   return best
-    ? { lat: Math.round(best.lat), lng: Math.round(best.lng), snapped: bestD }
-    : { lat: Math.round(lat), lng: Math.round(lng), snapped: 0 };
+    ? { lat: best.lat, lng: best.lng, snapped: bestD }
+    : { lat, lng, snapped: 0 };
 }
 
 /* --------------------------------------------------------------------- */
@@ -345,6 +349,35 @@ export async function reverseGeocode(gpsLat: number, gpsLng: number): Promise<st
     const addr = formatTrueAddress(data);
     reverseCache.set(key, addr);
     return addr;
+  } catch {
+    return null;
+  }
+}
+
+const geocodeCache = new Map<string, { lat: number; lng: number } | null>();
+
+/**
+ * Resolve a free-text address to a GPS coordinate via OpenStreetMap Nominatim.
+ * Results are cached per query. Returns null when nothing could be resolved
+ * so callers can leave the point untouched.
+ */
+export async function geocodeAddress(query: string): Promise<{ lat: number; lng: number } | null> {
+  const key = query.trim().toLowerCase();
+  if (!key) return null;
+  if (geocodeCache.has(key)) return geocodeCache.get(key) ?? null;
+  try {
+    const url =
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1` +
+      `&q=${encodeURIComponent(query.trim())}`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const hit = Array.isArray(data) ? data[0] : null;
+    const lat = hit ? Number(hit.lat) : Number.NaN;
+    const lng = hit ? Number(hit.lon) : Number.NaN;
+    const out = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+    geocodeCache.set(key, out);
+    return out;
   } catch {
     return null;
   }
@@ -489,7 +522,11 @@ export const SUGGESTION_BADGES: Record<RouteSuggestion["tag"], string> = {
 export const ROUTE_COLORS = ["#0d9488", "#d97706", "#0ea5e9"];
 
 let ROUTE_SEQ = 0;
-export function nextRouteId() {
+export function nextRouteId(used: Iterable<string> = []) {
+  for (const id of used) {
+    const m = /^rt-(\d+)$/.exec(id);
+    if (m) ROUTE_SEQ = Math.max(ROUTE_SEQ, Number(m[1]));
+  }
   return `rt-${++ROUTE_SEQ}`;
 }
 

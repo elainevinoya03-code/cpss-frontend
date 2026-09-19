@@ -12,6 +12,7 @@ import {
   SystemLogs,
   SystemSettings,
   DataRequests,
+  MassBroadcast,
 } from "./admin";
 import {
   CaptainDashboard,
@@ -57,7 +58,7 @@ import { PatrolConfiguration } from "./chief_tanod";
 import { PurokIncidentsProvider } from "./purok_leader/incidentStore";
 
 
-const ADMIN_NAV = ["dashboard", "users", "iot", "cctv", "boundaries", "logs", "data_requests", "settings"];
+const ADMIN_NAV = ["dashboard", "users", "iot", "cctv", "boundaries", "broadcasts", "logs", "data_requests", "settings"];
 const CAPTAIN_NAV = ["dashboard", "analytics", "broadcasts", "patrol", "checkpoint_plans", "evidence", "bulletins", "cases"];
 const DESK_OFFICER_NAV = ["dashboard", "incident_triage", "alert_management", "dispatches", "blotter", "chat", "footage_requests"];
 const CCTV_OPERATOR_NAV = ["surveillance", "recorded_footage", "footage_requests"];
@@ -392,6 +393,7 @@ export default function App() {
               {activeNav === "iot" && <Provisioning />}
               {activeNav === "cctv" && <CctvPlacement />}
               {activeNav === "boundaries" && <DigitalBoundaries />}
+              {activeNav === "broadcasts" && <MassBroadcast />}
               {activeNav === "logs" && <SystemLogs />}
               {activeNav === "data_requests" && <DataRequests />}
               {activeNav === "settings" && <SystemSettings />}

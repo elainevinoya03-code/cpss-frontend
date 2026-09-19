@@ -49,7 +49,7 @@ export type VerificationStatus =
   | "verified"
   | "unverified";
 
-export type DeskPriority = "Low" | "Medium" | "High";
+export type DeskPriority = "Emergency" | "Low" | "Medium" | "High";
 
 // §15.2 — Structured closure reasons for false alarm / invalid closure.
 export type ClosureReason =
@@ -403,7 +403,7 @@ async function loadIncidents() {
 
 // Force a full reload of the persisted incidents from the backend. Used after
 // resident reports are persisted into incidents (via report_id) or refreshed.
-async function refreshIncidents() {
+export async function refreshIncidents() {
   try {
     const apiIncidents = await fetchIncidents();
     incidents = apiIncidents.map(fromApiIncident);

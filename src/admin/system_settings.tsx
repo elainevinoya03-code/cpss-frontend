@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import {
   Radio,
   Bell,
@@ -12,17 +12,20 @@ import {
   ToggleLeft,
   Volume2,
   Database,
+  KeyRound,
 } from "lucide-react";
 import { ConfirmModal, Modal } from "../components/ui";
 import { pushAuditLog } from "../utils/auditLog";
 import { getCctvStorageConfig, setCctvStorageConfig, DEFAULT_CCTV_STORAGE } from "../utils/cctvStorage";
 import { INPUT_CLASS } from "./_shared";
+import OtpSettings, { type OtpSettingsHandle } from "./otp_settings";
 
 const TABS = [
   { key: "general", label: "General", icon: Globe },
   { key: "iot", label: "IoT Thresholds", icon: Radio },
   { key: "notifications", label: "Notifications & Alerts", icon: Bell },
   { key: "security", label: "Security", icon: Shield },
+  { key: "otp", label: "OTP", icon: KeyRound },
   { key: "retention", label: "Data Retention", icon: Database },
   { key: "purok", label: "Purok Coordination", icon: ShieldCheck },
   { key: "flags", label: "Feature Flags", icon: ToggleLeft },
@@ -157,6 +160,7 @@ export default function SystemSettings() {
     { key: "broadcast", label: "Emergency Broadcast", desc: "Captain emergency broadcast approvals", enabled: true },
   ]);
   const [modalMessage, setModalMessage] = useState<{ title: string; message: string } | null>(null);
+  const otpRef = useRef<OtpSettingsHandle>(null);
 
   function toggleFeatureFlag(key: string) {
     setFeatureFlags((prev) =>
@@ -208,11 +212,18 @@ export default function SystemSettings() {
     markDirty();
   }
 
-  function handleSave() {
+  async function handleSave() {
+    if (dirtyTabs.has("otp") && otpRef.current) {
+      const ok = await otpRef.current.saveSettings();
+      if (!ok) {
+        setModalMessage({ title: "OTP Settings Not Saved", message: "Check the OTP configuration and try again." });
+        return;
+      }
+    }
     setDirtyTabs(new Set());
     const warn = Math.min(100, Math.max(10, Number(cctvWarnThreshold) || DEFAULT_CCTV_STORAGE.warnThresholdPct));
     setCctvStorageConfig({ warnThresholdPct: warn });
-    pushAuditLog("Configuration Change", "Saved platform settings (general, IoT thresholds, notifications & alert rules, security policy, data retention, purok coordination, feature flags)");
+    pushAuditLog("Configuration Change", "Saved platform settings (general, IoT thresholds, notifications & alert rules, security policy, OTP & email verification, data retention, purok coordination, feature flags)");
     setModalMessage({ title: "Settings Saved", message: "Settings saved successfully" });
   }
 
@@ -235,7 +246,7 @@ export default function SystemSettings() {
           <h1 className="text-2xl font-bold text-stone-900">System Settings</h1>
           <p className="mt-1 text-sm text-stone-500">
             Global configuration for system identity, sensor thresholds, notifications, security,
-            retention, and feature flags
+            OTP email verification, retention, and feature flags
           </p>
         </header>
 
@@ -650,6 +661,21 @@ export default function SystemSettings() {
               </div>
             </SettingsCard>
           </div>
+        )}
+
+        
+        {activeTab === "otp" && (
+          <OtpSettings
+            ref={otpRef}
+            onDirtyChange={(dirty) => {
+              setDirtyTabs((prev) => {
+                const next = new Set(prev);
+                if (dirty) next.add("otp");
+                else next.delete("otp");
+                return next;
+              });
+            }}
+          />
         )}
 
         

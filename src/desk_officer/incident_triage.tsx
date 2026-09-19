@@ -59,7 +59,16 @@ const REPORT_STATUS_META: Record<
   },
 };
 
+const INCIDENT_STATUS_META: Record<string, { label: string; badge: string; dot: string }> = {
+  new: { label: "New", badge: "bg-rose-100 text-rose-700", dot: "bg-rose-500" },
+  acknowledged: { label: "Acknowledged", badge: "bg-amber-100 text-amber-700", dot: "bg-amber-400" },
+  in_progress: { label: "In Progress", badge: "bg-sky-100 text-sky-700", dot: "bg-sky-400" },
+  resolved: { label: "Resolved", badge: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-400" },
+  closed_false_alarm: { label: "Closed", badge: "bg-stone-100 text-stone-500", dot: "bg-stone-400" },
+};
+
 const PRIORITY_CHIP: Record<string, string> = {
+  Emergency: "bg-rose-200 text-rose-800",
   High: "bg-rose-100 text-rose-700",
   Critical: "bg-rose-100 text-rose-700",
   Medium: "bg-amber-100 text-amber-700",
@@ -213,6 +222,16 @@ export default function IncidentTriage(_props: { onNavigate?: (page: string) => 
     );
     return filter === "all" ? sorted : sorted.filter((r) => r.status === filter);
   }, [residentReports, filter]);
+
+  // CCTV tag events logged in the Surveillance Matrix. The tag creates a
+  // persisted incident on the shared incidents table (source=cctv), so these
+  // appear here automatically once the store's incident cache refreshes (on
+  // tag, and on the 30-second sync) — no resident report is required.
+  const cctvIncidents = useMemo(() => {
+    return incidents
+      .filter((i) => i.source === "cctv")
+      .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+  }, [incidents]);
 
   const summaryCards = [
     {
@@ -492,6 +511,98 @@ const selectedReport = selected;
                 </button>
               );
             })
+          )}
+        </div>
+
+        {/* Patient / CCTV-sourced incidents — tagged in the Surveillance Matrix */}
+        <div className="mt-6">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Camera size={15} className="text-[#0038A8]" />
+              <h2 className="text-[14px] font-semibold text-[#334155]">CCTV Tagged Events</h2>
+              <span className="rounded-full bg-[#0038A8]/10 px-2.5 py-0.5 text-[10px] font-semibold text-[#0038A8]">
+                {cctvIncidents.length}
+              </span>
+            </div>
+            <span className="text-[10px] text-[#94A3B8]">
+              Auto-opened In Progress · Priority Emergency
+            </span>
+          </div>
+
+          {cctvIncidents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-stone-200 bg-white/60 px-4 py-8 text-center">
+              <Camera size={18} className="text-stone-300" />
+              <p className="text-[12px] font-medium text-stone-500">No CCTV tagged events</p>
+              <p className="max-w-sm text-[11px] text-stone-400">
+                Events tagged by the CCTV Operator in the Surveillance Matrix appear here as
+                incidents (source: cctv) as soon as their incident record is saved.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {cctvIncidents.map((inc) => {
+                const sMeta = INCIDENT_STATUS_META[inc.status] ?? INCIDENT_STATUS_META.new;
+                return (
+                  <div
+                    key={inc.id}
+                    className="flex flex-col gap-2 rounded-xl border border-stone-200 bg-white p-3.5 sm:flex-row sm:items-center"
+                  >
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#0038A8]/10 text-[#0038A8]">
+                        <Camera size={16} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-[11px] font-bold text-stone-800">
+                            {inc.id}
+                          </span>
+                          <span className="text-[11px] font-medium text-stone-500">
+                            {inc.category}
+                          </span>
+                          <span className="rounded-full bg-rose-100 px-2 py-px text-[9px] font-bold text-rose-700">
+                            EMERGENCY
+                          </span>
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-stone-600">
+                          {inc.description || "No description provided."}
+                        </p>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-stone-400">
+                          {inc.purok && (
+                            <span className="flex min-w-0 items-center gap-1">
+                              <MapPin size={11} className="shrink-0" />
+                              <span className="truncate">{inc.purok}</span>
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1">
+                            <Clock size={11} />
+                            {timeAgo(inc.time)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Camera size={11} />
+                            tagged by {inc.reporter || "CO-01"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-col sm:items-end sm:gap-1.5">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                          PRIORITY_CHIP[inc.priority] ?? "bg-stone-100 text-stone-600"
+                        }`}
+                      >
+                        {inc.priority}
+                      </span>
+                      <span
+                        className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold ${sMeta.badge}`}
+                      >
+                        <span className={`h-1.5 w-1.5 rounded-full ${sMeta.dot}`} />
+                        {sMeta.label}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 

@@ -23,7 +23,7 @@ export type VerificationStatus =
   | "verified"
   | "unverified";
 
-export type DeskPriority = "Low" | "Medium" | "High";
+export type DeskPriority = "Emergency" | "Low" | "Medium" | "High";
 
 export type ClosureReason =
   | "False Alarm"

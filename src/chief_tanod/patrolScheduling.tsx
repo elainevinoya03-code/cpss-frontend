@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Eye,
   Pencil,
   Plus,
   Power,
@@ -28,6 +29,7 @@ import { consumePatrolScheduleTarget } from "./patrolScheduleTarget";
 import {
   deleteTeam,
   getSchedules,
+  planHasSchedule,
   upsertSchedule,
   upsertTeam,
   usePatrolScheduleStore,
@@ -136,6 +138,21 @@ function TeamsPanel({
   const [skillsInventoryTanod, setSkillsInventoryTanod] = useState<RosterMember | null>(null);
   const [showSkillsInventory, setShowSkillsInventory] = useState(false);
 
+  // Get Tanod IDs that are already assigned to non-draft schedules
+  const assignedTanodIds = useMemo(() => {
+    const assignedIds = new Set<string>();
+    const nonDraftSchedules = schedules.filter((s) => s.status !== "draft");
+    for (const schedule of nonDraftSchedules) {
+      const team = teams.find((t) => t.id === schedule.teamId);
+      if (team) {
+        for (const memberId of team.memberIds) {
+          assignedIds.add(memberId);
+        }
+      }
+    }
+    return assignedIds;
+  }, [schedules, teams]);
+
   const nameOf = (id: string) => roster.find((r) => r.id === id)?.name ?? id;
 
   const schedulesForTeamCount = useMemo(
@@ -154,7 +171,7 @@ function TeamsPanel({
       .filter((r) => r.available || (editing !== null && editing.memberIds.includes(r.id)))
       .map((r) => {
         const criteria = memberCriteriaFor(r, { lastDutyAgeDays: ageById.get(r.id) ?? 30, targetPurok: targetPurok || undefined });
-        return { r, criteria, total: criteria.reduce((s, c) => s + c.score, 0) };
+        return { r, criteria, total: criteria.reduce((s, c) => s + c.score, 0), isAssigned: assignedTanodIds.has(r.id) };
       });
     if (scores.length && targetPurok) {
       const scoreById = new Map(scores.map((s) => [s.id, s.total]));
@@ -163,7 +180,7 @@ function TeamsPanel({
       rows.sort((a, b) => b.total - a.total);
     }
     return rows;
-  }, [roster, ageById, scores, targetPurok, editing]);
+  }, [roster, ageById, scores, targetPurok, editing, assignedTanodIds]);
 
   function openCreate() {
     setForm({ name: "", leaderId: "", memberIds: [] });
@@ -180,13 +197,16 @@ function TeamsPanel({
   }
 
   function runSuggestion(excludeIds: string[]) {
-    const pickers = suggestTeamMembers(roster, { excludeIds, count: 5, targetPurok: targetPurok || undefined });
+    // Filter out already assigned Tanod from roster
+    const availableRoster = roster.filter((r) => !assignedTanodIds.has(r.id));
+    
+    const pickers = suggestTeamMembers(availableRoster, { excludeIds, count: 5, targetPurok: targetPurok || undefined });
     if (pickers.length === 0) {
-      flash("No available tanods to suggest", { type: "warning" });
+      flash("No available tanods to suggest — all tanods are already assigned to existing schedules", { type: "warning" });
       return;
     }
     setScores(pickers);
-    const leader = suggestTeamLeader(roster, pickers, excludeIds);
+    const leader = suggestTeamLeader(availableRoster, pickers, excludeIds);
     setForm((f) => {
       const memberIds = [...f.memberIds];
       for (const p of pickers) {
@@ -200,7 +220,7 @@ function TeamsPanel({
     flash("Suggested members — final decision rests with you (Chief Tanod / Captain)");
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.name.trim()) {
       flash("Team name is required", { type: "warning" });
       return;
@@ -220,22 +240,26 @@ function TeamsPanel({
       return;
     }
     const fullIds = [form.leaderId, ...form.memberIds];
-    if (editing) {
-      upsertTeam({ ...editing, name: form.name.trim(), leaderId: form.leaderId, memberIds: fullIds });
-      flash(`Team "${form.name.trim()}" updated`);
-      setShowForm(false);
-      setEditing(null);
-    } else {
-      upsertTeam({
-        id: `team-${Date.now()}`,
-        name: form.name.trim(),
-        leaderId: form.leaderId,
-        memberIds: fullIds,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      });
-      flash(`Team "${form.name.trim()}" created`);
-      setShowForm(false);
+    try {
+      if (editing) {
+        await upsertTeam({ ...editing, name: form.name.trim(), leaderId: form.leaderId, memberIds: fullIds });
+        flash(`Team "${form.name.trim()}" updated`);
+        setShowForm(false);
+        setEditing(null);
+      } else {
+        await upsertTeam({
+          id: `team-${Date.now()}`,
+          name: form.name.trim(),
+          leaderId: form.leaderId,
+          memberIds: fullIds,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+        });
+        flash(`Team "${form.name.trim()}" created`);
+        setShowForm(false);
+      }
+    } catch (err) {
+      flash((err as Error).message || "Failed to save team", { type: "error" });
     }
     setScores([]);
   }
@@ -260,6 +284,10 @@ function TeamsPanel({
             </p>
             <p className="mt-0.5 text-[15px] text-stone-500">
               Only teams created here can be selected later during Patrol Scheduling.
+            </p>
+            <p className="mt-1 text-[13px] text-amber-700">
+              <AlertTriangle size={12} className="mr-1 inline" />
+              Tanod with existing schedules are disabled and marked as "Already assigned"
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -314,9 +342,9 @@ function TeamsPanel({
               <Field label="Team Leader" required>
                 <select className={selectCls} value={form.leaderId} onChange={(e) => setForm({ ...form, leaderId: e.target.value })}>
                   <option value="">Select Team Leader…</option>
-                  {scoredRows.map(({ r }) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name} · {r.purok} · {r.experienceYears}y
+                  {scoredRows.map(({ r, isAssigned }) => (
+                    <option key={r.id} value={r.id} disabled={isAssigned}>
+                      {r.name} · {r.purok} · {r.experienceYears}y{isAssigned ? " — Already assigned to schedule" : ""}
                     </option>
                   ))}
                 </select>
@@ -392,23 +420,31 @@ function TeamsPanel({
               )}
 
               <div className="max-h-[420px] space-y-1.5 overflow-y-auto pr-1">
-                {scoredRows.map(({ r, criteria, total }) => {
+                {scoredRows.map(({ r, criteria, total, isAssigned }) => {
                   const isLead = form.leaderId === r.id;
                   const on = form.memberIds.includes(r.id);
                   const hasSkillsInventory = r.skillsInventory && Object.keys(r.skillsInventory).length > 0;
                   return (
-                    <div key={r.id} className={`rounded-lg border px-3 py-2 ${on || isLead ? "border-[#0038A8]/30 bg-[#E9EDFB]" : "border-stone-100 bg-white"}`}>
+                    <div key={r.id} className={`rounded-lg border px-3 py-2 ${on || isLead ? "border-[#0038A8]/30 bg-[#E9EDFB]" : isAssigned ? "border-stone-200 bg-stone-100 opacity-60" : "border-stone-100 bg-white"}`}>
                       <div className="flex items-center gap-2">
-                        <input type="checkbox" checked={on || (isLead && true)} disabled={isLead} onChange={() => toggleMember(r.id)} />
+                        <input 
+                          type="checkbox" 
+                          checked={on || (isLead && true)} 
+                          disabled={isLead || isAssigned} 
+                          onChange={() => toggleMember(r.id)} 
+                          className={isAssigned ? "opacity-40 cursor-not-allowed" : ""}
+                        />
                         <div className="min-w-0 flex-1">
                           <p className="text-[16px] font-semibold text-stone-800">
                             {r.name} {isLead && <span className="ml-1 rounded-full bg-[#0038A8] px-1.5 py-px text-[10px] font-bold uppercase text-white">Leader</span>}
                             {editing && editing.memberIds.includes(r.id) && <span className="ml-1 rounded-full bg-stone-200 px-1.5 py-px text-[10px] font-semibold text-stone-600">In team</span>}
                             {hasSkillsInventory && <span className="ml-1 rounded-full bg-emerald-100 px-1.5 py-px text-[10px] font-semibold text-emerald-700">Skills ✓</span>}
+                            {isAssigned && <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-px text-[10px] font-semibold text-amber-700">Already assigned</span>}
                           </p>
                           <p className="text-[11px] text-[#94A3B8]">
                             {r.purok} · {r.experienceYears}y · {r.skills.join(", ")} · perf {r.performance}% · last duty {ageById.get(r.id) ?? 30}d ago
                             {!r.available && <span className="ml-1 font-semibold text-rose-600">Unavailable</span>}
+                            {isAssigned && <span className="ml-1 font-semibold text-amber-600">Has existing schedule</span>}
                           </p>
                         </div>
                         <div className="text-right">
@@ -417,8 +453,8 @@ function TeamsPanel({
                         </div>
                         <button
                           onClick={() => setForm({ ...form, leaderId: r.id })}
-                          disabled={isLead}
-                          className="rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-600 hover:bg-white disabled:opacity-40"
+                          disabled={isLead || isAssigned}
+                          className={`rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-600 hover:bg-white disabled:opacity-40 ${isAssigned ? "opacity-40 cursor-not-allowed" : ""}`}
                         >
                           {isLead ? "Leader" : "Set as leader"}
                         </button>
@@ -527,13 +563,17 @@ function TeamsPanel({
           }
           confirmLabel={confirmTarget.action === "delete" ? "Delete team" : confirmTarget.team.isActive ? "Deactivate" : "Activate"}
           tone={confirmTarget.action === "delete" ? "danger" : "primary"}
-          onConfirm={() => {
-            if (confirmTarget.action === "delete") {
-              deleteTeam(confirmTarget.team.id);
-              flash(`Team "${confirmTarget.team.name}" deleted`);
-            } else {
-              upsertTeam({ ...confirmTarget.team, isActive: !confirmTarget.team.isActive });
-              flash(confirmTarget.team.isActive ? `Team "${confirmTarget.team.name}" deactivated` : `Team "${confirmTarget.team.name}" reactivated`);
+          onConfirm={async () => {
+            try {
+              if (confirmTarget.action === "delete") {
+                await deleteTeam(confirmTarget.team.id);
+                flash(`Team "${confirmTarget.team.name}" deleted`);
+              } else {
+                await upsertTeam({ ...confirmTarget.team, isActive: !confirmTarget.team.isActive });
+                flash(confirmTarget.team.isActive ? `Team "${confirmTarget.team.name}" deactivated` : `Team "${confirmTarget.team.name}" reactivated`);
+              }
+            } catch (err) {
+              flash((err as Error).message || "Failed to update team", { type: "error" });
             }
             setConfirmTarget(null);
           }}
@@ -644,6 +684,16 @@ function TeamsPanel({
   );
 }
 
+function DetailRow({ label, value }: { label: string; value: string }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <dt className="flex-shrink-0 text-stone-500">{label}</dt>
+      <dd className="text-right font-semibold text-stone-800">{value}</dd>
+    </div>
+  );
+}
+
 export default function PatrolSchedulerRoutes({
   onNavigate: _onNavigate,
   role = "chief_tanod",
@@ -652,7 +702,7 @@ export default function PatrolSchedulerRoutes({
   const { flash, ToastPortal } = useToast();
   const { incidents } = useIncidentStore();
   const plans = useCheckpointPlans();
-  const { roster, teams, schedules, dutyLogs } = usePatrolScheduleStore();
+  const { roster, teams, schedules, dutyLogs, checkInOutRecords } = usePatrolScheduleStore();
 
   const [tab, setTab] = useState<"plans" | "teams" | "schedules" | "logs" | "skills_inventory">(isTanod ? "schedules" : "plans");
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -660,11 +710,32 @@ export default function PatrolSchedulerRoutes({
   const [draft, setDraft] = useState<PatrolSchedule | null>(null);
   const [creatingTeam, setCreatingTeam] = useState(false);
   const [newTeamName, setNewTeamName] = useState("");
+  const [pendingTeam, setPendingTeam] = useState<PatrolTeam | null>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
 
-  const approvedPlans = useMemo(() => getApprovedCheckpointPlans(), [plans]);
+  const approvedPlans = useMemo(
+    () => getApprovedCheckpointPlans().filter((p) => !planHasSchedule(p)),
+    [plans, schedules]
+  );
   const draftPlan = useMemo(() => plans.find((p) => p.id === draft?.planId), [plans, draft?.planId]);
   const draftTeam = useMemo(() => teams.find((t) => t.id === draft?.teamId), [teams, draft?.teamId]);
+  const rosterTeam = pendingTeam ?? draftTeam;
+
+  // Tanod who already have non-draft schedules should not be selectable
+  const assignedTanodIds = useMemo(() => {
+    const assignedIds = new Set<string>();
+    const nonDraftSchedules = schedules.filter((s) => s.status !== "draft");
+    for (const schedule of nonDraftSchedules) {
+      const team = teams.find((t) => t.id === schedule.teamId);
+      if (team) {
+        for (const memberId of team.memberIds) {
+          assignedIds.add(memberId);
+        }
+      }
+    }
+    return assignedIds;
+  }, [schedules, teams]);
 
   const heatCounts = useMemo(() => {
     const m: Record<string, number> = {};
@@ -709,6 +780,7 @@ export default function PatrolSchedulerRoutes({
 
   function continueDraft(s: PatrolSchedule) {
     setDraft({ ...s });
+    setPendingTeam(null);
     setCreatingTeam(false);
     setStep(1);
     setWizardOpen(true);
@@ -716,60 +788,91 @@ export default function PatrolSchedulerRoutes({
 
   function applySuggestions() {
     if (!draftPlan || !draft) return;
-    const leader = suggestLeader(draftPlan, roster);
-    const members = suggestMembers(draftPlan, roster, 3);
+    // Filter out already assigned Tanod from suggestions
+    const availableRoster = roster.filter((r) => !assignedTanodIds.has(r.id));
+    const leader = suggestLeader(draftPlan, availableRoster);
+    const members = suggestMembers(draftPlan, availableRoster, 3);
     const ids = [...new Set([leader?.id, ...members.map((m) => m.id)].filter(Boolean) as string[])].slice(0, 4);
     if (!leader || ids.length === 0) {
-      flash("No available tanods to suggest", { type: "warning" });
+      flash("No available tanods to suggest — all tanods are already assigned to existing schedules", { type: "warning" });
       return;
     }
-    const team: PatrolTeam = {
+    setPendingTeam({
       id: `team-sug-${Date.now()}`,
       name: newTeamName.trim() || `${draftPlan.targetArea} Night Team`,
       leaderId: leader.id,
       memberIds: ids.includes(leader.id) ? ids : [leader.id, ...ids].slice(0, 4),
       isActive: true,
       createdAt: new Date().toISOString(),
-    };
-    upsertTeam(team);
+    });
     setCreatingTeam(true);
-    setNewTeamName(team.name);
-    patchDraft({ teamId: team.id, assignmentMode: "whole_team", assignments: [] });
-    flash(`Suggested ${team.name} — Team Leader ${leader.name}. Final decision rests with Punong Barangay / Chief Tanod.`);
+    setNewTeamName(newTeamName.trim() || `${draftPlan.targetArea} Night Team`);
+    flash(`Suggested ${leader.name} as Team Leader + ${ids.length - 1} members — review, then click Save team to create it.`);
   }
 
   function toggleMember(id: string) {
+    if (pendingTeam) {
+      const leaderId = pendingTeam.leaderId;
+      let memberIds = pendingTeam.memberIds.includes(id)
+        ? pendingTeam.memberIds.filter((x) => x !== id)
+        : [...pendingTeam.memberIds, id];
+      if (!memberIds.includes(leaderId) && leaderId) memberIds = [leaderId, ...memberIds];
+      setPendingTeam({ ...pendingTeam, memberIds });
+      return;
+    }
     if (!draftTeam) return;
     const leaderId = draftTeam.leaderId;
     let memberIds = draftTeam.memberIds.includes(id)
       ? draftTeam.memberIds.filter((x) => x !== id)
       : [...draftTeam.memberIds, id];
     if (!memberIds.includes(leaderId) && leaderId) memberIds = [leaderId, ...memberIds];
-    upsertTeam({ ...draftTeam, memberIds });
+    upsertTeam({ ...draftTeam, memberIds }).catch((err) => {
+      flash((err as Error).message || "Failed to update team members", { type: "error" });
+    });
   }
 
   function setLeader(id: string) {
+    if (pendingTeam) {
+      const memberIds = pendingTeam.memberIds.includes(id) ? pendingTeam.memberIds : [id, ...pendingTeam.memberIds];
+      setPendingTeam({ ...pendingTeam, leaderId: id, memberIds });
+      return;
+    }
     if (!draftTeam) return;
     const memberIds = draftTeam.memberIds.includes(id) ? draftTeam.memberIds : [id, ...draftTeam.memberIds];
-    upsertTeam({ ...draftTeam, leaderId: id, memberIds });
+    upsertTeam({ ...draftTeam, leaderId: id, memberIds }).catch((err) => {
+      flash((err as Error).message || "Failed to update team leader", { type: "error" });
+    });
   }
 
-  function persistTeamCreate() {
-    if (!newTeamName.trim()) {
+  async function persistTeamCreate() {
+    const name = newTeamName.trim();
+    if (!name) {
       flash("Team name is required", { type: "warning" });
       return;
     }
-    const team: PatrolTeam = {
-      id: `team-${Date.now()}`,
-      name: newTeamName.trim(),
-      leaderId: "",
-      memberIds: [],
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    };
-    upsertTeam(team);
-    patchDraft({ teamId: team.id });
-    flash("New team created — assign a Team Leader (required) and 2–4 members");
+    try {
+      if (pendingTeam) {
+        const team: PatrolTeam = { ...pendingTeam, name };
+        await upsertTeam(team);
+        patchDraft({ teamId: team.id, assignmentMode: "whole_team", assignments: [] });
+        setPendingTeam(null);
+        flash(`Team "${team.name}" created and assigned to this schedule.`);
+        return;
+      }
+      const team: PatrolTeam = {
+        id: `team-${Date.now()}`,
+        name,
+        leaderId: "",
+        memberIds: [],
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      };
+      await upsertTeam(team);
+      patchDraft({ teamId: team.id });
+      flash("New team created — assign a Team Leader (required) and 2–4 members");
+    } catch (err) {
+      flash((err as Error).message || "Failed to create team", { type: "error" });
+    }
   }
 
   function toggleAssign(pointId: string, tanodId: string) {
@@ -792,6 +895,7 @@ export default function PatrolSchedulerRoutes({
     if (!draft) return;
     const identity = draft.id ? { id: draft.id, code: draft.code } : nextScheduleIdentity(getSchedules());
     upsertSchedule({ ...draft, ...identity, status: "draft" });
+    setPendingTeam(null);
     setWizardOpen(false);
     setDraft(null);
     setTab("schedules");
@@ -815,6 +919,7 @@ export default function PatrolSchedulerRoutes({
       decidedAt: now,
       notifiedAt: now,
     });
+    setPendingTeam(null);
     setWizardOpen(false);
     setDraft(null);
     setTab("schedules");
@@ -915,7 +1020,10 @@ export default function PatrolSchedulerRoutes({
                       }}
                     >
                       <option value="">Select plan…</option>
-                      {approvedPlans.map((p) => (
+                      {[
+                        ...(draftPlan && !approvedPlans.some((p) => p.id === draftPlan.id) ? [draftPlan] : []),
+                        ...approvedPlans,
+                      ].map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.code} — {p.name}
                         </option>
@@ -1065,7 +1173,10 @@ export default function PatrolSchedulerRoutes({
                     <p className="mb-2 text-[15px] font-semibold uppercase tracking-wider text-[#94A3B8]">Create or Select Team</p>
                     <div className="mb-3 flex gap-2">
                       <button
-                        onClick={() => setCreatingTeam(false)}
+                        onClick={() => {
+                          if (creatingTeam && pendingTeam) setPendingTeam(null);
+                          setCreatingTeam(false);
+                        }}
                         className={`flex-1 rounded-lg px-3 py-1.5 text-[15px] font-semibold ${!creatingTeam ? "bg-[#0038A8] text-white" : "border border-stone-200 bg-white text-stone-600"}`}
                       >
                         Existing team
@@ -1078,29 +1189,45 @@ export default function PatrolSchedulerRoutes({
                       </button>
                     </div>
                     {!creatingTeam ? (
-                      <select className={selectCls} value={draft.teamId} onChange={(e) => patchDraft({ teamId: e.target.value })}>
-                        <option value="">Select team…</option>
-                        {teams
-                          .filter((t) => t.isActive)
-                          .map((t) => (
-                            <option key={t.id} value={t.id}>
-                              {t.name} ({t.memberIds.length} members)
-                            </option>
-                          ))}
-                      </select>
+                      <div className="space-y-2">
+                        <select className={selectCls} value={draft.teamId} onChange={(e) => patchDraft({ teamId: e.target.value })}>
+                          <option value="">Select team…</option>
+                          {teams
+                            .filter((t) => t.isActive)
+                            .map((t) => {
+                              const hasAssignedMembers = t.memberIds.some((id) => assignedTanodIds.has(id));
+                              return (
+                                <option key={t.id} value={t.id} disabled={hasAssignedMembers}>
+                                  {t.name} ({t.memberIds.length} members){hasAssignedMembers ? " — Has members with existing schedules" : ""}
+                                </option>
+                              );
+                            })}
+                        </select>
+                        <p className="text-[13px] text-amber-700">
+                          <AlertTriangle size={12} className="mr-1 inline" />
+                          Teams with members who have existing schedules are disabled
+                        </p>
+                      </div>
                     ) : (
                       <div className="space-y-2">
+                        <p className="text-[13px] text-amber-700">
+                          <AlertTriangle size={12} className="mr-1 inline" />
+                          Only available Tanod (without existing schedules) can be added to new teams
+                        </p>
                         <Field label="Team name" required>
                           <input className={inputCls} value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} placeholder="e.g. Market Night Watch" />
                         </Field>
                         {!draft.teamId && (
                           <button onClick={persistTeamCreate} className="rounded-lg bg-[#0038A8] px-3 py-1.5 text-[15px] font-semibold text-white">
-                            Create team
+                            {pendingTeam ? "Save team" : "Create team"}
                           </button>
+                        )}
+                        {pendingTeam && (
+                          <p className="text-[14px] font-semibold text-violet-700">Suggested selection — not yet saved. Click "Save team" to create it.</p>
                         )}
                       </div>
                     )}
-                    {draftPlan && (
+                    {draftPlan && (!draft.teamId || pendingTeam) && (
                       <button
                         onClick={applySuggestions}
                         className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-[15px] font-semibold text-violet-800 hover:bg-violet-100"
@@ -1116,28 +1243,47 @@ export default function PatrolSchedulerRoutes({
                 <div className="lg:col-span-3">
                   <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
                     <p className="mb-3 text-[15px] font-semibold uppercase tracking-wider text-[#94A3B8]">Roster</p>
-                    {!draftTeam ? (
+                    <p className="mb-2 text-[13px] text-amber-700">
+                      <AlertTriangle size={12} className="mr-1 inline" />
+                      Tanod with existing schedules are disabled and marked as "Already assigned"
+                    </p>
+                    {!rosterTeam ? (
                       <p className="text-[16px] text-[#94A3B8]">Select or create a team to assign a leader and members.</p>
                     ) : (
                       <div className="space-y-2">
+                        {pendingTeam && (
+                          <p className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-[14px] font-semibold text-violet-700">
+                            <Sparkles size={12} className="mr-1 inline" /> Suggestion preview — {pendingTeam.name}. Not saved until you click "Save team".
+                          </p>
+                        )}
                         {roster.map((m) => {
-                          const on = draftTeam.memberIds.includes(m.id);
-                          const isLead = draftTeam.leaderId === m.id;
+                          const on = rosterTeam.memberIds.includes(m.id);
+                          const isLead = rosterTeam.leaderId === m.id;
+                          const isAssigned = assignedTanodIds.has(m.id);
                           return (
-                            <div key={m.id} className={`flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 ${on ? "border-[#0038A8]/30 bg-[#E9EDFB]" : "border-stone-100"}`}>
-                              <input type="checkbox" checked={on} onChange={() => toggleMember(m.id)} />
+                            <div key={m.id} className={`flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 ${on ? "border-[#0038A8]/30 bg-[#E9EDFB]" : isAssigned ? "border-stone-200 bg-stone-100 opacity-60" : "border-stone-100"}`}>
+                              <input 
+                                type="checkbox" 
+                                checked={on} 
+                                disabled={isAssigned} 
+                                onChange={() => toggleMember(m.id)} 
+                                className={isAssigned ? "opacity-40 cursor-not-allowed" : ""}
+                              />
                               <div className="min-w-0 flex-1">
                                 <p className="text-[16px] font-semibold text-stone-800">
                                   {m.name} {isLead && <span className="text-[11px] font-bold uppercase text-[#0038A8]">Leader</span>}
+                                  {isAssigned && <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-px text-[10px] font-semibold text-amber-700">Already assigned</span>}
                                 </p>
                                 <p className="text-[11px] text-[#94A3B8]">
                                   {m.purok} · {m.experienceYears}y · {m.skills.join(", ")} · perf {m.performance}% · last duty {formatDay(m.lastDutyAt)}
                                   {!m.available && <span className="ml-1 font-semibold text-rose-600">Unavailable</span>}
+                                  {isAssigned && <span className="ml-1 font-semibold text-amber-600">Has existing schedule</span>}
                                 </p>
                               </div>
                               <button
                                 onClick={() => setLeader(m.id)}
-                                className="rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-600 hover:bg-white"
+                                disabled={isAssigned}
+                                className={`rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-600 hover:bg-white ${isAssigned ? "opacity-40 cursor-not-allowed" : ""}`}
                               >
                                 Set leader
                               </button>
@@ -1318,7 +1464,13 @@ export default function PatrolSchedulerRoutes({
               </button>
               {step < 6 && (
                 <button
-                  onClick={() => setStep((s) => Math.min(6, s + 1))}
+                  onClick={() => {
+                    if (step === 3 && pendingTeam) {
+                      flash("Please save the team first by clicking 'Save team' before continuing.", { type: "warning" });
+                      return;
+                    }
+                    setStep((s) => Math.min(6, s + 1));
+                  }}
                   className="flex items-center gap-1 rounded-lg bg-[#0038A8] px-4 py-2 text-[16px] font-semibold text-white"
                 >
                   Continue <ChevronRight size={14} />
@@ -1404,6 +1556,9 @@ export default function PatrolSchedulerRoutes({
                 {schedules.map((s) => {
                   const plan = plans.find((p) => p.id === s.planId);
                   const team = teams.find((t) => t.id === s.teamId);
+                  const open = detailsId === s.id;
+                  const schedLogs = dutyLogs.filter((l) => l.scheduleId === s.id);
+                  const schedCheckIns = checkInOutRecords.filter((r) => r.scheduleId === s.id);
                   return (
                     <div key={s.id} className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
                       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -1421,11 +1576,141 @@ export default function PatrolSchedulerRoutes({
                         </div>
                         <SchedBadge status={s.status} />
                       </div>
-                      {s.status === "draft" && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <button onClick={() => continueDraft(s)} className="rounded-lg border border-stone-200 px-3 py-1.5 text-[16px] font-semibold text-stone-600">
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          onClick={() => setDetailsId(open ? null : s.id)}
+                          className="flex items-center gap-1.5 rounded-lg border border-[#0038A8]/20 bg-[#0038A8]/5 px-3 py-1.5 text-[16px] font-semibold text-[#0038A8] hover:bg-[#0038A8]/10"
+                        >
+                          <Eye size={12} /> {open ? "Hide details" : "Details"}
+                        </button>
+                        <button
+                          onClick={() => continueDraft(s)}
+                          className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-[16px] font-semibold text-stone-600 hover:bg-stone-50"
+                        >
+                          <Pencil size={12} /> Edit
+                        </button>
+                        {s.status === "draft" && (
+                          <button
+                            onClick={() => continueDraft(s)}
+                            className="rounded-lg border border-stone-200 px-3 py-1.5 text-[16px] font-semibold text-stone-600 hover:bg-stone-50"
+                          >
                             Continue editing
                           </button>
+                        )}
+                      </div>
+                      {open && (
+                        <div className="mt-3 space-y-4 rounded-xl border border-stone-200 bg-stone-50 p-4">
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div>
+                              <p className="text-[12px] font-bold uppercase tracking-wider text-[#94A3B8]">Schedule</p>
+                              <dl className="mt-2 space-y-1 text-[15px]">
+                                <DetailRow label="Frequency" value={freqLabel(s)} />
+                                <DetailRow label="Shift" value={s.shiftType} />
+                                <DetailRow
+                                  label="Days"
+                                  value={
+                                    s.frequencyDays.length
+                                      ? s.frequencyDays.join(", ")
+                                      : s.startDate === s.endDate
+                                        ? formatDay(s.startDate)
+                                        : "Whole window"
+                                  }
+                                />
+                                {s.customNotes && <DetailRow label="Notes" value={s.customNotes} />}
+                                <DetailRow label="Created by" value={s.createdBy} />
+                                {s.createdAt && <DetailRow label="Created at" value={formatDateTime(s.createdAt)} />}
+                                {s.decidedBy && <DetailRow label="Decided by" value={s.decidedBy} />}
+                                {s.decidedAt && <DetailRow label="Decided at" value={formatDateTime(s.decidedAt)} />}
+                                {s.notifiedAt && <DetailRow label="Notified at" value={formatDateTime(s.notifiedAt)} />}
+                              </dl>
+                            </div>
+                            <div>
+                              <p className="text-[12px] font-bold uppercase tracking-wider text-[#94A3B8]">Operations</p>
+                              <dl className="mt-2 space-y-1 text-[15px]">
+                                <DetailRow label="Assembly point" value={s.ops.assemblyPoint} />
+                                <DetailRow label="Equipment" value={s.ops.equipment} />
+                                <DetailRow label="Instructions" value={s.ops.instructions} />
+                                <DetailRow label="Pulis coordination" value={s.ops.pulisCoordination} />
+                                <DetailRow label="Emergency procedure" value={s.ops.emergencyProcedure} />
+                              </dl>
+                            </div>
+                          </div>
+
+                          {team && (
+                            <div>
+                              <p className="text-[12px] font-bold uppercase tracking-wider text-[#94A3B8]">Team</p>
+                              <p className="mt-2 text-[15px] font-semibold text-stone-800">
+                                {team.name}{" "}
+                                <span className="ml-1 font-normal text-stone-500">
+                                  / TL {nameOf(team.leaderId)} · {team.memberIds.length} members
+                                </span>
+                              </p>
+                              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                                {team.memberIds.map((id) => (
+                                  <span key={id} className="rounded-full bg-white px-2 py-0.5 text-[13px] font-semibold text-stone-600 ring-1 ring-stone-200">
+                                    {nameOf(id)}
+                                    {id === team.leaderId && " · TL"}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {s.assignments.length > 0 && (
+                            <div>
+                              <p className="text-[12px] font-bold uppercase tracking-wider text-[#94A3B8]">Checkpoint assignments</p>
+                              <ul className="mt-2 space-y-1.5 text-[15px]">
+                                {s.assignments.map((a) => {
+                                  const point = plan?.points.find((p) => p.id === a.pointId);
+                                  return (
+                                    <li key={a.pointId} className="flex flex-wrap items-center gap-2">
+                                      <span className="font-semibold text-stone-800">{point?.label ?? a.pointId}</span>
+                                      {a.tanodIds.length > 0 && (
+                                        <span className="text-stone-500">→ {a.tanodIds.map((id) => nameOf(id)).join(", ")}</span>
+                                      )}
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
+                          )}
+
+                          {schedCheckIns.length > 0 && (
+                            <div>
+                              <p className="text-[12px] font-bold uppercase tracking-wider text-[#94A3B8]">Check-in / check-out</p>
+                              <ul className="mt-2 space-y-1.5 text-[15px]">
+                                {schedCheckIns.map((r) => (
+                                  <li key={r.id} className="flex flex-wrap items-center gap-2">
+                                    <span className="font-semibold text-stone-800">{nameOf(r.tanodId)}</span>
+                                    <span className="text-stone-500">
+                                      {r.checkInTime ? formatDateTime(r.checkInTime) : "—"} → {r.checkOutTime ? formatDateTime(r.checkOutTime) : "on duty"}
+                                    </span>
+                                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[12px] font-semibold text-emerald-700">
+                                      {r.status === "checked_out" ? "Checked out" : "Checked in"}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {schedLogs.length > 0 && (
+                            <div>
+                              <p className="text-[12px] font-bold uppercase tracking-wider text-[#94A3B8]">Duty logs</p>
+                              <ul className="mt-2 space-y-1.5 text-[15px]">
+                                {schedLogs.map((l) => (
+                                  <li key={l.id} className="flex flex-wrap items-start gap-2">
+                                    <span className="font-semibold text-stone-800">{nameOf(l.tanodId)}</span>
+                                    <span className="text-stone-500">
+                                      {l.startedAt ? formatDateTime(l.startedAt) : "—"}
+                                      {l.endedAt ? ` → ${formatDateTime(l.endedAt)}` : " · on duty"}
+                                    </span>
+                                    {l.observations && <span className="text-stone-600">{l.observations}</span>}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1479,6 +1764,7 @@ export default function PatrolSchedulerRoutes({
           confirmLabel="Leave"
           tone="primary"
           onConfirm={() => {
+            setPendingTeam(null);
             setLeaveOpen(false);
             setWizardOpen(false);
             setDraft(null);

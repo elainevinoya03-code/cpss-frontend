@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Calendar,
@@ -39,6 +39,7 @@ import {
   coverageOf,
   emptyPlan,
   formatDay,
+  geocodeAddress,
   hourBucket,
   nextPlanIdentity,
   nextPointId,
@@ -121,6 +122,7 @@ export default function PatrolConfiguration({
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [planTypeFilter, setPlanTypeFilter] = useState<"all" | PlanType>("all");
   const [planAreaFilter, setPlanAreaFilter] = useState<string>("all");
+  const addressSyncTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   /* ---------------- Derived incident sets ---------------- */
 
@@ -208,6 +210,10 @@ export default function PatrolConfiguration({
 
   const allDraftPoints = useMemo(() => (draft ? planMarkers(draft) : []), [draft]);
 
+  const hasStartPoint = draft?.points.some((p) => p.kind === "start") ?? false;
+  const hasEndPoint = draft?.points.some((p) => p.kind === "end") ?? false;
+  const bothEndpointsSet = hasStartPoint && hasEndPoint;
+
   const routeSuggestions = useMemo(
     () => (draft && draft.type === "route" ? suggestRoutes(draft, filtered) : []),
     [draft, filtered]
@@ -255,12 +261,49 @@ export default function PatrolConfiguration({
     setDirty(true);
   }
 
+  function usedPointIds() {
+    return [
+      ...(draft?.points ?? []).map((p) => p.id),
+      ...(draft?.routes ?? []).flatMap((r) => (r.points ?? []).map((p) => p.id)),
+    ];
+  }
+
+  function usedRouteIds() {
+    return (draft?.routes ?? []).map((r) => r.id);
+  }
+
   function openPlanner(d: CheckpointPlan | null, targetStep = 1) {
-    setDraft(d);
+    setDraft(d ? normalizePlanIds(d) : null);
     setStep(targetStep);
     setMapMode("view");
     setPlannerOpen(true);
     setDirty(Boolean(d));
+  }
+
+  function normalizePlanIds(plan: CheckpointPlan): CheckpointPlan {
+    const pointIds = new Set<string>();
+    const rekeyPoint = (p: CpPoint): CpPoint => {
+      let id = p.id;
+      if (pointIds.has(id)) {
+        id = nextPointId(pointIds);
+      }
+      pointIds.add(id);
+      return id === p.id ? p : { ...p, id };
+    };
+    const routeIds = new Set<string>();
+    const rekeyRoute = (r: CpRoute): CpRoute => {
+      let id = r.id;
+      if (routeIds.has(id)) {
+        id = nextRouteId(routeIds);
+      }
+      routeIds.add(id);
+      return id === r.id ? r : { ...r, id };
+    };
+    return {
+      ...plan,
+      points: (plan.points ?? []).map(rekeyPoint),
+      routes: (plan.routes ?? []).map((r) => rekeyRoute({ ...r, points: (r.points ?? []).map(rekeyPoint) })),
+    };
   }
 
   function startManual() {
@@ -289,6 +332,38 @@ export default function PatrolConfiguration({
       .catch(() => {});
   }
 
+  function scheduleAddressSync(pointId: string, address: string) {
+    const t = addressSyncTimers.current[pointId];
+    if (t) clearTimeout(t);
+    addressSyncTimers.current[pointId] = setTimeout(() => {
+      syncAddressForPoint(pointId, address);
+    }, 700);
+  }
+
+  function syncAddressForPoint(pointId: string, address: string) {
+    if (!address.trim()) return;
+    geocodeAddress(address)
+      .then((geo) => {
+        if (!geo) return;
+        const [svgX, svgY] = fromGeoPoint(geo.lat, geo.lng);
+        setDraft((d) => {
+          if (!d) return d;
+          const move = (p: CpPoint) => {
+            if (p.id !== pointId || (p.kind !== "start" && p.kind !== "end")) return p;
+            if (p.address !== address) return p;
+            if (p.lat === svgX && p.lng === svgY) return p;
+            return { ...p, lat: svgX, lng: svgY };
+          };
+          return {
+            ...d,
+            points: d.points.map(move),
+            routes: (d.routes ?? []).map((r) => ({ ...r, points: r.points.map(move) })),
+          };
+        });
+      })
+      .catch(() => {});
+  }
+
   function commitMapPoint(lat: number, lng: number) {
     if (!draft) return;
     // Leaflet reports real GPS coords, but plans/snapping live in legacy
@@ -304,18 +379,18 @@ export default function PatrolConfiguration({
     let msg = "";
     let createdId: string | null = null;
     if (mapMode === "set_fixed") {
-      createdId = nextPointId();
+      createdId = nextPointId(usedPointIds());
       next = [
         { id: createdId, kind: "fixed", label: "FIXED", name: `${draft.targetArea || "Checkpoint"} post`, address: autoAddress, landmark: "", description: "", remarks: "", lat: slat, lng: slng },
       ];
       msg = `Fixed location set at ${at} · ${autoAddress}`;
     } else if (mapMode === "set_start") {
-      createdId = nextPointId();
+      createdId = nextPointId(usedPointIds());
       next = next.filter((p) => p.kind !== "start");
       next.push({ id: createdId, kind: "start", label: "A", name: "Point A", address: autoAddress, landmark: "", description: "Starting point of route", remarks: "", lat: slat, lng: slng });
       msg = `Point A set at ${at} · ${autoAddress}`;
     } else if (mapMode === "set_end") {
-      createdId = nextPointId();
+      createdId = nextPointId(usedPointIds());
       next = next.filter((p) => p.kind !== "end");
       next.push({ id: createdId, kind: "end", label: "B", name: "Point B", address: autoAddress, landmark: "", description: "End point of route", remarks: "", lat: slat, lng: slng });
       msg = `Point B set at ${at} · ${autoAddress}`;
@@ -323,12 +398,12 @@ export default function PatrolConfiguration({
       const near = nearestRouteInfo(slat, slng);
       if (near) {
         if (near.rid === "primary") {
-          createdId = nextPointId();
+          createdId = nextPointId(usedPointIds());
           const updated = insertSeriesPoint(sortRoutePoints(draft.points), near.anchorId, slat, slng, autoAddress, createdId);
           updateDraft({ points: relabelIntermediates(updated) });
           msg = `Checkpoint added to Route 1 at ${at} · ${autoAddress}`;
         } else {
-          createdId = nextPointId();
+          createdId = nextPointId(usedPointIds());
           const newId = createdId;
           updateDraft({
             routes: (draft.routes ?? []).map((r) => {
@@ -349,17 +424,17 @@ export default function PatrolConfiguration({
         return;
       }
       const cnt = next.filter((p) => p.kind === "intermediate").length + 1;
-      createdId = nextPointId();
+      createdId = nextPointId(usedPointIds());
       next.push({ id: createdId, kind: "intermediate", label: `CP${cnt}`, name: `Checkpoint ${cnt}`, address: autoAddress, landmark: "", description: "", remarks: "", lat: slat, lng: slng });
       msg = `Checkpoint ${cnt} added at ${at} · ${autoAddress}`;
     } else if (mapMode === "set_custom") {
-      const pt: CpPoint = { id: nextPointId(), kind: "intermediate", label: "CP", name: "", address: autoAddress, landmark: "", description: "", remarks: "", lat: slat, lng: slng };
+      const pt: CpPoint = { id: nextPointId(usedPointIds()), kind: "intermediate", label: "CP", name: "", address: autoAddress, landmark: "", description: "", remarks: "", lat: slat, lng: slng };
       createdId = pt.id;
       if (!customTargetId) {
         const existing = draft.routes ?? [];
         const idx = existing.length + 2;
         const route: CpRoute = {
-          id: nextRouteId(),
+          id: nextRouteId(usedRouteIds()),
           label: `Route ${idx}`,
           title: "Custom route",
           role: "support",
@@ -423,8 +498,8 @@ export default function PatrolConfiguration({
       landmark: "",
       description: "",
       remarks: "",
-      lat: Math.round(lat),
-      lng: Math.round(lng),
+      lat,
+      lng,
     });
     return out;
   }
@@ -457,7 +532,7 @@ export default function PatrolConfiguration({
     const end = draft.points.find((p) => p.kind === "end");
     if (!start || !end) return;
     const inter = sug.waypoints.map((w, i) => ({
-      id: nextPointId(),
+      id: nextPointId(usedPointIds()),
       kind: "intermediate" as const,
       label: `CP${i + 1}`,
       name: `Waypoint ${i + 1}`,
@@ -465,8 +540,8 @@ export default function PatrolConfiguration({
       landmark: "",
       description: "",
       remarks: "",
-      lat: Math.round(w.lat),
-      lng: Math.round(w.lng),
+      lat: w.lat,
+      lng: w.lng,
     }));
     updateDraft({ points: relabelIntermediates([start, ...inter, end]) });
     setMapMode("view");
@@ -478,13 +553,13 @@ export default function PatrolConfiguration({
     const existing = draft.routes ?? [];
     const idx = existing.length + 2;
     const route: CpRoute = {
-      id: nextRouteId(),
+      id: nextRouteId(usedRouteIds()),
       label: `Route ${idx}`,
       title: `${sug.tag} suggestion`,
       role: "support",
       color: ROUTE_COLORS[(idx - 2) % ROUTE_COLORS.length],
       points: sug.waypoints.map((w, i) => ({
-        id: nextPointId(),
+        id: nextPointId(usedPointIds()),
         kind: "intermediate",
         label: `CP${i + 1}`,
         name: `Waypoint ${i + 1}`,
@@ -492,8 +567,8 @@ export default function PatrolConfiguration({
         landmark: "",
         description: "",
         remarks: "",
-        lat: Math.round(w.lat),
-        lng: Math.round(w.lng),
+        lat: w.lat,
+        lng: w.lng,
       })),
     };
     updateDraft({ routes: [...existing, route] });
@@ -923,46 +998,56 @@ export default function PatrolConfiguration({
                         <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-4">
                           <button
                             onClick={() => setMapMode(mapMode === "set_start" ? "view" : "set_start")}
-                            className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold transition ${mapMode === "set_start" ? "bg-green-600 text-white" : "bg-white text-green-700 shadow-sm hover:bg-green-100"
+                            disabled={bothEndpointsSet}
+                            title={bothEndpointsSet ? "Point A is locked to its address — change the address field to move it" : undefined}
+                            className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${mapMode === "set_start" ? "bg-green-600 text-white" : "bg-white text-green-700 shadow-sm hover:bg-green-100"
                               }`}
                           >
                             <MapPin size={12} />
-                            {draft.points.some((p) => p.kind === "start") ? "Reset Point A" : "Set Point A"}
+                            {hasStartPoint ? (bothEndpointsSet ? "Point A set" : "Reset Point A") : "Set Point A"}
                           </button>
                           <button
                             onClick={() => setMapMode(mapMode === "set_end" ? "view" : "set_end")}
-                            className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold transition ${mapMode === "set_end" ? "bg-rose-600 text-white" : "bg-white text-rose-700 shadow-sm hover:bg-rose-100"
+                            disabled={bothEndpointsSet}
+                            title={bothEndpointsSet ? "Point B is locked to its address — change the address field to move it" : undefined}
+                            className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${mapMode === "set_end" ? "bg-rose-600 text-white" : "bg-white text-rose-700 shadow-sm hover:bg-rose-100"
                               }`}
                           >
                             <MapPin size={12} />
-                            {draft.points.some((p) => p.kind === "end") ? "Reset Point B" : "Set Point B"}
+                            {hasEndPoint ? (bothEndpointsSet ? "Point B set" : "Reset Point B") : "Set Point B"}
                           </button>
                           <button
                             onClick={() => setMapMode(mapMode === "set_intermediate" ? "view" : "set_intermediate")}
-                            className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold transition ${mapMode === "set_intermediate" ? "bg-sky-600 text-white" : "bg-white text-sky-700 shadow-sm hover:bg-sky-100"
+                            disabled={bothEndpointsSet}
+                            className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${mapMode === "set_intermediate" ? "bg-sky-600 text-white" : "bg-white text-sky-700 shadow-sm hover:bg-sky-100"
                               }`}
-                            title="Click on/near a route line on the map to add a checkpoint to that route"
+                            title={bothEndpointsSet ? "No additional points can be added once Point A and Point B are set" : "Click on/near a route line on the map to add a checkpoint to that route"}
                           >
                             <Plus size={12} />
                             Add Intermediate CP
                           </button>
                           <button
                             onClick={startCustomRoute}
-                            disabled={!draft.points.some((p) => p.kind === "start") || !draft.points.some((p) => p.kind === "end")}
+                            disabled={!hasStartPoint || !hasEndPoint || bothEndpointsSet}
                             className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold transition disabled:cursor-not-allowed disabled:opacity-40 ${mapMode === "set_custom" ? "bg-amber-600 text-white" : "bg-white text-amber-700 shadow-sm hover:bg-amber-100"
                               }`}
+                            title={bothEndpointsSet ? "No additional waypoints can be added once Point A and Point B are set" : undefined}
                           >
                             <Route size={12} />
                             {mapMode === "set_custom" ? "Drawing…" : "Draw Custom Route"}
                           </button>
                         </div>
                         <p className="mb-2 text-[9px] text-teal-700">
-                          Route 1 = primary path (violet). Set Point A and B, then add supporting routes (teal / amber). Click a route line to place CP1, CP2, CP3…
+                          {bothEndpointsSet
+                            ? "Point A and Point B are locked in place. To move either, edit its address — the map marker updates automatically."
+                            : "Route 1 = primary path (violet). Set Point A and B first, then you can add supporting routes (teal / amber)."}
                         </p>
 
-                        {draft.points.some((p) => p.kind === "start") && draft.points.some((p) => p.kind === "end") && (draft.routes?.length ?? 0) === 0 && (
+                        {hasStartPoint && hasEndPoint && (draft.routes?.length ?? 0) === 0 && (
                           <p className="mb-2 rounded-lg border border-dashed border-teal-300 bg-white px-3 py-2 text-[9px] text-teal-700">
-                            Route 1 is drawn on the map. Optional: choose a suggested route below or draw your own custom route.
+                            {bothEndpointsSet
+                              ? "Point A and Point B are locked. Route 1 is drawn as a straight A→B path."
+                              : "Route 1 is drawn on the map. Optional: choose a suggested route below or draw your own custom route."}
                           </p>
                         )}
 
@@ -984,13 +1069,17 @@ export default function PatrolConfiguration({
                                     <div className="mt-2 flex flex-wrap gap-1.5">
                                       <button
                                         onClick={() => setSuggestionAsPrimary(sug)}
-                                        className="flex items-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1 text-[9px] font-semibold text-violet-700 transition hover:bg-violet-100"
+                                        disabled={bothEndpointsSet}
+                                        title={bothEndpointsSet ? "No additional points can be added once Point A and Point B are set" : undefined}
+                                        className="flex items-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1 text-[9px] font-semibold text-violet-700 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-40"
                                       >
                                         <Check size={10} /> Set as Route 1
                                       </button>
                                       <button
                                         onClick={() => addSuggestionAsRoute(sug)}
-                                        className="flex items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1 text-[9px] font-semibold text-teal-700 transition hover:bg-teal-100"
+                                        disabled={bothEndpointsSet}
+                                        title={bothEndpointsSet ? "No additional points can be added once Point A and Point B are set" : undefined}
+                                        className="flex items-center gap-1 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1 text-[9px] font-semibold text-teal-700 transition hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-40"
                                       >
                                         <Plus size={10} /> Add as Route {nextNum}
                                       </button>
@@ -1034,11 +1123,18 @@ export default function PatrolConfiguration({
                                       key={p.id}
                                       point={p}
                                       index={p.kind === "intermediate" ? Number(p.label.replace("CP", "")) : i + 1}
-                                      onChange={(patch) =>
+                                      onChange={(patch) => {
                                         updateDraft({
                                           points: draft.points.map((x) => (x.id === p.id ? { ...x, ...patch } : x)),
-                                        })
-                                      }
+                                        });
+                                        if (
+                                          (p.kind === "start" || p.kind === "end") &&
+                                          patch.address !== undefined &&
+                                          patch.address !== p.address
+                                        ) {
+                                          scheduleAddressSync(p.id, patch.address);
+                                        }
+                                      }}
                                       onRemove={() => updateDraft({ points: relabelIntermediates(draft.points.filter((x) => x.id !== p.id)) })}
                                     />
                                   ))}
