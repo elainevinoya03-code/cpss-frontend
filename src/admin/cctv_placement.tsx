@@ -2141,7 +2141,7 @@ export default function CctvPlacement() {
                 className={`${STYLES.primaryBtn} w-full disabled:opacity-60`}
               >
                 {savingRegistration ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}
-                {savingRegistration ? "Saving to database…" : "Register &amp; Assign Camera"}
+                {savingRegistration ? "Saving to database…" : "Register & Assign Camera"}
               </button>
             </div>
 
