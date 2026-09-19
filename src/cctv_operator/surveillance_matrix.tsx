@@ -38,6 +38,14 @@ const DEDUP_MS = 5 * 60 * 1000;
 const STORAGE_TOTAL_GB = 2000;
 const STORAGE_START_GB = 1680;
 
+// Stream connection policy — the registered backend feed (/video_feed) is the
+// only playback source; the RTSP URL is never hardcoded here. Because a dead
+// RTSP source previously left <img> hanging forever on "Connecting...", every
+// cell gives up after CONNECT_TIMEOUT_MS and reports Offline/Failed instead.
+const CONNECT_TIMEOUT_MS = 12000;
+const STREAM_RETRY_DELAY_MS = 3000;
+const MAX_STREAM_RETRIES = 3;
+
 type EventCategory =
   | "Suspicious Activity"
   | "Unusual Gathering"
@@ -414,9 +422,11 @@ interface CameraCellProps {
   onTag: () => void;
   onReportFault: () => void;
   onToggleFullscreen: () => void;
+  onStreamLive?: (id: string) => void;
+  onStreamFailed?: (id: string) => void;
 }
 
-function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feedRef, onOpen, onTag, onReportFault, onToggleFullscreen }: CameraCellProps) {
+function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feedRef, onOpen, onTag, onReportFault, onToggleFullscreen, onStreamLive, onStreamFailed }: CameraCellProps) {
   const q = effectiveQuality(cam, mode);
   const isDowngraded = mode === "auto" && cam.signalPct < 50;
   const feedHeight = gridSize === 1 ? "h-[560px]" : gridSize === 2 ? "h-[420px]" : "h-80";
@@ -424,17 +434,67 @@ function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feed
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const [retries, setRetries] = useState(0);
+  const failedRef = useRef(false);
 
   const videoUrl = cam.feedUrl ?? null;
 
-  // Handle auto-retry on error without double-loading the stream
+  // Reset per-stream state whenever the assigned camera/feed changes.
   useEffect(() => {
-    if (imageError && videoUrl && !isOffline) {
+    setImageLoaded(false);
+    setImageError(false);
+    setRetryKey(0);
+    setRetries(0);
+    failedRef.current = false;
+  }, [cam.id, videoUrl]);
+
+  // Fail fast: if the MJPEG stream neither loads nor errors within the
+  // timeout (backend hanging, camera offline), stop "Connecting..." and show
+  // Connection Failed instead of spinning forever.
+  useEffect(() => {
+    if (!videoUrl || isOffline || imageLoaded || imageError) return;
+    const t = setTimeout(() => {
+      setImageError(true);
+      setImageLoaded(false);
+    }, CONNECT_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [videoUrl, isOffline, imageLoaded, imageError, retryKey]);
+
+  // Notify parent of live/failure transitions so the grid status reflects
+  // reality (Online on first frame, Offline after retries exhausted).
+  useEffect(() => {
+    if (imageLoaded) {
+      failedRef.current = false;
+      setRetries(0);
+      onStreamLive?.(cam.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageLoaded, cam.id]);
+
+  useEffect(() => {
+    if (imageError && !isOffline && !failedRef.current) {
+      setRetries((r) => {
+        const next = r + 1;
+        if (next >= MAX_STREAM_RETRIES) {
+          failedRef.current = true;
+          onStreamFailed?.(cam.id);
+        }
+        return next;
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageError, cam.id, isOffline]);
+
+  // Handle auto-retry on error without double-loading the stream.
+  // Retries stop once the failure budget is exhausted — the cell then shows
+  // Offline/Connection Failed and waits for reconnect instead of spinning.
+  useEffect(() => {
+    if (imageError && videoUrl && !isOffline && !failedRef.current) {
       const retryTimer = setTimeout(() => {
         setImageError(false);
         setImageLoaded(false);
         setRetryKey((prev) => prev + 1);
-      }, 3000);
+      }, STREAM_RETRY_DELAY_MS);
       return () => clearTimeout(retryTimer);
     }
   }, [imageError, videoUrl, isOffline]);
@@ -467,7 +527,7 @@ function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feed
                     <div className="flex h-full flex-col items-center justify-center bg-stone-900">
                       <WifiOff size={18} className="mb-1.5 text-rose-500" />
                       <p className="text-[10px] font-medium text-stone-500">Connection Failed</p>
-                      <p className="text-[8px] text-stone-600">Retrying...</p>
+                      <p className="text-[8px] text-stone-600">{retries >= MAX_STREAM_RETRIES ? "Camera offline — waiting for reconnect" : "Retrying..."}</p>
                     </div>
                   )}
                   <img
@@ -998,48 +1058,38 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
 
   const videoUrl = camera.feedUrl ?? null;
 
+  // Fail fast + bounded retries: never stay on "Connecting..." forever.
+  // If the backend has no live frames it now returns 503 quickly, which lands
+  // here as onError; a hanging stream trips the timeout below instead.
+  useEffect(() => {
+    if (!videoUrl || isOffline) return;
+    setImageLoaded(false);
+    setImageError(false);
+    const t = setTimeout(() => {
+      setImageError((prev) => {
+        if (!prev) console.error(`Camera feed connect timeout: ${videoUrl}`);
+        return true;
+      });
+    }, CONNECT_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [videoUrl, isOffline]);
+
   // Preload the image when component mounts
   useEffect(() => {
     if (videoUrl && !isOffline) {
-      setImageLoaded(false);
-      setImageError(false);
-      
       const img = new Image();
       img.src = videoUrl;
-      
+
       img.onload = () => {
         setImageLoaded(true);
         setImageError(false);
       };
-      
+
       img.onerror = () => {
         setImageError(true);
         console.error(`Failed to load camera feed: ${videoUrl}`);
-        
-        // Auto-retry after 3 seconds
-        const retryTimer = setTimeout(() => {
-          const retryImg = new Image();
-          retryImg.src = videoUrl;
-          retryImg.onload = () => {
-            setImageLoaded(true);
-            setImageError(false);
-          };
-          retryImg.onerror = () => {
-            // Retry again after 5 seconds
-            setTimeout(() => {
-              const finalRetry = new Image();
-              finalRetry.src = videoUrl;
-              finalRetry.onload = () => {
-                setImageLoaded(true);
-                setImageError(false);
-              };
-            }, 5000);
-          };
-        }, 3000);
-        
-        return () => clearTimeout(retryTimer);
       };
-      
+
       return () => {
         img.onload = null;
         img.onerror = null;
@@ -1404,23 +1454,17 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
     return () => clearInterval(t);
   }, []);
 
-  useEffect(() => {
-    const t = setInterval(() => {
-      setCameras((prev) =>
-        prev.map((c) => {
-          if (c.status === "offline") return c;
-          const jitter = Math.floor(Math.random() * 9) - 4;
-          const next = Math.max(8, Math.min(100, c.signalPct + jitter));
-          return { ...c, signalPct: next, status: next < 50 ? "degraded" : "online" };
-        })
-      );
-    }, 4000);
-    return () => clearInterval(t);
-  }, []);
+  // Backend is the single source of truth for Online/Offline — no synthetic
+  // signal jitter here (it used to flip online<->degraded randomly and fight
+  // the real status). Signal bars come from backend latency via toCameraFeed.
 
   // Load only the cameras that completed registration/verification in
   // cctv_placement.tsx. The backend is the single source of truth, so records
   // are never hardcoded here and only approved (online/offline) cameras show.
+  // The registered RTSP configuration (ip/port/path from /api/cctv/cameras
+  // matched against /api/cctv/live) is picked up automatically — no manual
+  // RTSP URL entry, nothing hardcoded in this file.
+  const reloadCamerasRef = useRef<() => void>(() => {});
   useEffect(() => {
     let cancelled = false;
 
@@ -1439,13 +1483,25 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
         if (cancelled) return;
 
         const feeds = rows.filter(isApprovedCamera).map((r) => toCameraFeed(r, liveIp)).filter((f) => f.id);
-        setCameras(feeds);
+        setCameras((prev) => {
+          // Preserve locally-observed stream failures (marked offline after
+          // retries) until the backend itself reports online again — this
+          // stops the grid flapping back to "Connecting..." on every poll
+          // while the RTSP source is still dead.
+          const failedIds = new Set(prev.filter((c) => c.status === "offline").map((c) => c.id));
+          return feeds.map((f) =>
+            failedIds.has(f.id) && f.status === "online" && !f.feedUrl
+              ? { ...f, status: "offline" as const, signalPct: 0, feedUrl: undefined }
+              : f
+          );
+        });
         setCellIds((prev) => resizeCellIds(prev, gridRef.current * gridRef.current, feeds));
       } catch {
         // Backend unreachable — keep whatever was previously loaded.
       }
     }
 
+    reloadCamerasRef.current = loadCameras;
     void loadCameras();
     const timer = window.setInterval(loadCameras, 20000);
     window.addEventListener("focus", loadCameras);
@@ -1453,6 +1509,36 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
       cancelled = true;
       window.clearInterval(timer);
       window.removeEventListener("focus", loadCameras);
+    };
+  }, []);
+
+  // Reconcile grid status with the backend stream-health probe so a camera
+  // that drops (or recovers) mid-session flips Offline->Online without a page
+  // reload. Only touches cameras that have a registered live feed.
+  useEffect(() => {
+    let cancelled = false;
+    async function checkHealth() {
+      try {
+        const h = await cctvFetch<{ alive?: boolean }>("/api/cctv/stream-health");
+        if (cancelled) return;
+        if (h?.alive === false) {
+          setCameras((prev) =>
+            prev.map((c) =>
+              c.feedUrl ? { ...c, status: "offline" as const, signalPct: 0 } : c
+            )
+          );
+        } else if (h?.alive === true) {
+          // Stream recovered — re-pull the registry so feedUrl/status restore.
+          reloadCamerasRef.current();
+        }
+      } catch {
+        /* backend unreachable — leave grid as-is */
+      }
+    }
+    const timer = window.setInterval(checkHealth, 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
     };
   }, []);
 
@@ -1601,19 +1687,30 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
     setCellIds((prev) => resizeCellIds(prev, n * n, cameras));
   }
 
+  function handleStreamLive(id: string) {
+    setCameras((prev) => prev.map((c) => (c.id === id && c.status !== "online" ? { ...c, status: "online" as const } : c)));
+  }
+
+  function handleStreamFailed(id: string) {
+    setCameras((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, status: "offline" as const, signalPct: 0 } : c))
+    );
+  }
+
   function reconnectStreams() {
     if (reconnecting) return;
     setReconnecting(true);
-    flash("Reconnecting all streams — refreshing live feeds");
+    flash("Reconnecting all streams — checking registered camera feeds");
+    // Re-pull the registered configuration + liveness from the backend
+    // instead of faking Online locally. Cameras whose RTSP source is truly
+    // back will regain feedUrl and show the live stream; dead ones stay
+    // Offline with Connection Failed rather than hanging on Connecting.
+    reloadCamerasRef.current();
     setTimeout(() => {
-      setCameras((prev) =>
-        prev.map((c) =>
-          c.status === "offline" ? c : { ...c, status: "online", signalPct: 70 + Math.floor(Math.random() * 26) }
-        )
-      );
+      reloadCamerasRef.current();
       setReconnecting(false);
-      flash("All streams reconnected — live feeds restored");
-    }, 1400);
+      flash("Reconnect check finished — live cameras show Online, unreachable ones show Offline");
+    }, 3000);
   }
 
   function toggleFullscreen(index: number) {
@@ -1745,6 +1842,8 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
                   onTag={() => setTagCam(cam)}
                   onReportFault={() => openFaultForCamera(cam)}
                   onToggleFullscreen={() => toggleFullscreen(i)}
+                  onStreamLive={handleStreamLive}
+                  onStreamFailed={handleStreamFailed}
                 />
               ) : (
                 <div key={i} className="overflow-hidden rounded-xl border border-dashed border-stone-300 bg-white shadow-sm">
