@@ -38,10 +38,11 @@ const DEDUP_MS = 5 * 60 * 1000;
 const STORAGE_TOTAL_GB = 2000;
 const STORAGE_START_GB = 1680;
 
-// Stream connection policy — the registered backend feed (/video_feed) is the
-// only playback source; the RTSP URL is never hardcoded here. Because a dead
-// RTSP source previously left <img> hanging forever on "Connecting...", every
-// cell gives up after CONNECT_TIMEOUT_MS and reports Offline/Failed instead.
+// Stream connection policy — the browser plays ONLY the public MediaMTX HLS
+// URL supplied by the backend (/api/cctv/streams). RTSP credentials, port 554
+// and the private camera IP never reach this file and are never fetched here.
+// Local-dev MJPEG (/video_feed) applies only as a same-network fallback.
+// Every cell gives up after CONNECT_TIMEOUT_MS and reports Offline/Failed.
 const CONNECT_TIMEOUT_MS = 12000;
 const STREAM_RETRY_DELAY_MS = 3000;
 const MAX_STREAM_RETRIES = 3;
@@ -67,8 +68,16 @@ interface CameraFeed {
   nativeProtocol: "RTSP" | "HLS";
   status: "online" | "degraded" | "offline";
   signalPct: number;
+  /** Display label only (never fetched, never contains credentials). */
   rtspUrl: string;
+  /** MediaMTX gateway path, e.g. cctv-001. Empty when unknown. */
+  mediamtxPath: string;
+  /** Public gateway HLS playlist. Empty when the gateway is not configured
+   *  (local-dev MJPEG fallback applies, public viewers see Offline). */
   hlsUrl: string;
+  /** Local-dev MJPEG fallback served by the backend. Undefined publicly. */
+  mjpegUrl?: string;
+  /** Legacy alias: prefer hlsUrl, fall back to mjpegUrl. */
   feedUrl?: string;
 }
 
@@ -268,6 +277,25 @@ interface ApiCameraRow {
   status?: string;
   enabled?: boolean;
   latency?: string;
+  mediamtx_path?: string;
+  hls_url?: string;
+  webrtc_url?: string;
+  gateway_configured?: boolean;
+}
+
+/* Playback descriptors from GET /api/cctv/streams — the ONLY stream source
+ * the browser may consume. No credentials, no private IPs, no rtsp://. */
+interface ApiStreamRow {
+  camera_id?: string;
+  name?: string;
+  status?: string;
+  mediamtx_path?: string;
+  hls_url?: string;
+  gateway_configured?: boolean;
+}
+
+async function fetchCctvStreams(): Promise<ApiStreamRow[]> {
+  return cctvFetch<ApiStreamRow[]>("/api/cctv/streams");
 }
 
 function signalFromLatency(latency: string): number {
@@ -289,7 +317,11 @@ function buildStreamUrl(protocol: string, ip: string, port: string, streamPath: 
   return `${proto}://${host}:${p}${safePath}`;
 }
 
-function toCameraFeed(row: ApiCameraRow, liveIp: string): CameraFeed {
+function toCameraFeed(
+  row: ApiCameraRow,
+  liveIp: string,
+  streamById: Map<string, ApiStreamRow> = new Map()
+): CameraFeed {
   const rawStatus = String(row.status ?? "");
   const status: CameraFeed["status"] = rawStatus === "online" ? "online" : "offline";
   const protocol = String(row.stream_protocol ?? "RTSP").toUpperCase();
@@ -297,9 +329,19 @@ function toCameraFeed(row: ApiCameraRow, liveIp: string): CameraFeed {
   const ip = String(row.ip ?? "");
   const port = String(row.port ?? "554");
   const streamPath = String(row.stream_path ?? "/stream1");
+  const id = String(row.id ?? "");
+  // Gateway playback (public): per-row fields win, /api/cctv/streams map fills
+  // gaps for rows fetched before migration 025. Never contains credentials.
+  const stream = streamById.get(id);
+  const mediamtxPath = String(row.mediamtx_path ?? stream?.mediamtx_path ?? "");
+  const hlsUrl = String(row.hls_url ?? stream?.hls_url ?? "");
+  // Local-dev MJPEG fallback only: the backend transcodes the LAN camera for
+  // same-network developers. Public deployments have no liveIp match, so this
+  // stays undefined there and the cell shows Offline instead of hanging.
   const isLive = status === "online" && liveIp !== "" && ip === liveIp;
+  const mjpegUrl = isLive ? `${API_BASE}/video_feed` : undefined;
   return {
-    id: String(row.id ?? ""),
+    id,
     name: String(row.name ?? ""),
     location: String(row.address ?? "") || String(row.assignment ?? "") || String(row.name ?? ""),
     purok: String(row.purok ?? ""),
@@ -308,8 +350,10 @@ function toCameraFeed(row: ApiCameraRow, liveIp: string): CameraFeed {
     status,
     signalPct: status === "online" ? signalFromLatency(String(row.latency ?? "")) : 0,
     rtspUrl: buildStreamUrl(nativeProtocol, ip, port, streamPath),
-    hlsUrl: `${API_BASE}/video_feed`,
-    feedUrl: isLive ? `${API_BASE}/video_feed` : undefined,
+    mediamtxPath,
+    hlsUrl,
+    mjpegUrl,
+    feedUrl: hlsUrl || mjpegUrl,
   };
 }
 
@@ -354,27 +398,6 @@ function effectiveQuality(cam: CameraFeed, mode: QualityMode) {
   return signalQuality(cam.signalPct);
 }
 
-function LiveFeedFrame() {
-  return (
-    <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900">
-      <div className="absolute right-6 top-4 h-8 w-8 rounded-full bg-stone-600/80" />
-      <div className="absolute left-[8%] bottom-0 h-24 w-16 rounded-t bg-stone-700/90" />
-      <div className="absolute left-[16%] bottom-0 h-16 w-10 rounded-t bg-stone-700/70" />
-      <div className="absolute right-[10%] bottom-0 h-20 w-24 rounded-t bg-stone-700/80" />
-      <div className="absolute inset-x-0 bottom-0 h-11 bg-stone-700" />
-      <div className="absolute bottom-2 left-[36%] h-9 w-20 rounded bg-stone-500 shadow-lg" />
-      <div className="absolute bottom-2 left-[58%]">
-        <div className="mx-auto h-3 w-3 rounded-full bg-stone-400" />
-        <div className="mx-auto h-6 w-3.5 rounded-sm bg-stone-400" />
-      </div>
-      <div className="absolute bottom-2 left-[66%]">
-        <div className="mx-auto h-3 w-3 rounded-full bg-stone-400" />
-        <div className="mx-auto h-6 w-3.5 rounded-sm bg-stone-400" />
-      </div>
-    </div>
-  );
-}
-
 function resizeCellIds(prev: (string | null)[], nextCells: number, available: CameraFeed[]): (string | null)[] {
   const next: (string | null)[] = new Array(nextCells).fill(null);
   const availableIds = new Set(available.map((c) => c.id));
@@ -403,6 +426,97 @@ function ReconnectOverlay() {
       <Loader2 size={20} className="mb-2 animate-spin text-white" />
       <p className="text-[11px] font-semibold text-white">Reconnecting stream...</p>
     </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  HlsVideo — gateway playback (Tapo -> MediaMTX -> HLS -> browser)           */
+/*                                                                            */
+/*  The browser ONLY loads the public HLS playlist supplied by the backend     */
+/*  (/api/cctv/streams). It never sees RTSP credentials, port 554, or the     */
+/*  private camera IP. Safari plays natively; other browsers use hls.js.      */
+/* -------------------------------------------------------------------------- */
+
+function HlsVideo({ src, retryKey, onLive, onError }: { src: string; retryKey: number; onLive: () => void; onError: () => void }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const liveRef = useRef(false);
+  liveRef.current = false;
+  const onLiveRef = useRef(onLive);
+  onLiveRef.current = onLive;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !src) return;
+    let hls: { destroy: () => void } | null = null;
+    let cancelled = false;
+    // Fail fast so the cell leaves "Connecting..." even if the playlist hangs.
+    const timer = setTimeout(() => {
+      if (!cancelled && video.readyState < 3) onErrorRef.current();
+    }, CONNECT_TIMEOUT_MS);
+
+    const handlePlaying = () => {
+      clearTimeout(timer);
+      if (!cancelled) onLiveRef.current();
+    };
+    const handleError = () => {
+      clearTimeout(timer);
+      if (!cancelled) onErrorRef.current();
+    };
+    video.addEventListener("playing", handlePlaying);
+    video.addEventListener("error", handleError);
+
+    // Safari / iOS play HLS natively without hls.js.
+    if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = src;
+      video.play().catch(() => {});
+    } else {
+      import("hls.js")
+        .then(({ default: Hls }) => {
+          if (cancelled || !videoRef.current) return;
+          if (Hls.isSupported()) {
+            const instance = new Hls({ maxBufferLength: 30, liveSyncDurationCount: 3 });
+            hls = instance;
+            instance.on(Hls.Events.ERROR, (_e, data) => {
+              if (data?.fatal) handleError();
+            });
+            instance.loadSource(src);
+            instance.attachMedia(video);
+            video.play().catch(() => {});
+          } else {
+            // Last resort: let the browser try the URL directly.
+            video.src = src;
+            video.play().catch(() => {});
+          }
+        })
+        .catch(handleError);
+    }
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      video.removeEventListener("playing", handlePlaying);
+      video.removeEventListener("error", handleError);
+      try {
+        hls?.destroy();
+      } catch {
+        /* ignore teardown errors */
+      }
+      video.removeAttribute("src");
+      video.load();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src, retryKey]);
+
+  return (
+    <video
+      ref={videoRef}
+      className="h-full w-full object-cover"
+      muted
+      playsInline
+      autoPlay
+      controls={false}
+    />
   );
 }
 
@@ -437,7 +551,11 @@ function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feed
   const [retries, setRetries] = useState(0);
   const failedRef = useRef(false);
 
-  const videoUrl = cam.feedUrl ?? null;
+  // Playback priority: public MediaMTX HLS gateway first; local-dev backend
+  // MJPEG transcode only as a fallback. The browser never touches rtsp://.
+  const hlsSrc = cam.hlsUrl || "";
+  const mjpegSrc = !hlsSrc ? (cam.mjpegUrl ?? cam.feedUrl ?? null) : null;
+  const videoUrl = hlsSrc || mjpegSrc;
 
   // Reset per-stream state whenever the assigned camera/feed changes.
   useEffect(() => {
@@ -515,7 +633,38 @@ function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feed
         ) : (
           <>
             <div className="absolute inset-0">
-              {videoUrl ? (
+              {hlsSrc ? (
+                <>
+                  {!imageLoaded && !imageError && (
+                    <div className="flex h-full flex-col items-center justify-center bg-stone-900">
+                      <Loader2 size={18} className="mb-1.5 animate-spin text-stone-500" />
+                      <p className="text-[10px] font-medium text-stone-500">Connecting...</p>
+                    </div>
+                  )}
+                  {imageError && (
+                    <div className="flex h-full flex-col items-center justify-center bg-stone-900">
+                      <WifiOff size={18} className="mb-1.5 text-rose-500" />
+                      <p className="text-[10px] font-medium text-stone-500">Connection Failed</p>
+                      <p className="text-[8px] text-stone-600">{retries >= MAX_STREAM_RETRIES ? "Camera offline — waiting for reconnect" : "Retrying..."}</p>
+                    </div>
+                  )}
+                  <div className={(!imageLoaded || imageError) ? "hidden" : "h-full w-full"}>
+                    <HlsVideo
+                      key={`${cam.id}-${retryKey}`}
+                      src={hlsSrc}
+                      retryKey={retryKey}
+                      onLive={() => {
+                        setImageLoaded(true);
+                        setImageError(false);
+                      }}
+                      onError={() => {
+                        setImageError(true);
+                        setImageLoaded(false);
+                      }}
+                    />
+                  </div>
+                </>
+              ) : mjpegSrc ? (
                 <>
                   {!imageLoaded && !imageError && (
                     <div className="flex h-full flex-col items-center justify-center bg-stone-900">
@@ -531,7 +680,7 @@ function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feed
                     </div>
                   )}
                   <img
-                    src={`${videoUrl}?retry=${retryKey}`}
+                    src={`${mjpegSrc}?retry=${retryKey}`}
                     alt={cam.name}
                     className={`h-full w-full object-cover ${(!imageLoaded || imageError) ? 'hidden' : ''}`}
                     onLoad={() => {
@@ -545,7 +694,11 @@ function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feed
                   />
                 </>
               ) : (
-                <LiveFeedFrame />
+                <div className="flex h-full flex-col items-center justify-center bg-stone-900">
+                  <WifiOff size={18} className="mb-1.5 text-stone-600" />
+                  <p className="text-[10px] font-medium text-stone-500">Stream Unavailable</p>
+                  <p className="text-[8px] text-stone-600">Gateway not configured — camera registered, waiting for stream</p>
+                </div>
               )}
             </div>
             {reconnecting && <ReconnectOverlay />}
@@ -578,7 +731,7 @@ function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feed
                       {cam.location} · {cam.purok}
                     </p>
                     <p className="mt-1 max-w-md truncate font-mono text-[9px] text-white/60">
-                      {cam.nativeProtocol === "RTSP" ? cam.rtspUrl : cam.hlsUrl}
+                      {cam.mediamtxPath ? `MediaMTX · ${cam.mediamtxPath} · HLS` : cam.rtspUrl}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
@@ -617,13 +770,17 @@ function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feed
                       {q.label}
                     </span>
                   )}
-                  {cam.nativeProtocol === "RTSP" ? (
+                  {cam.hlsUrl ? (
                     <span className="rounded-md bg-violet-500/80 px-1.5 py-0.5 text-[9px] font-semibold text-white">
-                      FFmpeg → HLS
+                      MediaMTX → HLS
+                    </span>
+                  ) : cam.mjpegUrl ? (
+                    <span className="rounded-md bg-sky-500/80 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                      MJPEG fallback
                     </span>
                   ) : (
-                    <span className="rounded-md bg-sky-500/80 px-1.5 py-0.5 text-[9px] font-semibold text-white">
-                      Native HLS
+                    <span className="rounded-md bg-stone-500/80 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                      No stream
                     </span>
                   )}
                 </div>
@@ -634,7 +791,7 @@ function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feed
                   </div>
                 )}
                 <div className="absolute bottom-2 left-2 max-w-[70%] truncate rounded-md bg-black/60 px-1.5 py-0.5 font-mono text-[8px] text-white/80">
-                  {cam.nativeProtocol === "RTSP" ? cam.rtspUrl : cam.hlsUrl}
+                  {cam.mediamtxPath ? `MediaMTX · ${cam.mediamtxPath} · HLS` : cam.rtspUrl}
                 </div>
                 <div className="absolute bottom-2 right-2 flex items-center gap-1">
                   <button
@@ -687,7 +844,7 @@ function CameraCell({ cam, gridSize, mode, now, reconnecting, isFullscreen, feed
           {isOffline ? (
             <span>Last seen {new Date(Date.now() - 3600000).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}</span>
           ) : (
-            <span>Connected · {cam.nativeProtocol === "RTSP" ? "RTSP ingest" : "Native HLS"} · IP {cam.ip}</span>
+            <span>Connected · {cam.hlsUrl ? `MediaMTX HLS · ${cam.mediamtxPath}` : "MJPEG fallback · local network"}</span>
           )}
         </div>
       </div>
@@ -1056,11 +1213,13 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  const videoUrl = camera.feedUrl ?? null;
+  const hlsSrc = camera.hlsUrl || "";
+  const mjpegSrc = !hlsSrc ? (camera.mjpegUrl ?? camera.feedUrl ?? null) : null;
+  const videoUrl = hlsSrc || mjpegSrc;
 
   // Fail fast + bounded retries: never stay on "Connecting..." forever.
-  // If the backend has no live frames it now returns 503 quickly, which lands
-  // here as onError; a hanging stream trips the timeout below instead.
+  // Gateway HLS errors surface via the video element; a hanging playlist
+  // trips the timeout below instead. MJPEG fallback preloads as before.
   useEffect(() => {
     if (!videoUrl || isOffline) return;
     setImageLoaded(false);
@@ -1074,11 +1233,11 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
     return () => clearTimeout(t);
   }, [videoUrl, isOffline]);
 
-  // Preload the image when component mounts
+  // Preload the MJPEG fallback when component mounts (HLS uses <video> below).
   useEffect(() => {
-    if (videoUrl && !isOffline) {
+    if (mjpegSrc && !isOffline) {
       const img = new Image();
-      img.src = videoUrl;
+      img.src = mjpegSrc;
 
       img.onload = () => {
         setImageLoaded(true);
@@ -1087,7 +1246,7 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
 
       img.onerror = () => {
         setImageError(true);
-        console.error(`Failed to load camera feed: ${videoUrl}`);
+        console.error(`Failed to load camera feed: ${mjpegSrc}`);
       };
 
       return () => {
@@ -1095,7 +1254,7 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
         img.onerror = null;
       };
     }
-  }, [videoUrl, isOffline]);
+  }, [mjpegSrc, isOffline]);
 
   return (
     <Modal
@@ -1136,7 +1295,38 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
           </div>
         ) : (
           <>
-            {videoUrl ? (
+            {hlsSrc ? (
+              <>
+                {!imageLoaded && !imageError && (
+                  <div className="flex h-full flex-col items-center justify-center bg-stone-900">
+                    <Loader2 size={24} className="mb-2 animate-spin text-stone-500" />
+                    <p className="text-[12px] font-medium text-stone-500">Connecting...</p>
+                  </div>
+                )}
+                {imageError && (
+                  <div className="flex h-full flex-col items-center justify-center bg-stone-900">
+                    <WifiOff size={24} className="mb-2 text-rose-500" />
+                    <p className="text-[12px] font-medium text-stone-500">Connection Failed</p>
+                    <p className="text-[10px] text-stone-600">Camera offline — waiting for reconnect</p>
+                  </div>
+                )}
+                <div className={(!imageLoaded || imageError) ? "hidden" : "h-full w-full"}>
+                  <HlsVideo
+                    key={camera.id}
+                    src={hlsSrc}
+                    retryKey={0}
+                    onLive={() => {
+                      setImageLoaded(true);
+                      setImageError(false);
+                    }}
+                    onError={() => {
+                      setImageError(true);
+                      setImageLoaded(false);
+                    }}
+                  />
+                </div>
+              </>
+            ) : mjpegSrc ? (
               <>
                 {!imageLoaded && !imageError && (
                   <div className="flex h-full flex-col items-center justify-center bg-stone-900">
@@ -1153,7 +1343,7 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
                 )}
                 {imageLoaded && (
                   <img
-                    src={videoUrl}
+                    src={mjpegSrc}
                     alt={camera.name}
                     className="h-full w-full object-cover"
                     onLoad={() => setImageLoaded(true)}
@@ -1162,7 +1352,11 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
                 )}
               </>
             ) : (
-              <LiveFeedFrame />
+              <div className="flex h-full flex-col items-center justify-center bg-stone-900">
+                <WifiOff size={24} className="mb-2 text-stone-600" />
+                <p className="text-[12px] font-medium text-stone-500">Stream Unavailable</p>
+                <p className="text-[10px] text-stone-600">Gateway not configured — camera registered, waiting for stream</p>
+              </div>
             )}
             <div className="absolute left-3 top-3 flex items-center gap-2">
               <span className="flex items-center gap-1.5 rounded-md bg-black/60 px-2 py-1 text-[10px] font-semibold text-white">
@@ -1185,7 +1379,9 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
             <MapPin size={10} className="text-[#15803D]" />
             {camera.location} · {camera.purok}
           </p>
-          <p className="text-[9px] text-stone-400">IP {camera.ip}</p>
+          <p className="text-[9px] text-stone-400">
+            {camera.mediamtxPath ? `MediaMTX · ${camera.mediamtxPath}` : "Gateway pending"}
+          </p>
         </div>
         <div className="rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5">
           <p className="text-[9px] font-semibold tracking-wider text-stone-400">SIGNAL QUALITY</p>
@@ -1203,19 +1399,21 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
           </div>
         </div>
         <div className="rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5">
-          <p className="text-[9px] font-semibold tracking-wider text-stone-400">SOURCE (PROTOCOL)</p>
-          <p className="mt-0.5 truncate font-mono text-[10px] text-stone-700">{camera.rtspUrl}</p>
-          <p className="text-[9px] text-stone-400">RTSP ingest</p>
+          <p className="text-[9px] font-semibold tracking-wider text-stone-400">SOURCE (GATEWAY)</p>
+          <p className="mt-0.5 truncate font-mono text-[10px] text-stone-700">
+            {camera.mediamtxPath ? `MediaMTX · ${camera.mediamtxPath}` : "pending"}
+          </p>
+          <p className="text-[9px] text-stone-400">Tapo RTSP stays on the LAN — never in the browser</p>
         </div>
         <div className="rounded-lg border border-stone-200 bg-stone-50 px-3.5 py-2.5">
           <p className="text-[9px] font-semibold tracking-wider text-stone-400">PLAYBACK (BROWSER)</p>
-          <p className="mt-0.5 truncate font-mono text-[10px] text-stone-700">{camera.hlsUrl}</p>
+          <p className="mt-0.5 truncate font-mono text-[10px] text-stone-700">{camera.hlsUrl || "not configured"}</p>
           <p className="text-[9px] text-stone-400">
             HLS ·{" "}
-            {camera.nativeProtocol === "RTSP" ? (
-              <span className="font-semibold text-violet-600">FFmpeg transcoded</span>
+            {camera.hlsUrl ? (
+              <span className="font-semibold text-violet-600">MediaMTX gateway</span>
             ) : (
-              <span className="font-semibold text-sky-600">native</span>
+              <span className="font-semibold text-stone-500">waiting for gateway</span>
             )}
           </p>
         </div>
@@ -1224,11 +1422,9 @@ function StreamFocusModal({ camera, mode, now, onTag, onReportFault, onClose }: 
       <div className="mt-3 flex items-start gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5">
         <Info size={12} className="mt-0.5 shrink-0 text-stone-400" />
         <p className="text-[10px] leading-relaxed text-stone-500">
-          {camera.nativeProtocol === "RTSP" ? (
-            <>This camera outputs RTSP only. The backend uses FFmpeg to transcode to HLS for web playback.</>
-          ) : (
-            <>This camera natively outputs HLS — no server-side transcoding required.</>
-          )}{" "}
+          Tapo TC70 streams RTSP on the barangay LAN to the on-site MediaMTX
+          gateway, which publishes public HLS — the browser never touches the
+          camera address or credentials.{" "}
           Adaptive quality control automatically downgrades the stream under degraded network conditions.
         </p>
       </div>
@@ -1380,7 +1576,7 @@ function FaultModal({
       </select>
       {cam && (
         <p className="-mt-3 mb-4 text-[9px] text-stone-400">
-          Signal {cam.signalPct}% · {cam.nativeProtocol === "RTSP" ? "RTSP ingest" : "Native HLS"}
+          Signal {cam.signalPct}% · {cam.hlsUrl ? `MediaMTX HLS · ${cam.mediamtxPath}` : "MJPEG fallback"}
         </p>
       )}
 
@@ -1461,9 +1657,9 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
   // Load only the cameras that completed registration/verification in
   // cctv_placement.tsx. The backend is the single source of truth, so records
   // are never hardcoded here and only approved (online/offline) cameras show.
-  // The registered RTSP configuration (ip/port/path from /api/cctv/cameras
-  // matched against /api/cctv/live) is picked up automatically — no manual
-  // RTSP URL entry, nothing hardcoded in this file.
+  // Playback URLs come from GET /api/cctv/streams (MediaMTX gateway HLS) —
+  // the browser never sees RTSP credentials, port 554, or the private camera
+  // IP. /api/cctv/live is kept only as a local-dev MJPEG fallback hint.
   const reloadCamerasRef = useRef<() => void>(() => {});
   useEffect(() => {
     let cancelled = false;
@@ -1478,20 +1674,34 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
           const live = await cctvFetch<{ ip?: string }>("/api/cctv/live");
           liveIp = String(live?.ip ?? "");
         } catch {
-          // Live-feed metadata unavailable — cameras still load without a feed URL.
+          // Live-feed metadata unavailable — cameras still load without MJPEG.
+        }
+        let streamById = new Map<string, ApiStreamRow>();
+        try {
+          const streams = await fetchCctvStreams();
+          if (Array.isArray(streams)) {
+            streamById = new Map(
+              streams
+                .filter((s) => s && s.camera_id)
+                .map((s) => [String(s.camera_id), s])
+            );
+          }
+        } catch {
+          // Gateway registry unavailable — HLS stays empty, MJPEG fallback
+          // (local dev) or Stream Unavailable (public) applies per camera.
         }
         if (cancelled) return;
 
-        const feeds = rows.filter(isApprovedCamera).map((r) => toCameraFeed(r, liveIp)).filter((f) => f.id);
+        const feeds = rows.filter(isApprovedCamera).map((r) => toCameraFeed(r, liveIp, streamById)).filter((f) => f.id);
         setCameras((prev) => {
           // Preserve locally-observed stream failures (marked offline after
-          // retries) until the backend itself reports online again — this
-          // stops the grid flapping back to "Connecting..." on every poll
-          // while the RTSP source is still dead.
+          // retries) until a playable URL reappears — this stops the grid
+          // flapping back to "Connecting..." on every poll while the source
+          // is still dead.
           const failedIds = new Set(prev.filter((c) => c.status === "offline").map((c) => c.id));
           return feeds.map((f) =>
             failedIds.has(f.id) && f.status === "online" && !f.feedUrl
-              ? { ...f, status: "offline" as const, signalPct: 0, feedUrl: undefined }
+              ? { ...f, status: "offline" as const, signalPct: 0, feedUrl: undefined, mjpegUrl: undefined }
               : f
           );
         });
@@ -1793,11 +2003,11 @@ export default function SurveillanceMatrix({ operatorName = "CO-01" }: { operato
             <span className="text-[9px] font-semibold tracking-wider text-stone-400">PROTOCOLS:</span>
             <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-[9px] font-medium text-sky-700">
               <Wifi size={8} />
-              RTSP ingest
+              Tapo RTSP (LAN only)
             </span>
             <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[9px] font-medium text-violet-700">
               <Settings2 size={8} />
-              FFmpeg → HLS
+              MediaMTX → HLS
             </span>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-medium text-emerald-700">
               <Gauge size={8} />

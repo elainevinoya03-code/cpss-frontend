@@ -93,6 +93,10 @@ interface Camera {
   lng: string;
   credUser: string;
   credPass: string;
+  /** MediaMTX gateway path (CCTV-001 -> cctv-001). Server-derived, read-only. */
+  mediamtxPath?: string;
+  /** Public gateway HLS URL. Empty when the gateway is not configured. */
+  hlsUrl?: string;
 }
 
 interface EditForm {
@@ -583,6 +587,12 @@ function CameraDetailModal({
           </DetailRow>
           <DetailRow label="CONNECTION TYPE">{camera.connectionType}</DetailRow>
           <DetailRow label="STREAM PROTOCOL">{camera.streamProtocol}</DetailRow>
+          <DetailRow label="GATEWAY PATH (MEDIAMTX)" mono>
+            {camera.mediamtxPath || "auto on save"}
+          </DetailRow>
+          <DetailRow label="PLAYBACK (HLS)" mono>
+            {camera.hlsUrl || "gateway not configured"}
+          </DetailRow>
           <DetailRow label="CONNECTION STATUS">
             <StatusBadge status={camera.status} />
           </DetailRow>
@@ -853,6 +863,8 @@ function fromApiCamera(row: any): Camera {
     lng,
     credUser: row.cred_user ?? "",
     credPass: row.cred_pass ?? "",
+    mediamtxPath: row.mediamtx_path ?? "",
+    hlsUrl: row.hls_url ?? "",
   };
 }
 

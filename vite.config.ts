@@ -34,6 +34,13 @@ export default defineConfig(({ mode }) => {
           target: 'http://127.0.0.1:8000',
           changeOrigin: true,
         },
+        // Local-dev MediaMTX gateway (on-site host tunnels/ports).
+        // Production HLS URLs come from the backend /api/cctv/streams
+        // response as absolute URLs, so this proxy is dev-only.
+        '/hls': {
+          target: 'http://127.0.0.1:8888',
+          changeOrigin: true,
+        },
       },
     },
   }
